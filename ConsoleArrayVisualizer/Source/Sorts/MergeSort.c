@@ -1,0 +1,106 @@
+
+#include "Sorts.h"
+#include "malloc.h"
+
+void BIS_BinaryInsertion(isort_t* array, uintptr_t start, uintptr_t end);
+
+void IMS_merge(isort_t* c, isort_t* d, size_t lt, size_t md, size_t rt) {
+
+	// Merge c[lt:md] and c[md+1:rt] to d[lt:rt]
+	size_t i = lt;  // cursor for first segment
+	size_t j = md;  // cursor for second
+	size_t k = lt;  // cursor for result
+
+	// merge until i or j exits its segment
+	while ((i < md) && (j < rt)) {
+
+		if (c[i] <= c[j])
+			d[k++] = c[i++];
+		else
+			d[k++] = c[j++];
+
+	}
+
+	// take care of left overs
+	// tjr code: only one while loop actually runs
+	while (i < md)
+		d[k++] = c[i++];
+
+	while (j < rt)
+		d[k++] = c[j++];
+
+}
+
+/**
+* Perform one pass through the two arrays, invoking Merge() above
+*/
+void IMS_mergePass(isort_t* x, isort_t* y, size_t s, size_t n) {
+
+	// Merge adjacent segments of size s.
+	size_t i = 0;
+
+	// Merge two adjacent segments of size s
+	size_t s2 = s * 2;
+	while (i <= n - s2) {
+		IMS_merge(x, y, i, i + s, i + s2);
+		i += s2;
+	}
+
+	// fewer than 2s elements remain
+	if (i + s < n) {
+		IMS_merge(x, y, i, i + s, n);
+		return;
+	}
+
+	// copy last segment to y
+	for (size_t j = i; j < n; ++j)
+		y[j] = x[j];
+
+}
+
+//
+
+void IMS_iterativeMergeSort(isort_t* a, size_t n) {
+
+	if (n < 16) {
+		BIS_BinaryInsertion(a, 0, n);
+		return;
+	}
+
+	isort_t* b = malloc(n * sizeof(isort_t));
+
+	size_t s = 16; // segment size
+	size_t i;
+	for (i = 0; i < n - s; i += s)
+		BIS_BinaryInsertion(a, i, i + s);
+
+	BIS_BinaryInsertion(a, i, n);
+
+	isort_t* b2 = b;
+	while (s < n)
+	{
+		IMS_mergePass(a, b2, s, n); // merge from a to b
+		s += s;                    // double the segment size
+		PTR_SWAP(a, b2);
+
+		/*
+		if (s >= n)
+			break;
+
+		IMS_mergePass(b, a, s, n); // merge from b to a
+		s += s;                    // again, double the segment size
+		*/
+	}
+
+	free(b);
+
+}
+
+// Exports:
+
+void IterativeMergeSort(isort_t* array, uintptr_t n) {
+
+	if (n < 2) return;
+	IMS_iterativeMergeSort(array, n);
+
+}
