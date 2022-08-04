@@ -1,5 +1,7 @@
+
 #include "Sorts.h"
 #include "Utils.h"
+#include "ArrayRenderer.h"
 
 uint32_t sortsCount = 10;
 

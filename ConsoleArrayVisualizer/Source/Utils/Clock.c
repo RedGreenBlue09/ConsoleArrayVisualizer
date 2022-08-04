@@ -28,9 +28,9 @@ void sleep64(uint64_t time) {
 	// With clock64()
 	uint64_t target = clock64();
 	target += time * (CLOCK_PER_SEC64 / 1000000);
-	
+
 	// Spin waiting
-	while (clock64() <= time);
+	while (clock64() <= target);
 
 	// TODO: With WinAPI Sleep().
 	return;

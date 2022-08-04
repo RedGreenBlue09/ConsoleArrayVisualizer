@@ -1,5 +1,6 @@
 
 #include "Sorts.h"
+#include "ArrayRenderer.h"
 
 /*
 * ALGORITHM INFORMATION:

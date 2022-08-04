@@ -17,7 +17,7 @@ isort_t* rsCreateSortedArray(uintptr_t n) {
 		array[i] = (isort_t)(rand64() % n);
 
 	/* Sort */
-	NtdllQuickSort(array, n); // i trust this sort :)
+	//NtdllQuickSort(array, n); // i trust this sort :)
 
 	return array;
 }

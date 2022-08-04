@@ -33,10 +33,10 @@ void rsRunSort(SORT_INFO* si, isort_t* input, uintptr_t n);
 
 // Console.c
 
-void cnFillStr(HANDLE hBuffer, CHAR* str, USHORT wX, USHORT wY, COORD coordLocation);
-void cnFillChar(HANDLE hBuffer, CHAR ch, USHORT wX, USHORT wY, COORD coordLocation);
-void cnFillAttr(HANDLE hBuffer, WORD attr, USHORT wX, USHORT wY, COORD coordLocation);
-void cnFillAttrs(HANDLE hBuffer, WORD* attrs, USHORT wX, USHORT wY, COORD coordLocation);
+void cnFillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocation);
+void cnFillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation);
+void cnFillAttr(HANDLE hBuffer, WORD attr, SHORT wX, SHORT wY, COORD coordLocation);
+void cnFillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation);
 
 void cnWriteStr(HANDLE hBuffer, CHAR* str, COORD coordLocation, ULONG ulLen);
 void cnWriteChar(HANDLE hBuffer, CHAR ch, COORD coordLocation, ULONG ulLen);

@@ -1,6 +1,7 @@
 
 #include <Windows.h>
 #include <malloc.h>
+#include <stdio.h>
 
 /*
 * Console.c:
@@ -15,7 +16,7 @@
 * 
 */
 
-void cnFillStr(HANDLE hBuffer, CHAR* str, USHORT wX, USHORT wY, COORD coordLocation) {
+void cnFillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocation) {
 
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
@@ -29,14 +30,14 @@ void cnFillStr(HANDLE hBuffer, CHAR* str, USHORT wX, USHORT wY, COORD coordLocat
 		return;
 	}
 	
-	USHORT originalX = wX;
+	SHORT originalX = wX;
 
 	if ((coordLocation.X + wX) >= CSBI.dwSize.X)
 		wX = CSBI.dwSize.X - coordLocation.X + 1;
 	if ((coordLocation.Y + wY) >= CSBI.dwSize.Y)
 		wY = CSBI.dwSize.Y - coordLocation.Y + 1;
 
-	for (ULONG i = 0; i < wY; ++i) {
+	for (LONG i = 0; i < wY; ++i) {
 		WriteConsoleOutputCharacterA(
 			hBuffer,
 			str,
@@ -51,7 +52,7 @@ void cnFillStr(HANDLE hBuffer, CHAR* str, USHORT wX, USHORT wY, COORD coordLocat
 	return;
 }
 
-void cnFillChar(HANDLE hBuffer, CHAR ch, USHORT wX, USHORT wY, COORD coordLocation) {
+void cnFillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation) {
 
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
@@ -70,7 +71,7 @@ void cnFillChar(HANDLE hBuffer, CHAR ch, USHORT wX, USHORT wY, COORD coordLocati
 	if ((coordLocation.Y + wY) >= CSBI.dwSize.Y)
 		wY = CSBI.dwSize.Y - coordLocation.Y + 1;
 
-	for (ULONG i = 0; i < wY; ++i) {
+	for (LONG i = 0; i < wY; ++i) {
 		FillConsoleOutputCharacterA(
 			hBuffer,
 			ch,
@@ -84,7 +85,7 @@ void cnFillChar(HANDLE hBuffer, CHAR ch, USHORT wX, USHORT wY, COORD coordLocati
 	return;
 }
 
-void cnFillAttr(HANDLE hBuffer, WORD attr, USHORT wX, USHORT wY, COORD coordLocation) {
+void cnFillAttr(HANDLE hBuffer, WORD attr, SHORT wX, SHORT wY, COORD coordLocation) {
 
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
@@ -103,7 +104,7 @@ void cnFillAttr(HANDLE hBuffer, WORD attr, USHORT wX, USHORT wY, COORD coordLoca
 	if ((coordLocation.Y + wY) >= CSBI.dwSize.Y)
 		wY = CSBI.dwSize.Y - coordLocation.Y + 1;
 
-	for (ULONG i = 0; i < wY; ++i) {
+	for (LONG i = 0; i < wY; ++i) {
 		FillConsoleOutputAttribute(
 			hBuffer,
 			attr,
@@ -117,7 +118,7 @@ void cnFillAttr(HANDLE hBuffer, WORD attr, USHORT wX, USHORT wY, COORD coordLoca
 	return;
 }
 
-void cnFillAttrs(HANDLE hBuffer, WORD* attrs, USHORT wX, USHORT wY, COORD coordLocation) {
+void cnFillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation) {
 
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
@@ -131,14 +132,14 @@ void cnFillAttrs(HANDLE hBuffer, WORD* attrs, USHORT wX, USHORT wY, COORD coordL
 		return;
 	}
 
-	USHORT originalX = wX;
+	SHORT originalX = wX;
 
 	if ((coordLocation.X + wX) >= CSBI.dwSize.X)
 		wX = CSBI.dwSize.X - coordLocation.X + 1;
 	if ((coordLocation.Y + wY) >= CSBI.dwSize.Y)
 		wY = CSBI.dwSize.Y - coordLocation.Y + 1;
 
-	for (ULONG i = 0; i < wY; ++i) {
+	for (LONG i = 0; i < wY; ++i) {
 		WriteConsoleOutputAttribute(
 			hBuffer,
 			attrs,

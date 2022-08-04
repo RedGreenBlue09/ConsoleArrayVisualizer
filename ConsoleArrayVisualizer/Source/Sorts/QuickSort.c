@@ -1,11 +1,12 @@
 
 #include "Sorts.h"
+#include "ArrayRenderer.h"
+
+uintptr_t localN;
 
 int NTQS_isortCompare(const isort_t* a, const isort_t* b) {
 	return (*a > *b) - (*a < *b);
 }
-
-void qsort(void* array, size_t n, size_t size, int (*cmp)(const void*, const void*));
 
 void LRQS_Partition(isort_t* array, uintptr_t low, uintptr_t high) {
 
@@ -15,16 +16,33 @@ void LRQS_Partition(isort_t* array, uintptr_t low, uintptr_t high) {
 
 begin:
 	pivot = array[low + (high - low + 1) / 2];
+	arUpdateWrite(array, localN, low + (high - low + 1) / 2, 0x10);
 	left = low;
 	right = high;
 
 	while (left <= right) {
-		while (array[left] < pivot) ++left;
-		while (array[right] > pivot) --right;
+		while (array[left] < pivot) {
+			arUpdateWrite(array, localN, left, 0x10);
+			arSleep(75.0);
+			arUpdateWrite(array, localN, left, 0xF0);
+			++left;
+
+		}
+		while (array[right] > pivot) {
+			arUpdateWrite(array, localN, left, 0x10);
+			arSleep(75.0);
+			arUpdateWrite(array, localN, left, 0xF0);
+			--right;
+		}
 
 		if (left <= right) {
 
+			arUpdateWrite(array, localN, left, 0x40);
+			arUpdateWrite(array, localN, right, 0x40);
 			ISORT_SWAP(array[left], array[right]);
+			arSleep(75.0);
+			arUpdateWrite(array, localN, left, 0xF0);
+			arUpdateWrite(array, localN, right, 0xF0);
 			++left;
 			--right;
 		}
@@ -74,7 +92,7 @@ begin:
 void LeftRightQuickSort(isort_t* array, uintptr_t n) {
 
 	if (n < 2) return;
-
+	localN = n;
 	LRQS_Partition(array, 0, n - 1);
 }
 

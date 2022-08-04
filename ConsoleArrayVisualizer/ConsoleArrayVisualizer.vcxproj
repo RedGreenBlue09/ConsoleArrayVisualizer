@@ -15,7 +15,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\ArrayRenderer\Source.c" />
+    <ClCompile Include="Include\ConsoleColumnRenderer.c" />
+    <ClCompile Include="Source\ArrayRenderer\RendererMain.c" />
     <ClCompile Include="Source\Console.c" />
     <ClCompile Include="Source\Main.c" />
     <ClCompile Include="Source\Sorts\FlashSort.c" />
@@ -31,6 +32,7 @@
     <ClCompile Include="Source\Utils\RunSort.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Include\ArrayRenderer.h" />
     <ClInclude Include="Include\Sorts.h" />
     <ClInclude Include="Include\Utils.h" />
   </ItemGroup>
@@ -107,7 +109,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <Optimization>Full</Optimization>
+      <Optimization>Disabled</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
@@ -128,7 +130,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <Optimization>Full</Optimization>
+      <Optimization>Disabled</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
@@ -149,7 +151,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <Optimization>Full</Optimization>
+      <Optimization>Disabled</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>

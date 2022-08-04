@@ -1,5 +1,6 @@
 
 #include "Sorts.h"
+#include "ArrayRenderer.h"
 
 void BIS_BinaryInsertion(isort_t* array, uintptr_t start, uintptr_t end) {
 

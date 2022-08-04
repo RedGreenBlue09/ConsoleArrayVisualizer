@@ -1,6 +1,9 @@
 
 #include "Sorts.h"
 #include "malloc.h"
+#include "ArrayRenderer.h"
+
+uintptr_t localN;
 
 void WHS_weakHeapSort(isort_t* array, size_t n) {
 
@@ -68,27 +71,47 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 	intptr_t right = 2 * j + 2;
 
 	while (left < end) {
+		arUpdateWrite(array, localN, j, 0x10);
+		arUpdateWrite(array, localN, left, 0x10);
 
 		if (right < end) {
-
+			arUpdateWrite(array, localN, right, 0x10);
+			arSleep(37.5);
+			arUpdateWrite(array, localN, j, 0x10);
 			if ((array[right] > array[left]))
 				j = right;
 			else
 				j = left;
 
 		} else {
+			arSleep(37.5);
+			arUpdateWrite(array, localN, j, 0x10);
 			j = left;
 		}
 
+		arSleep(37.5);
+		arUpdateWrite(array, localN, left, 0xF0);
+		arUpdateWrite(array, localN, right, 0xF0);
 		left = 2 * j + 1;
 		right = 2 * j + 2;
 	}
 
-	while (array[i] > array[j])
+	while (array[i] > array[j]) {
+		arUpdateWrite(array, localN, i, 0x10);
+		arUpdateWrite(array, localN, j, 0x10);
+		arSleep(37.5);
+		arUpdateWrite(array, localN, i, 0xF0);
+		arUpdateWrite(array, localN, j, 0xF0);
 		j = (j - 1) / 2;
+	}
 
 	while (j > i) {
+		arUpdateWrite(array, localN, i, 0x40);
+		arUpdateWrite(array, localN, j, 0x40);
 		ISORT_SWAP(array[i], array[j]);
+		arSleep(37.5);
+		arUpdateWrite(array, localN, i, 0xF0);
+		arUpdateWrite(array, localN, j, 0xF0);
 		j = (j - 1) / 2;
 	}
 }
@@ -106,12 +129,16 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 void BottomUpHeapSort(isort_t* array, uintptr_t n) {
 
 	intptr_t length = n;
+	localN = n;
 
 	for (intptr_t i = (length - 1) / 2; i >= 0; --i)
 		BUHS_SiftDown(array, i, length);
 
 	for (intptr_t i = length - 1; i > 0; --i) {
+		arUpdateWrite(array, localN, i, 0x40);
 		ISORT_SWAP(array[0], array[i]);
+		arSleep(37.5);
+		arUpdateWrite(array, localN, i, 0xF0);
 		BUHS_SiftDown(array, 0, i);
 	}
 }
@@ -127,6 +154,7 @@ void BottomUpHeapSort(isort_t* array, uintptr_t n) {
 void WeakHeapSort(isort_t* array, uintptr_t n) {
 
 	if (n < 2) return;
+	localN = n;
 	WHS_weakHeapSort(array, n);
 	return;
 

@@ -63,7 +63,10 @@
     <ClCompile Include="Source\Console.c">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ArrayRenderer\Source.c">
+    <ClCompile Include="Source\ArrayRenderer\RendererMain.c">
+      <Filter>Source Files\ArrayRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Include\ConsoleColumnRenderer.c">
       <Filter>Source Files\ArrayRenderer</Filter>
     </ClCompile>
   </ItemGroup>
@@ -72,6 +75,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\ArrayRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
