@@ -85,9 +85,7 @@ static USHORT arcnclAttrToConAttr(uint8_t attr) {
 	return conAttrs[attr]; // return 0 on unknown attr.
 }
 
-void arcnclDrawItem(isort_t* array, uintptr_t n, uintptr_t pos, uint8_t attr) {
-
-	isort_t value = array[pos];
+void arcnclDrawItem(isort_t value, uintptr_t n, uintptr_t pos, uint8_t attr) {
 
 	// double for extra range
 	double dfHeight = (double)value * (double)rendererCsbi.dwSize.Y / (double)valueMax;
@@ -119,7 +117,7 @@ void arcnclDrawItem(isort_t* array, uintptr_t n, uintptr_t pos, uint8_t attr) {
 	);
 }
 
-void arcnclReadItemAttr(isort_t* array, uintptr_t n, uintptr_t pos, uint8_t* pAttr) {
+void arcnclReadItemAttr(isort_t value, uintptr_t n, uintptr_t pos, uint8_t* pAttr) {
 
 	// TODO: scaling: nearest neighbor.
 	// TODO: negative values.

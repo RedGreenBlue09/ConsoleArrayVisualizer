@@ -69,16 +69,22 @@ void SHS_ShellSort(isort_t* array, uintptr_t n, uintptr_t* gaps, uintptr_t nGaps
 
 		uintptr_t gap = gaps[pass];
 
-		for (uintptr_t i = gap; i < n; i += 1) {
-
+		for (uintptr_t i = gap; i < n; ++i) {
 			isort_t temp = array[i];
+			arUpdatePointer(array, n, i, 0, 0.0);
 			uintptr_t j;
 
-			for (j = i; (j >= gap) && (array[j - gap] > temp); j -= gap)
-				array[j] = array[j - gap];
+			arUpdateRead2(array, n, i - gap, i, 25.0);
+			for (j = i; (j >= gap) && (array[j - gap] > temp); j -= gap) {
 
+				arUpdateRead2(array, n, j - gap, i, 25.0);
+				arUpdateWrite(array, n, j, array[j - gap], 25.0);
+				array[j] = array[j - gap];
+			}
+			arUpdateWrite(array, n, j, temp, 25.0);
 			array[j] = temp;
 		}
+		arRemovePointer(array, n, 0);
 		--pass;
 	}
 	return;

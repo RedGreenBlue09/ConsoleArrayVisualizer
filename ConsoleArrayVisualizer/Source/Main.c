@@ -17,14 +17,20 @@ int main() {
 	arInit();
 	while (1) {
 		input = rsCreateSortedArray(n);
-		arUpdateArray(input, n, 0xF0);
+		arUpdateArray(input, n);
 		LeftRightQuickSort(input, n);
 
 		free(input);
 
 		input = rsCreateSortedArray(n);
-		arUpdateArray(input, n, 0xF0);
+		arUpdateArray(input, n);
 		BottomUpHeapSort(input, n);
+
+		free(input);
+
+		input = rsCreateSortedArray(n);
+		arUpdateArray(input, n);
+		ShellSort248(input, n);
 
 		free(input);
 	}

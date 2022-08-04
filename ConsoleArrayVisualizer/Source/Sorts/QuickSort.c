@@ -2,7 +2,7 @@
 #include "Sorts.h"
 #include "ArrayRenderer.h"
 
-uintptr_t localN;
+uintptr_t globalN;
 
 int NTQS_isortCompare(const isort_t* a, const isort_t* b) {
 	return (*a > *b) - (*a < *b);
@@ -16,37 +16,34 @@ void LRQS_Partition(isort_t* array, uintptr_t low, uintptr_t high) {
 
 begin:
 	pivot = array[low + (high - low + 1) / 2];
-	arUpdateWrite(array, localN, low + (high - low + 1) / 2, 0x10);
 	left = low;
 	right = high;
 
 	while (left <= right) {
 		while (array[left] < pivot) {
-			arUpdateWrite(array, localN, left, 0x10);
-			arSleep(75.0);
-			arUpdateWrite(array, localN, left, 0xF0);
+			arUpdateRead2(array, globalN, left, right, 62.5);
 			++left;
+			arUpdatePointer(array, globalN, left, 1, 0.0);
 
 		}
 		while (array[right] > pivot) {
-			arUpdateWrite(array, localN, left, 0x10);
-			arSleep(75.0);
-			arUpdateWrite(array, localN, left, 0xF0);
+			arUpdateRead2(array, globalN, left, right, 62.5);
 			--right;
+			arUpdatePointer(array, globalN, right, 2, 0.0);
 		}
 
 		if (left <= right) {
-
-			arUpdateWrite(array, localN, left, 0x40);
-			arUpdateWrite(array, localN, right, 0x40);
+			arUpdateSwap(array, globalN, left, right, 62.5);
 			ISORT_SWAP(array[left], array[right]);
-			arSleep(75.0);
-			arUpdateWrite(array, localN, left, 0xF0);
-			arUpdateWrite(array, localN, right, 0xF0);
 			++left;
 			--right;
+			arUpdatePointer(array, globalN, left, 1, 0.0);
+			arUpdatePointer(array, globalN, right, 2, 0.0);
 		}
 	}
+	arRemovePointer(array, globalN, 0);
+	arRemovePointer(array, globalN, 1);
+	arRemovePointer(array, globalN, 2);
 
 	// Call tail optimization
 	// (prevents O(n) call stack in worst case)
@@ -92,7 +89,7 @@ begin:
 void LeftRightQuickSort(isort_t* array, uintptr_t n) {
 
 	if (n < 2) return;
-	localN = n;
+	globalN = n;
 	LRQS_Partition(array, 0, n - 1);
 }
 

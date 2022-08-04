@@ -3,7 +3,7 @@
 #include "malloc.h"
 #include "ArrayRenderer.h"
 
-uintptr_t localN;
+uintptr_t globalN;
 
 void WHS_weakHeapSort(isort_t* array, size_t n) {
 
@@ -69,51 +69,47 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 
 	intptr_t left = 2 * j + 1;
 	intptr_t right = 2 * j + 2;
+	//arAddPointer(array, globalN, j, 0, 0.0);
+	//arAddPointer(array, globalN, left, 1, 0.0);
+	//arAddPointer(array, globalN, right, 2, 0.0);
 
 	while (left < end) {
-		arUpdateWrite(array, localN, j, 0x10);
-		arUpdateWrite(array, localN, left, 0x10);
+		arUpdatePointer(array, globalN, left, 1, 0.0);
 
 		if (right < end) {
-			arUpdateWrite(array, localN, right, 0x10);
-			arSleep(37.5);
-			arUpdateWrite(array, localN, j, 0x10);
-			if ((array[right] > array[left]))
+			arUpdatePointer(array, globalN, right, 2, 0.0);
+
+			arUpdateRead2(array, globalN, right, left, 37.5);
+			if ((array[right] > array[left])) {
 				j = right;
-			else
+			} else {
 				j = left;
+			}
+			arUpdatePointer(array, globalN, j, 0, 0.0);
 
 		} else {
-			arSleep(37.5);
-			arUpdateWrite(array, localN, j, 0x10);
 			j = left;
+			arUpdatePointer(array, globalN, j, 0, 0.0);
 		}
-
-		arSleep(37.5);
-		arUpdateWrite(array, localN, left, 0xF0);
-		arUpdateWrite(array, localN, right, 0xF0);
 		left = 2 * j + 1;
 		right = 2 * j + 2;
 	}
 
 	while (array[i] > array[j]) {
-		arUpdateWrite(array, localN, i, 0x10);
-		arUpdateWrite(array, localN, j, 0x10);
-		arSleep(37.5);
-		arUpdateWrite(array, localN, i, 0xF0);
-		arUpdateWrite(array, localN, j, 0xF0);
+		arUpdatePointer(array, globalN, j, 0, 0.0);
+		arUpdateRead2(array, globalN, i, j, 37.5);
 		j = (j - 1) / 2;
 	}
 
 	while (j > i) {
-		arUpdateWrite(array, localN, i, 0x40);
-		arUpdateWrite(array, localN, j, 0x40);
+		arUpdatePointer(array, globalN, j, 0, 0.0);
+		arUpdateSwap(array, globalN, i, j, 37.5);
 		ISORT_SWAP(array[i], array[j]);
-		arSleep(37.5);
-		arUpdateWrite(array, localN, i, 0xF0);
-		arUpdateWrite(array, localN, j, 0xF0);
 		j = (j - 1) / 2;
 	}
+	arRemovePointer(array, globalN, 0);
+	arRemovePointer(array, globalN, 1);
+	arRemovePointer(array, globalN, 2);
 }
 
 // Exports:
@@ -129,16 +125,14 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 void BottomUpHeapSort(isort_t* array, uintptr_t n) {
 
 	intptr_t length = n;
-	localN = n;
+	globalN = n;
 
 	for (intptr_t i = (length - 1) / 2; i >= 0; --i)
 		BUHS_SiftDown(array, i, length);
 
 	for (intptr_t i = length - 1; i > 0; --i) {
-		arUpdateWrite(array, localN, i, 0x40);
+		arUpdateSwap(array, globalN, 0, i, 37.5);
 		ISORT_SWAP(array[0], array[i]);
-		arSleep(37.5);
-		arUpdateWrite(array, localN, i, 0xF0);
 		BUHS_SiftDown(array, 0, i);
 	}
 }
@@ -154,7 +148,7 @@ void BottomUpHeapSort(isort_t* array, uintptr_t n) {
 void WeakHeapSort(isort_t* array, uintptr_t n) {
 
 	if (n < 2) return;
-	localN = n;
+	globalN = n;
 	WHS_weakHeapSort(array, n);
 	return;
 
