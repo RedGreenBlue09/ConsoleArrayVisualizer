@@ -9,7 +9,17 @@ Here is the target design.
 * Utils (other stuff)
 * User interface (aka. this program or `main()`)
   * RunSort (automatically shuffle, sort, check result)
-## This program
+
+## Relationship of components
+Excluding Utils.
+
+> User interface -> Visualizer, LibraryLoader  
+> LibraryLoader -> Algorithms  
+> Algorithms -> Visualizer  
+> Visualizer -> Renderer  
+> Renderer -> Graphics API  
+
+## How the program works
 ```
 1. Main reads user configuration.
 2. Load algorithm dll(s).
