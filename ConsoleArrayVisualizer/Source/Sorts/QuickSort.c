@@ -1,6 +1,6 @@
 
 #include "Sorts.h"
-#include "ArrayRenderer.h"
+#include "Visualizer.h"
 
 uintptr_t globalN;
 
@@ -18,18 +18,17 @@ begin:
 	pivot = array[low + (high - low + 1) / 2];
 	left = low;
 	right = high;
+	arUpdatePointer(array, globalN, low + (high - low + 1) / 2, 0, 0.0);
 
 	while (left <= right) {
 		while (array[left] < pivot) {
 			arUpdateRead2(array, globalN, left, right, 62.5);
 			++left;
-			arUpdatePointer(array, globalN, left, 1, 0.0);
 
 		}
 		while (array[right] > pivot) {
 			arUpdateRead2(array, globalN, left, right, 62.5);
 			--right;
-			arUpdatePointer(array, globalN, right, 2, 0.0);
 		}
 
 		if (left <= right) {
@@ -37,13 +36,9 @@ begin:
 			ISORT_SWAP(array[left], array[right]);
 			++left;
 			--right;
-			arUpdatePointer(array, globalN, left, 1, 0.0);
-			arUpdatePointer(array, globalN, right, 2, 0.0);
 		}
 	}
 	arRemovePointer(array, globalN, 0);
-	arRemovePointer(array, globalN, 1);
-	arRemovePointer(array, globalN, 2);
 
 	// Call tail optimization
 	// (prevents O(n) call stack in worst case)
@@ -93,7 +88,7 @@ void LeftRightQuickSort(isort_t* array, uintptr_t n) {
 	LRQS_Partition(array, 0, n - 1);
 }
 
-void NtdllQuickSort(isort_t* array, uintptr_t n) {
+void StdlibQuickSort(isort_t* array, uintptr_t n) {
 	if (n < 2) return;
 	qsort(array, n, sizeof(isort_t), NTQS_isortCompare);
 }

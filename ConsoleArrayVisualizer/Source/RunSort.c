@@ -1,6 +1,9 @@
 
 #include "Sorts.h"
+#include "Visualizer.h"
+
 #include "Utils.h"
+#include <math.h>
 
 isort_t* rsCreateSortedArray(uintptr_t n) {
 
@@ -15,10 +18,9 @@ isort_t* rsCreateSortedArray(uintptr_t n) {
 	/* Random */
 	for (uintptr_t i = 0; i < n; ++i)
 		array[i] = (isort_t)(rand64() % n);
-
+	
 	/* Sort */
-	//NtdllQuickSort(array, n); // i trust this sort :)
-
+	StdlibQuickSort(array, n); // i trust this sort :)
 	return array;
 }
 

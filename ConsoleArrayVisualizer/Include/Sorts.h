@@ -33,7 +33,7 @@ void ShellSortUnkn1     (isort_t* array, uintptr_t n);
 
 // QuickSort.c
 
-void NtdllQuickSort     (isort_t* array, uintptr_t n);
+void StdlibQuickSort    (isort_t* array, uintptr_t n);
 void LeftRightQuickSort (isort_t* array, uintptr_t n);
 
 // MergeSort.c

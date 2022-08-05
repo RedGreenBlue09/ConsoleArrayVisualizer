@@ -1,7 +1,7 @@
 
 #include "Sorts.h"
+
 #include "Utils.h"
-#include "ArrayRenderer.h"
 
 uint32_t sortsCount = 10;
 
@@ -27,8 +27,8 @@ SORT_INFO sortsList[128] = {
 		ShellSortUnkn1,
 	},
 	{
-		"ntdll.dll QuickSort",
-		NtdllQuickSort,
+		"stdlib QuickSort",
+		StdlibQuickSort,
 	},
 	{
 		"Left/Right QuickSort",

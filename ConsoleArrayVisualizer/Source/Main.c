@@ -1,22 +1,26 @@
 
-#include <Windows.h>
-
 #include "Sorts.h"
+#include "Visualizer.h"
+#include "RunSort.h"
+
 #include "Utils.h"
-#include "ArrayRenderer.h"
+#include <stdio.h>
 
 int main() {
-	utilInitClock();
+	utilInitTime();
 
 	//const SIZE_T n = 16777216;
 	//const uintptr_t n = 1024ULL * 1024ULL * 16ULL;
-	const uintptr_t n = 64;
+	const uintptr_t n = 256;
 
 	isort_t* input;
 
-	arInit();
-	while (1) {
+	//arInit();
+
+	uint64_t totalTime = 0;
+	for (uint64_t i = 0; i < 1000000; i += 100) {
 		input = rsCreateSortedArray(n);
+		/*
 		arUpdateArray(input, n);
 		LeftRightQuickSort(input, n);
 
@@ -31,13 +35,11 @@ int main() {
 		input = rsCreateSortedArray(n);
 		arUpdateArray(input, n);
 		ShellSort248(input, n);
-
+		*/
 		free(input);
 	}
 
-	cnPause();
-
-	arUninit();
+	//arUninit();
 
 	//rsRunSort(&sortsList[0], input, n);
 
@@ -59,7 +61,7 @@ int main() {
 
 	//rsRunSort(&sortsList[9], input, n);
 
-	free(input);
+	//free(input);
 
 	return 0;
 }

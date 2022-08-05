@@ -15,10 +15,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Include\ConsoleColumnRenderer.c" />
-    <ClCompile Include="Source\ArrayRenderer\RendererMain.c" />
-    <ClCompile Include="Source\Console.c" />
     <ClCompile Include="Source\Main.c" />
+    <ClCompile Include="Source\RunSort.c" />
+    <ClCompile Include="Source\Sorts.c" />
     <ClCompile Include="Source\Sorts\FlashSort.c" />
     <ClCompile Include="Source\Sorts\HeapSort.c" />
     <ClCompile Include="Source\Sorts\InsertionSort.c" />
@@ -26,13 +25,14 @@
     <ClCompile Include="Source\Sorts\PigeonholeSort.c" />
     <ClCompile Include="Source\Sorts\QuickSort.c" />
     <ClCompile Include="Source\Sorts\ShellSort.c" />
-    <ClCompile Include="Source\Sorts\Sorts.c" />
-    <ClCompile Include="Source\Utils\Clock.c" />
+    <ClCompile Include="Source\Utils\Time.c" />
     <ClCompile Include="Source\Utils\Random.c" />
-    <ClCompile Include="Source\Utils\RunSort.c" />
+    <ClCompile Include="Source\Visualizer\Visualizer.c" />
+    <ClCompile Include="Source\Visualizer\WindowsConsole.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Include\ArrayRenderer.h" />
+    <ClInclude Include="Include\RunSort.h" />
+    <ClInclude Include="Include\Visualizer.h" />
     <ClInclude Include="Include\Sorts.h" />
     <ClInclude Include="Include\Utils.h" />
   </ItemGroup>
@@ -119,7 +119,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <StackReserveSize>16777216</StackReserveSize>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
@@ -140,7 +140,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <StackReserveSize>16777216</StackReserveSize>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -161,7 +161,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <StackReserveSize>16777216</StackReserveSize>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

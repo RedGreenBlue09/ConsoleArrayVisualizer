@@ -1,18 +1,23 @@
 
-#include "ArrayRenderer.h"
+#include "Visualizer.h"
 #include <malloc.h>
 
-//
-HANDLE rendererBuffer = NULL;
-CONSOLE_SCREEN_BUFFER_INFOEX rendererCsbi = { 0 };
+// Buffer stuff
+static HANDLE rendererBuffer = NULL;
+static CONSOLE_SCREEN_BUFFER_INFOEX rendererCsbi = { 0 };
 
 // Console attr
 // cmd "color /?" explains this very well
 static const USHORT conBackgroundAttr = 0x0F;
+
 static const USHORT conNormalAttr = 0xF0;
 static const USHORT conReadAttr = 0x10;
 static const USHORT conWriteAttr = 0x40;
-static const USHORT conPointerAttr = 0x20;
+
+static const USHORT conPointerAttr = 0x30;
+
+static const USHORT conCorrectAttr = 0x40;
+static const USHORT conIncorrectAttr = 0x20;
 
 // For uninitialization
 static ULONG oldInputMode = 0;
@@ -82,12 +87,16 @@ static USHORT arcnclAttrToConAttr(uint8_t attr) {
 	conAttrs[AR_ATTR_READ] = conReadAttr;
 	conAttrs[AR_ATTR_WRITE] = conWriteAttr;
 	conAttrs[AR_ATTR_POINTER] = conPointerAttr;
+	conAttrs[AR_ATTR_CORRECT] = conCorrectAttr;
+	conAttrs[AR_ATTR_INCORRECT] = conIncorrectAttr;
 	return conAttrs[attr]; // return 0 on unknown attr.
 }
 
 void arcnclDrawItem(isort_t value, uintptr_t n, uintptr_t pos, uint8_t attr) {
 
 	// double for extra range
+	if (value > valueMax)
+		value = valueMax;
 	double dfHeight = (double)value * (double)rendererCsbi.dwSize.Y / (double)valueMax;
 	SHORT height = (SHORT)dfHeight;
 

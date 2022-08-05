@@ -1,7 +1,8 @@
 
 #include "Sorts.h"
+#include "Visualizer.h"
+
 #include "malloc.h"
-#include "ArrayRenderer.h"
 
 uintptr_t globalN;
 

@@ -3,9 +3,6 @@
 #include <stdint.h>
 
 #include <stdio.h>
-#include <malloc.h>
-
-#include <string.h>
 #include <stdint.h>
 #include <Windows.h>
 
@@ -16,36 +13,11 @@
 void srand64(uint64_t seed);
 uint64_t rand64();
 
-// Clock.c
+// Time.c
 
-void utilInitClock();
+void utilInitTime();
 
 uint64_t clock64();
 uint64_t sleep64(uint64_t time);
 
-// RunSort.c
-
-isort_t* rsCreateSortedArray(uintptr_t n);
-
-void rsShuffle(isort_t* array, uintptr_t n);
-void rsCheck(isort_t* array, isort_t* input, uintptr_t n);
-void rsRunSort(SORT_INFO* si, isort_t* input, uintptr_t n);
-
-// Console.c
-
-void cnFillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocation);
-void cnFillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation);
-void cnFillAttr(HANDLE hBuffer, WORD attr, SHORT wX, SHORT wY, COORD coordLocation);
-void cnFillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation);
-
-void cnWriteStr(HANDLE hBuffer, CHAR* str, COORD coordLocation, ULONG ulLen);
-void cnWriteChar(HANDLE hBuffer, CHAR ch, COORD coordLocation, ULONG ulLen);
-void cnWriteAttr(HANDLE hBuffer, USHORT attr, COORD coordLocation, ULONG ulLen);
-
-void cnClear(HANDLE hBuffer);
-void cnPause();
-
-HANDLE* cnCreateBuffer();
-void cnDeleteBuffer(HANDLE hBuffer);
-
-//
+// Threads.c (TODO)

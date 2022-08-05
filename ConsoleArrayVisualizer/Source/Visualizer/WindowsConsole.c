@@ -21,15 +21,13 @@ void cnFillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocatio
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
 
-	ULONG W;
-
 	if (
-		(coordLocation.X >= CSBI.dwSize.X) ||
-		(coordLocation.Y >= CSBI.dwSize.Y)
+		coordLocation.X >= CSBI.dwSize.X ||
+		coordLocation.Y >= CSBI.dwSize.Y
 		) {
 		return;
 	}
-	
+
 	SHORT originalX = wX;
 
 	if ((coordLocation.X + wX) >= CSBI.dwSize.X)
@@ -37,18 +35,40 @@ void cnFillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocatio
 	if ((coordLocation.Y + wY) >= CSBI.dwSize.Y)
 		wY = CSBI.dwSize.Y - coordLocation.Y + 1;
 
+	CHAR_INFO* ciBlock;
+	LONG blockN = wX * wY;
+	ciBlock = malloc(blockN * sizeof(CHAR_INFO));
+	if (ciBlock == NULL)
+		return;
+
+	SMALL_RECT rect = (SMALL_RECT){
+		coordLocation.X,
+		coordLocation.Y,
+		coordLocation.X + wX,
+		coordLocation.Y + wY,
+	};
+	ReadConsoleOutputA(
+		hBuffer,
+		ciBlock,
+		(COORD){ wX, wY },
+		(COORD){ 0, 0 },
+		&rect
+	);
+
 	for (LONG i = 0; i < wY; ++i) {
-		WriteConsoleOutputCharacterA(
-			hBuffer,
-			str,
-			wX,
-			coordLocation,
-			&W
-		);
-		coordLocation.Y += 1;
-		str += originalX;
+		for (int j = 0; j < wX; ++j)
+			ciBlock[i * wX + j].Char.AsciiChar = str[i * wX + j];
 	}
 
+	WriteConsoleOutputA(
+		hBuffer,
+		ciBlock,
+		(COORD){ wX, wY },
+		(COORD){ 0, 0 },
+		&rect
+	);
+
+	free(ciBlock);
 	return;
 }
 
@@ -57,8 +77,6 @@ void cnFillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
 
-	ULONG W;
-
 	if (
 		coordLocation.X >= CSBI.dwSize.X ||
 		coordLocation.Y >= CSBI.dwSize.Y
@@ -66,22 +84,47 @@ void cnFillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation
 		return;
 	}
 
+	SHORT originalX = wX;
+
 	if ((coordLocation.X + wX) >= CSBI.dwSize.X)
 		wX = CSBI.dwSize.X - coordLocation.X + 1;
 	if ((coordLocation.Y + wY) >= CSBI.dwSize.Y)
 		wY = CSBI.dwSize.Y - coordLocation.Y + 1;
 
+	CHAR_INFO* ciBlock;
+	LONG blockN = wX * wY;
+	ciBlock = malloc(blockN * sizeof(CHAR_INFO));
+	if (ciBlock == NULL)
+		return;
+
+	SMALL_RECT rect = (SMALL_RECT){
+		coordLocation.X,
+		coordLocation.Y,
+		coordLocation.X + wX,
+		coordLocation.Y + wY,
+	};
+	ReadConsoleOutputA(
+		hBuffer,
+		ciBlock,
+		(COORD){ wX, wY },
+		(COORD){ 0, 0 },
+		&rect
+	);
+
 	for (LONG i = 0; i < wY; ++i) {
-		FillConsoleOutputCharacterA(
-			hBuffer,
-			ch,
-			wX,
-			coordLocation,
-			&W
-		);
-		coordLocation.Y += 1;
+		for (int j = 0; j < wX; ++j)
+			ciBlock[i * wX + j].Char.AsciiChar = ch;
 	}
 
+	WriteConsoleOutputA(
+		hBuffer,
+		ciBlock,
+		(COORD){ wX, wY },
+		(COORD){ 0, 0 },
+		&rect
+	);
+
+	free(ciBlock);
 	return;
 }
 
@@ -89,41 +132,6 @@ void cnFillAttr(HANDLE hBuffer, WORD attr, SHORT wX, SHORT wY, COORD coordLocati
 
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
-
-	ULONG W;
-
-	if (
-		coordLocation.X >= CSBI.dwSize.X ||
-		coordLocation.Y >= CSBI.dwSize.Y
-		) {
-		return;
-	}
-
-	if ((coordLocation.X + wX) >= CSBI.dwSize.X)
-		wX = CSBI.dwSize.X - coordLocation.X + 1;
-	if ((coordLocation.Y + wY) >= CSBI.dwSize.Y)
-		wY = CSBI.dwSize.Y - coordLocation.Y + 1;
-
-	for (LONG i = 0; i < wY; ++i) {
-		FillConsoleOutputAttribute(
-			hBuffer,
-			attr,
-			wX,
-			coordLocation,
-			&W
-		);
-		coordLocation.Y += 1;
-	}
-
-	return;
-}
-
-void cnFillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation) {
-
-	CONSOLE_SCREEN_BUFFER_INFO CSBI;
-	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
-
-	ULONG W;
 
 	if (
 		coordLocation.X >= CSBI.dwSize.X ||
@@ -139,18 +147,96 @@ void cnFillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLoc
 	if ((coordLocation.Y + wY) >= CSBI.dwSize.Y)
 		wY = CSBI.dwSize.Y - coordLocation.Y + 1;
 
+	CHAR_INFO* ciBlock;
+	LONG blockN = wX * wY;
+	ciBlock = malloc(blockN * sizeof(CHAR_INFO));
+	if (ciBlock == NULL)
+		return;
+
+	SMALL_RECT rect = (SMALL_RECT){
+		coordLocation.X,
+		coordLocation.Y,
+		coordLocation.X + wX,
+		coordLocation.Y + wY,
+	};
+	ReadConsoleOutputW(
+		hBuffer,
+		ciBlock,
+		(COORD){ wX, wY },
+		(COORD){ 0, 0 },
+		&rect
+	);
+
 	for (LONG i = 0; i < wY; ++i) {
-		WriteConsoleOutputAttribute(
-			hBuffer,
-			attrs,
-			wX,
-			coordLocation,
-			&W
-		);
-		coordLocation.Y += 1;
-		attrs += originalX;
+		for (int j = 0; j < wX; ++j)
+			ciBlock[i * wX + j].Attributes = attr;
 	}
 
+	WriteConsoleOutputW(
+		hBuffer,
+		ciBlock,
+		(COORD){ wX, wY },
+		(COORD){ 0, 0 },
+		&rect
+	);
+
+	free(ciBlock);
+	return;
+}
+
+void cnFillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation) {
+
+	CONSOLE_SCREEN_BUFFER_INFO CSBI;
+	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
+
+	if (
+		coordLocation.X >= CSBI.dwSize.X ||
+		coordLocation.Y >= CSBI.dwSize.Y
+		) {
+		return;
+	}
+
+	SHORT originalX = wX;
+
+	if ((coordLocation.X + wX) >= CSBI.dwSize.X)
+		wX = CSBI.dwSize.X - coordLocation.X + 1;
+	if ((coordLocation.Y + wY) >= CSBI.dwSize.Y)
+		wY = CSBI.dwSize.Y - coordLocation.Y + 1;
+
+	CHAR_INFO* ciBlock;
+	LONG blockN = wX * wY;
+	ciBlock = malloc(blockN * sizeof(CHAR_INFO));
+	if (ciBlock == NULL)
+		return;
+
+	SMALL_RECT rect = (SMALL_RECT){
+		coordLocation.X,
+		coordLocation.Y,
+		coordLocation.X + wX,
+		coordLocation.Y + wY,
+	};
+	ReadConsoleOutputW(
+		hBuffer,
+		ciBlock,
+		(COORD){ wX, wY },
+		(COORD){ 0, 0 },
+		&rect
+	);
+
+	for (LONG i = 0; i < wY; ++i) {
+		for (int j = 0; j < wX; ++j)
+			ciBlock[i * wX + j].Attributes = attrs[i * wX + j];
+	}
+
+	WriteConsoleOutputW(
+		hBuffer,
+		ciBlock,
+		(COORD){ wX, wY },
+		(COORD){ 0, 0 },
+		&rect
+	);
+
+	free(ciBlock);
 	return;
 }
 

@@ -1,7 +1,8 @@
 
 #include "Sorts.h"
+#include "Visualizer.h"
+
 #include "malloc.h"
-#include "ArrayRenderer.h"
 
 void PGHS_pigeonholeSort(isort_t* array, intptr_t n) {
 

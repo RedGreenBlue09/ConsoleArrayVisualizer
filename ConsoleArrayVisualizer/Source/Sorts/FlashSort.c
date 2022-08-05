@@ -1,7 +1,8 @@
 
 #include "Sorts.h"
+#include "Visualizer.h"
+
 #include "malloc.h"
-#include "ArrayRenderer.h"
 
 void FS_flashSort(usort_t* array, uintptr_t n) {
 
