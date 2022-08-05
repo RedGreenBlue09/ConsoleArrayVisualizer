@@ -13,8 +13,9 @@ Here is the target design.
 ## Relationship of components
 Excluding Utils.
 
-> User interface -> Visualizer, LibraryLoader  
+> User interface -> Visualizer, LibraryLoader, RunSort  
 > LibraryLoader -> Algorithms  
+> RunSort -> Algorithms
 > Algorithms -> Visualizer  
 > Visualizer -> Renderer  
 > Renderer -> Graphics API  
