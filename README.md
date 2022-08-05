@@ -15,7 +15,7 @@ Excluding Utils.
 
 > User interface -> Visualizer, LibraryLoader, RunSort  
 > LibraryLoader -> Algorithms  
-> RunSort -> Algorithms
+> RunSort -> Algorithms, Visualizer  
 > Algorithms -> Visualizer  
 > Visualizer -> Renderer  
 > Renderer -> Graphics API  
