@@ -1,9 +1,11 @@
 # ConsoleArrayVisualizer
-Here is the target design.
+Visualize arrays. Not usable yet. Work in process.
+
+# Target Design
 ## Components
 * Visualizer
   * Renderer (columns, circle, ...)
-  * Graphics API (Windows Console, GDI, OpenGL, DirectDraw, ...)
+  * Graphics API (Windows Console, GDI, OpenGL, Console VT100, ...)
 * Algorithms (sorts, shuffles, any algorithm that uses array)
 * LibraryLoader (loads DLL)
 * Utils (other stuff)
