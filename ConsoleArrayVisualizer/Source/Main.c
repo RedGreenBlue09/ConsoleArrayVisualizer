@@ -20,7 +20,6 @@ int main() {
 	uint64_t totalTime = 0;
 	for (uint64_t i = 0; i < 1000000; i += 100) {
 		input = rsCreateSortedArray(n);
-		arUpdateArray(input, n);
 		/*
 		arUpdateArray(input, n);
 		LeftRightQuickSort(input, n);

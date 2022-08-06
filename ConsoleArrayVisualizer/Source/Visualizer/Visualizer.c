@@ -1,11 +1,11 @@
 
 #include "Visualizer.h"
 
-const uint64_t defaultSleepTime = 250;
+const uint64_t arDefaultSleepTime = 250;
 uint8_t arInitialized = FALSE;
 
 //
-AR_ARRAY_ITEM arArrayList[AR_MAX_ARRAY_COUNT];
+AR_ARRAY arArrayList[AR_MAX_ARRAY_COUNT];
 
 // Low level renderer functions.
 
@@ -45,7 +45,7 @@ void arUninit() {
 
 void arSleep(double multiplier) {
 	if (!arInitialized) return;
-	sleep64((uint64_t)((double)defaultSleepTime * multiplier));
+	sleep64((uint64_t)((double)arDefaultSleepTime * multiplier));
 	return;
 }
 
@@ -76,7 +76,7 @@ void arUpdateArray(intptr_t arrayId) {
 
 	if (!arInitialized) return;
 	for (intptr_t i = 0; i < n; ++i)
-		arUpdateItem(array[i], n, i, AR_ATTR_NORMAL);
+		arUpdateItem(arrayId, array[i], i, AR_ATTR_NORMAL);
 }
 
 // Read & Write.
@@ -143,15 +143,14 @@ void arUpdateSwap(intptr_t arrayId, intptr_t posA, intptr_t posB, double sleepMu
 
 }
 
-// Pointer.
+// Pointer (it means a variable that holds index).
 // These functions remember position,
 // and only them can leave highlights after they return.
 // Useful for pointer visualization.
 
-// 256 pointers at max. TODO: Dynamic array
-
-intptr_t myPointersN = 256;
-intptr_t myPointers[256];
+intptr_t myPointersN = AR_MAX_POINTER_COUNT;
+intptr_t myPointers[AR_MAX_POINTER_COUNT];
+// TODO: Tree stucture to store pointers
 
 static uint8_t arIsPointerOverlapped(uint16_t pointerId) {
 	uint8_t isOverlapping = FALSE;
@@ -167,12 +166,15 @@ static uint8_t arIsPointerOverlapped(uint16_t pointerId) {
 	return isOverlapping;
 }
 
-void arUpdatePointer(intptr_t arrayId, intptr_t pos, uint16_t pointerId, double sleepMultiplier) {
+void arUpdatePointer(intptr_t arrayId, uint16_t pointerId, intptr_t pos, double sleepMultiplier) {
+	if (!arInitialized) return;
+
 	isort_t* array = arArrayList[arrayId].array;
 	intptr_t n = arArrayList[arrayId].n;
 
-	if (!arInitialized) return;
 	if (pos >= n) return;
+	if (pointerId >= myPointersN) return;
+
 	if (
 		(myPointers[pointerId] != (intptr_t)(-1)) &&
 		(!arIsPointerOverlapped(pointerId))
@@ -187,10 +189,11 @@ void arUpdatePointer(intptr_t arrayId, intptr_t pos, uint16_t pointerId, double 
 }
 
 void arRemovePointer(intptr_t arrayId, uint16_t pointerId) {
+	if (!arInitialized) return;
+
 	isort_t* array = arArrayList[arrayId].array;
 	intptr_t n = arArrayList[arrayId].n;
 
-	if (!arInitialized) return;
 	if (!arIsPointerOverlapped(pointerId)) {
 		// Reset old pointer to normal.
 		arUpdateItem(arrayId, myPointers[pointerId], array[myPointers[pointerId]], AR_ATTR_NORMAL);

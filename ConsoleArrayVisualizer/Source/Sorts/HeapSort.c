@@ -8,8 +8,8 @@ intptr_t globalN;
 
 void WHS_weakHeapSort(isort_t* array, intptr_t n) {
 
-	size_t i, j, x, y, Gparent;
-	size_t bitsLength = (n + 7) / 8;
+	intptr_t i, j, x, y, Gparent;
+	intptr_t bitsLength = (n + 7) / 8;
 	isort_t* bits = malloc(bitsLength * sizeof(isort_t));
 
 	for (i = 0; i < n / 8; ++i)
@@ -75,42 +75,42 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 	//arAddPointer(array, globalN, right, 2, 0.0);
 
 	while (left < end) {
-		arUpdatePointer(array, globalN, left, 1, 0.0);
+		arUpdatePointer(0, 1, left, 0.0);
 
 		if (right < end) {
-			arUpdatePointer(array, globalN, right, 2, 0.0);
+			arUpdatePointer(0, 2, right, 0.0);
 
-			arUpdateRead2(array, globalN, right, left, 37.5);
+			arUpdateRead2(0, right, left, 37.5);
 			if ((array[right] > array[left])) {
 				j = right;
 			} else {
 				j = left;
 			}
-			arUpdatePointer(array, globalN, j, 0, 0.0);
+			arUpdatePointer(0, 0, j, 0.0);
 
 		} else {
 			j = left;
-			arUpdatePointer(array, globalN, j, 0, 0.0);
+			arUpdatePointer(0, 0, j, 0.0);
 		}
 		left = 2 * j + 1;
 		right = 2 * j + 2;
 	}
 
 	while (array[i] > array[j]) {
-		arUpdatePointer(array, globalN, j, 0, 0.0);
-		arUpdateRead2(array, globalN, i, j, 37.5);
+		arUpdatePointer(0, 0, j, 0.0);
+		arUpdateRead2(0, i, j, 37.5);
 		j = (j - 1) / 2;
 	}
 
 	while (j > i) {
-		arUpdatePointer(array, globalN, j, 0, 0.0);
-		arUpdateSwap(array, globalN, i, j, 37.5);
+		arUpdatePointer(0, 0, j, 0.0);
+		arUpdateSwap(0, i, j, 37.5);
 		ISORT_SWAP(array[i], array[j]);
 		j = (j - 1) / 2;
 	}
-	arRemovePointer(array, globalN, 0);
-	arRemovePointer(array, globalN, 1);
-	arRemovePointer(array, globalN, 2);
+	arRemovePointer(0, 0);
+	arRemovePointer(0, 1);
+	arRemovePointer(0, 2);
 }
 
 // Exports:
@@ -125,6 +125,9 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 
 void BottomUpHeapSort(isort_t* array, intptr_t n) {
 
+	arAddArray(0, array, globalN, (isort_t)n);
+	arUpdateArray(0);
+
 	intptr_t length = n;
 	globalN = n;
 
@@ -132,7 +135,7 @@ void BottomUpHeapSort(isort_t* array, intptr_t n) {
 		BUHS_SiftDown(array, i, length);
 
 	for (intptr_t i = length - 1; i > 0; --i) {
-		arUpdateSwap(array, globalN, 0, i, 37.5);
+		arUpdateSwap(0, 0, i, 37.5);
 		ISORT_SWAP(array[0], array[i]);
 		BUHS_SiftDown(array, 0, i);
 	}

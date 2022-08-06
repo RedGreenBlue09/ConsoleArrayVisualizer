@@ -14,13 +14,14 @@
 #define AR_ATTR_INCORRECT (6)
 
 #define AR_MAX_ARRAY_COUNT (16)
+#define AR_MAX_POINTER_COUNT (256)
 
 // ARRAY_ITEM
 typedef struct {
-	uint8_t active;
+	uint8_t active; // boolean
 	isort_t* array;
 	intptr_t n;
-	isort_t valueMax;
+	isort_t valueMax; // aka. range
 } AR_ARRAY;
 
 // WindowsConsole.c
@@ -54,7 +55,7 @@ void arcnclReadItemAttr(intptr_t arrayId, uintptr_t pos, uint8_t* pAttr);
 
 // Visualizer.c
 
-extern const uint64_t defaultSleepTime;
+extern const uint64_t arDefaultSleepTime;
 extern uint8_t arInitialized;
 
 //
@@ -85,5 +86,5 @@ static uint8_t arIsPointerOverlapped(uint16_t pointerId);
 extern intptr_t myPointersN;
 extern intptr_t myPointers[];
 
-void arUpdatePointer(intptr_t arrayId, intptr_t pos, uint16_t pointerId, double sleepMultiplier);
+void arUpdatePointer(intptr_t arrayId, uint16_t pointerId, intptr_t pos, double sleepMultiplier);
 void arRemovePointer(intptr_t arrayId, uint16_t pointerId);

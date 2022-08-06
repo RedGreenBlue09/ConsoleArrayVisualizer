@@ -26,18 +26,18 @@ static HANDLE oldBuffer = NULL;
 
 // Array
 typedef struct {
-	AR_ARRAY* arArray;
+	AR_ARRAY* pArArray;
 
 	// Array to keep track of atributes without reading console.
 	// Useful in cases where value = 0 or too small to be rendered.
 	uint8_t* attrBuffer;
-	intptr_t attrBufferN;
+	SHORT attrBufferN;
 
 	// Map array index to console index (used for downscale).
 	SHORT* cellMapping; // TODO: Dynamic array for upscale
-} ARCNCL_ARRAY_ITEM;
+} ARCNCL_ARRAY;
 
-static ARCNCL_ARRAY_ITEM arrayList[AR_MAX_ARRAY_COUNT];
+static ARCNCL_ARRAY arrayList[AR_MAX_ARRAY_COUNT];
 // TODO: Linked list to keep track of active (added) items.
 
 void arcnclInit() {
@@ -70,7 +70,6 @@ void arcnclInit() {
 
 	cnClear(rendererBuffer);
 
-
 	return;
 }
 
@@ -78,25 +77,32 @@ void arcnclAddArray(intptr_t id, isort_t* array, intptr_t n) {
 	//
 	if (id >= AR_MAX_ARRAY_COUNT)
 		return;
-	arrayList[id].array = array;
-	arrayList[id].n = n;
+
+	arrayList[id].pArArray = arArrayList + id;
+	arrayList[id].pArArray->array = array;
+	arrayList[id].pArArray->n = n;
 
 	// TODO: proper exit
-	// Init cell mapping buffer.
+	// Init cell mapping.
+
 	arrayList[id].cellMapping = malloc(n * sizeof(SHORT));
 	if (!arrayList[id].cellMapping)
 		exit(ERROR_NOT_ENOUGH_MEMORY);
 
 	// Do scaling (not yet).
+
 	for (intptr_t i = 0; i < n; ++i)
 		arrayList[id].cellMapping[i] = (SHORT)i;
 
-	arrayList[id].attrBufferN = (n > rendererCsbi.dwSize.X) ? rendererCsbi.dwSize.X : n; // No upscale yet.
+	// Init attr buffer
+
+	arrayList[id].attrBufferN = ((SHORT)n > rendererCsbi.dwSize.X) ? rendererCsbi.dwSize.X : (SHORT)n; // No upscale yet.
 	arrayList[id].attrBuffer = malloc(arrayList[id].attrBufferN * sizeof(uint8_t));
 	if (!arrayList[id].attrBuffer)
 		exit(ERROR_NOT_ENOUGH_MEMORY);
 
 	// TODO: scaling
+
 	for (SHORT i = 0; i < arrayList[id].attrBufferN; ++i)
 		arrayList[id].attrBuffer[i] = AR_ATTR_BACKGROUND;
 
@@ -123,7 +129,9 @@ void arcnclUninit() {
 }
 
 static USHORT arcnclAttrToConAttr(uint8_t attr) {
-	USHORT conAttrs[256] = { 0 }; // 0: black background and black text :)
+	USHORT conAttrs[256] = { 0 };
+	// 0: black background and black text. Make sense :)
+
 	conAttrs[AR_ATTR_BACKGROUND] = conBackgroundAttr;
 	conAttrs[AR_ATTR_NORMAL] = conNormalAttr;
 	conAttrs[AR_ATTR_READ] = conReadAttr;
@@ -137,6 +145,7 @@ static USHORT arcnclAttrToConAttr(uint8_t attr) {
 void arcnclDrawItem(intptr_t arrayId, isort_t value, uintptr_t pos, uint8_t attr) {
 
 	// double for extra range
+	isort_t valueMax = arrayList[arrayId].pArArray->valueMax;
 	if (value > valueMax)
 		value = valueMax;
 	double dfHeight = (double)value * (double)rendererCsbi.dwSize.Y / (double)valueMax;

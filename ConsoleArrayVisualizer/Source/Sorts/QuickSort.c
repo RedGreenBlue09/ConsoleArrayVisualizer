@@ -18,27 +18,27 @@ begin:
 	pivot = array[low + (high - low + 1) / 2];
 	left = low;
 	right = high;
-	arUpdatePointer(array, globalN, low + (high - low + 1) / 2, 0, 0.0);
+	arUpdatePointer(0, 0, low + (high - low + 1) / 2, 0.0);
 
 	while (left <= right) {
 		while (array[left] < pivot) {
-			arUpdateRead2(array, globalN, left, right, 62.5);
+			arUpdateRead2(0, left, right, 62.5);
 			++left;
 
 		}
 		while (array[right] > pivot) {
-			arUpdateRead2(array, globalN, left, right, 62.5);
+			arUpdateRead2(0, left, right, 62.5);
 			--right;
 		}
 
 		if (left <= right) {
-			arUpdateSwap(array, globalN, left, right, 62.5);
+			arUpdateSwap(0, left, right, 62.5);
 			ISORT_SWAP(array[left], array[right]);
 			++left;
 			--right;
 		}
 	}
-	arRemovePointer(array, globalN, 0);
+	arRemovePointer(0, 0);
 
 	// Call tail optimization
 	// (prevents O(n) call stack in worst case)
@@ -82,6 +82,9 @@ begin:
 */
 
 void LeftRightQuickSort(isort_t* array, intptr_t n) {
+
+	arAddArray(0, array, globalN, (isort_t)n);
+	arUpdateArray(0);
 
 	if (n < 2) return;
 	globalN = n;

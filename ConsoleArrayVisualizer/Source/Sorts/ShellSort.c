@@ -59,6 +59,9 @@ intptr_t gapsUnkn1[55] = {
 
 void SHS_ShellSort(isort_t* array, intptr_t n, intptr_t* gaps, intptr_t nGaps) {
 
+	arAddArray(0, array, n, (isort_t)n);
+	arUpdateArray(0);
+
 	if (n < 2) return;
 
 	intptr_t pass = nGaps - 1;
@@ -71,20 +74,20 @@ void SHS_ShellSort(isort_t* array, intptr_t n, intptr_t* gaps, intptr_t nGaps) {
 
 		for (intptr_t i = gap; i < n; ++i) {
 			isort_t temp = array[i];
-			arUpdatePointer(array, n, i, 0, 0.0);
+			arUpdatePointer(0, 0, i, 0.0);
 			intptr_t j;
 
-			arUpdateRead2(array, n, i - gap, i, 25.0);
+			arUpdateRead(0, i - gap, 25.0);
 			for (j = i; (j >= gap) && (array[j - gap] > temp); j -= gap) {
 
-				arUpdateRead2(array, n, j - gap, i, 25.0);
-				arUpdateWrite(array, n, j, array[j - gap], 25.0);
+				arUpdateRead(0, j - gap, 25.0);
+				arUpdateWrite(0, j, array[j - gap], 25.0);
 				array[j] = array[j - gap];
 			}
-			arUpdateWrite(array, n, j, temp, 25.0);
+			arUpdateWrite(0, j, temp, 25.0);
 			array[j] = temp;
 		}
-		arRemovePointer(array, n, 0);
+		arRemovePointer(0, 0);
 		--pass;
 	}
 	return;
