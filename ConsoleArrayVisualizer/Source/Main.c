@@ -10,8 +10,8 @@ int main() {
 	utilInitTime();
 
 	//const SIZE_T n = 16777216;
-	//const uintptr_t n = 1024ULL * 1024ULL * 16ULL;
-	const uintptr_t n = 256;
+	//const intptr_t n = 1024ULL * 1024ULL * 16ULL;
+	const intptr_t n = 256;
 
 	isort_t* input;
 
@@ -20,6 +20,7 @@ int main() {
 	uint64_t totalTime = 0;
 	for (uint64_t i = 0; i < 1000000; i += 100) {
 		input = rsCreateSortedArray(n);
+		arUpdateArray(input, n);
 		/*
 		arUpdateArray(input, n);
 		LeftRightQuickSort(input, n);

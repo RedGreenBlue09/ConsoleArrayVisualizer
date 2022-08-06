@@ -2,17 +2,17 @@
 #include "Sorts.h"
 #include "Visualizer.h"
 
-uintptr_t globalN;
+intptr_t globalN;
 
 int NTQS_isortCompare(const isort_t* a, const isort_t* b) {
 	return (*a > *b) - (*a < *b);
 }
 
-void LRQS_Partition(isort_t* array, uintptr_t low, uintptr_t high) {
+void LRQS_Partition(isort_t* array, intptr_t low, intptr_t high) {
 
 	isort_t pivot;
-	uintptr_t left;
-	uintptr_t right;
+	intptr_t left;
+	intptr_t right;
 
 begin:
 	pivot = array[low + (high - low + 1) / 2];
@@ -44,11 +44,11 @@ begin:
 	// (prevents O(n) call stack in worst case)
 
 	// Default small to the left partition
-	uintptr_t smallLeft = low;
-	uintptr_t smallRight = right;
+	intptr_t smallLeft = low;
+	intptr_t smallRight = right;
 	// Default big to the right partition
-	uintptr_t bigLeft = left;
-	uintptr_t bigRight = high;
+	intptr_t bigLeft = left;
+	intptr_t bigRight = high;
 	if ((right - low) > (high - left)) {
 		// (right - low) and (high - left) cannot be negative
 		// Switch small to right partition
@@ -81,14 +81,14 @@ begin:
 * Negative integer support     : Yes
 */
 
-void LeftRightQuickSort(isort_t* array, uintptr_t n) {
+void LeftRightQuickSort(isort_t* array, intptr_t n) {
 
 	if (n < 2) return;
 	globalN = n;
 	LRQS_Partition(array, 0, n - 1);
 }
 
-void StdlibQuickSort(isort_t* array, uintptr_t n) {
+void StdlibQuickSort(isort_t* array, intptr_t n) {
 	if (n < 2) return;
 	qsort(array, n, sizeof(isort_t), NTQS_isortCompare);
 }

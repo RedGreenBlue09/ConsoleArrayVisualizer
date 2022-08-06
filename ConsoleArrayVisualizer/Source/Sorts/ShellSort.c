@@ -10,7 +10,7 @@
 * Negative integer support : Yes
 */
 
-uintptr_t gapsTokuda[54] = {
+intptr_t gapsTokuda[54] = {
 	1, 4, 9, 20, 46, 103, 233, 525, 1182, 2660, 5985, 13467, 30301,
 	68178, 153401, 345152, 776591, 1747331, 3931496, 8845866, 19903198,
 	44782196, 100759940, 226709866, 510097200, 1147718700, 2582367076,
@@ -23,26 +23,26 @@ uintptr_t gapsTokuda[54] = {
 	8335774643151709914
 };
 
-uintptr_t gapsCiura[24] = {
+intptr_t gapsCiura[24] = {
 	1, 4, 10, 23, 57, 132, 301, 701, 1750, 3937, 8859,
 	19933, 44850, 100913, 227056, 510876, 1149471, 2586310,
 	5819199, 13093198, 29459696, 66284316, 149139712, 335564353
 };
 
-uintptr_t gapsPrimeMean[25] = {
+intptr_t gapsPrimeMean[25] = {
 	1, 4, 9, 23, 57, 138, 326, 749, 1695, 3785, 8359,
 	18298, 39744, 85764, 184011, 392925, 835387, 1769455,
 	3735498, 7862761, 16506016, 34568606, 72240147, 150668836,
 	313682636
 };
 
-uintptr_t gaps248[23] = {
+intptr_t gaps248[23] = {
 	1, 3, 7, 16, 38, 94, 233, 577, 1431, 3549, 8801,
 	21826, 54128, 134237, 332908, 825611, 2047515, 5077835,
 	12593031, 31230716, 77452175, 192081393, 476361855
 };
 
-uintptr_t gapsUnkn1[55] = {
+intptr_t gapsUnkn1[55] = {
 	1, 3, 7, 16, 37, 83, 187, 419, 937, 2099,
 	4693, 10499, 23479, 52501, 117391, 262495,
 	586961, 1312481, 2934793, 6562397, 14673961,
@@ -57,7 +57,7 @@ uintptr_t gapsUnkn1[55] = {
 	5006709386067537661, 11195342530833252689
 };
 
-void SHS_ShellSort(isort_t* array, uintptr_t n, uintptr_t* gaps, uintptr_t nGaps) {
+void SHS_ShellSort(isort_t* array, intptr_t n, intptr_t* gaps, intptr_t nGaps) {
 
 	if (n < 2) return;
 
@@ -67,12 +67,12 @@ void SHS_ShellSort(isort_t* array, uintptr_t n, uintptr_t* gaps, uintptr_t nGaps
 
 	while (pass >= 0) {
 
-		uintptr_t gap = gaps[pass];
+		intptr_t gap = gaps[pass];
 
-		for (uintptr_t i = gap; i < n; ++i) {
+		for (intptr_t i = gap; i < n; ++i) {
 			isort_t temp = array[i];
 			arUpdatePointer(array, n, i, 0, 0.0);
-			uintptr_t j;
+			intptr_t j;
 
 			arUpdateRead2(array, n, i - gap, i, 25.0);
 			for (j = i; (j >= gap) && (array[j - gap] > temp); j -= gap) {
@@ -92,27 +92,27 @@ void SHS_ShellSort(isort_t* array, uintptr_t n, uintptr_t* gaps, uintptr_t nGaps
 
 // Exports:
 
-void ShellSortTokuda(isort_t* array, uintptr_t n) {
+void ShellSortTokuda(isort_t* array, intptr_t n) {
 	SHS_ShellSort(array, n, gapsTokuda, 54);
 	return;
 }
 
-void ShellSortCiura(isort_t* array, uintptr_t n) {
+void ShellSortCiura(isort_t* array, intptr_t n) {
 	SHS_ShellSort(array, n, gapsCiura, 24);
 	return;
 }
 
-void ShellSortPrimeMean(isort_t* array, uintptr_t n) {
+void ShellSortPrimeMean(isort_t* array, intptr_t n) {
 	SHS_ShellSort(array, n, gapsPrimeMean, 25);
 	return;
 }
 
-void ShellSort248(isort_t* array, uintptr_t n) {
+void ShellSort248(isort_t* array, intptr_t n) {
 	SHS_ShellSort(array, n, gaps248, 23);
 	return;
 }
 
-void ShellSortUnkn1(isort_t* array, uintptr_t n) {
+void ShellSortUnkn1(isort_t* array, intptr_t n) {
 	SHS_ShellSort(array, n, gapsUnkn1, 55);
 	return;
 }

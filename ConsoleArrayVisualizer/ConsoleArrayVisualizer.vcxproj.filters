@@ -66,6 +66,9 @@
     <ClCompile Include="Source\Sorts.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Visualizer\Column_WindowsConsole.c">
+      <Filter>Source Files\Visualizer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Sorts.h">

@@ -5,7 +5,7 @@
 #include "Utils.h"
 #include <math.h>
 
-isort_t* rsCreateSortedArray(uintptr_t n) {
+isort_t* rsCreateSortedArray(intptr_t n) {
 
 	if (n < 2) return NULL;
 
@@ -16,7 +16,7 @@ isort_t* rsCreateSortedArray(uintptr_t n) {
 	srand64(clock64());
 
 	/* Random */
-	for (uintptr_t i = 0; i < n; ++i)
+	for (intptr_t i = 0; i < n; ++i)
 		array[i] = (isort_t)(rand64() % n);
 	
 	/* Sort */
@@ -24,20 +24,20 @@ isort_t* rsCreateSortedArray(uintptr_t n) {
 	return array;
 }
 
-void rsShuffle(isort_t* array, uintptr_t n) {
+void rsShuffle(isort_t* array, intptr_t n) {
 
 	/* Init RNG */
 	srand64(clock64());
 
 	/* Shuffle */
-	for (uintptr_t i = 0; i < n; ++i) {
+	for (intptr_t i = 0; i < n; ++i) {
 
-		uintptr_t RandI = rand64() % n;
+		intptr_t RandI = rand64() % n;
 		ISORT_SWAP(array[i], array[RandI]);
 	}
 };
 
-void rsCheck(isort_t* array, isort_t* input, uintptr_t n) {
+void rsCheck(isort_t* array, isort_t* input, intptr_t n) {
 
 	if (n < 2) {
 		printf("Array is too small.\r\n");
@@ -45,7 +45,7 @@ void rsCheck(isort_t* array, isort_t* input, uintptr_t n) {
 	}
 
 	int32_t errNum = 0;
-	for (uintptr_t i = 0; (i < n) && (errNum < 8); ++i) {
+	for (intptr_t i = 0; (i < n) && (errNum < 8); ++i) {
 
 		if (array[i] != input[i]) {
 
@@ -58,7 +58,7 @@ void rsCheck(isort_t* array, isort_t* input, uintptr_t n) {
 
 }
 
-void rsRunSort(SORT_INFO* si, isort_t* input, uintptr_t n) {
+void rsRunSort(SORT_INFO* si, isort_t* input, intptr_t n) {
 
 	if (n < 2)
 		return;

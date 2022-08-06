@@ -4,9 +4,9 @@
 
 #include "malloc.h"
 
-uintptr_t globalN;
+intptr_t globalN;
 
-void WHS_weakHeapSort(isort_t* array, size_t n) {
+void WHS_weakHeapSort(isort_t* array, intptr_t n) {
 
 	size_t i, j, x, y, Gparent;
 	size_t bitsLength = (n + 7) / 8;
@@ -123,7 +123,7 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 * Negative integer support     : Yes
 */
 
-void BottomUpHeapSort(isort_t* array, uintptr_t n) {
+void BottomUpHeapSort(isort_t* array, intptr_t n) {
 
 	intptr_t length = n;
 	globalN = n;
@@ -146,7 +146,7 @@ void BottomUpHeapSort(isort_t* array, uintptr_t n) {
 * Negative integer support     : Yes
 */
 
-void WeakHeapSort(isort_t* array, uintptr_t n) {
+void WeakHeapSort(isort_t* array, intptr_t n) {
 
 	if (n < 2) return;
 	globalN = n;

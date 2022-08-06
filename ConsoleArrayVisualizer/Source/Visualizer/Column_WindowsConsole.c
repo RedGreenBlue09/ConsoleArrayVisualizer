@@ -23,10 +23,22 @@ static const USHORT conIncorrectAttr = 0x20;
 static ULONG oldInputMode = 0;
 static HANDLE oldBuffer = NULL;
 
-// Array to keep track of atributes without reading console.
-// Useful in cases where value = 0 or too small to be rendered.
-static SHORT internalAttrBufferN;
-static uint8_t* internalAttrBuffer;
+
+// Array
+typedef struct {
+	AR_ARRAY* arArray;
+
+	// Array to keep track of atributes without reading console.
+	// Useful in cases where value = 0 or too small to be rendered.
+	uint8_t* attrBuffer;
+	intptr_t attrBufferN;
+
+	// Map array index to console index (used for downscale).
+	SHORT* cellMapping; // TODO: Dynamic array for upscale
+} ARCNCL_ARRAY_ITEM;
+
+static ARCNCL_ARRAY_ITEM arrayList[AR_MAX_ARRAY_COUNT];
+// TODO: Linked list to keep track of active (added) items.
 
 void arcnclInit() {
 	//
@@ -58,20 +70,50 @@ void arcnclInit() {
 
 	cnClear(rendererBuffer);
 
-	// TODO: proper exit
-	internalAttrBufferN = rendererCsbi.dwSize.X;
-	internalAttrBuffer = malloc(internalAttrBufferN * sizeof(uint8_t));
-	if (!internalAttrBuffer)
-		exit(ERROR_NOT_ENOUGH_MEMORY);
-	for (SHORT i = 0; i < internalAttrBufferN; ++i)
-		internalAttrBuffer[i] = AR_ATTR_BACKGROUND;
 
 	return;
 }
 
-void arcnclUninit() {
+void arcnclAddArray(intptr_t id, isort_t* array, intptr_t n) {
+	//
+	if (id >= AR_MAX_ARRAY_COUNT)
+		return;
+	arrayList[id].array = array;
+	arrayList[id].n = n;
 
-	free(internalAttrBuffer);
+	// TODO: proper exit
+	// Init cell mapping buffer.
+	arrayList[id].cellMapping = malloc(n * sizeof(SHORT));
+	if (!arrayList[id].cellMapping)
+		exit(ERROR_NOT_ENOUGH_MEMORY);
+
+	// Do scaling (not yet).
+	for (intptr_t i = 0; i < n; ++i)
+		arrayList[id].cellMapping[i] = (SHORT)i;
+
+	arrayList[id].attrBufferN = (n > rendererCsbi.dwSize.X) ? rendererCsbi.dwSize.X : n; // No upscale yet.
+	arrayList[id].attrBuffer = malloc(arrayList[id].attrBufferN * sizeof(uint8_t));
+	if (!arrayList[id].attrBuffer)
+		exit(ERROR_NOT_ENOUGH_MEMORY);
+
+	// TODO: scaling
+	for (SHORT i = 0; i < arrayList[id].attrBufferN; ++i)
+		arrayList[id].attrBuffer[i] = AR_ATTR_BACKGROUND;
+
+	return;
+}
+
+// UB if array at id not added.
+void arcnclRemoveArray(intptr_t id) {
+	if (id >= AR_MAX_ARRAY_COUNT)
+		return;
+
+	free(arrayList[id].attrBuffer);
+	free(arrayList[id].cellMapping);
+	return;
+}
+
+void arcnclUninit() {
 
 	SetConsoleActiveScreenBuffer(oldBuffer);
 	cnDeleteBuffer(rendererBuffer);
@@ -92,7 +134,7 @@ static USHORT arcnclAttrToConAttr(uint8_t attr) {
 	return conAttrs[attr]; // return 0 on unknown attr.
 }
 
-void arcnclDrawItem(isort_t value, uintptr_t n, uintptr_t pos, uint8_t attr) {
+void arcnclDrawItem(intptr_t arrayId, isort_t value, uintptr_t pos, uint8_t attr) {
 
 	// double for extra range
 	if (value > valueMax)
@@ -104,7 +146,7 @@ void arcnclDrawItem(isort_t value, uintptr_t n, uintptr_t pos, uint8_t attr) {
 	// TODO: negative values.
 
 	// Save attribute
-	internalAttrBuffer[(SHORT)pos] = attr;
+	arrayList[arrayId].attrBuffer[(SHORT)pos] = attr;
 	USHORT conAttr = arcnclAttrToConAttr(attr);
 
 	// Fill the unused cells with background.
@@ -113,7 +155,7 @@ void arcnclDrawItem(isort_t value, uintptr_t n, uintptr_t pos, uint8_t attr) {
 		conBackgroundAttr,
 		1,
 		rendererCsbi.dwSize.Y - height,
-		(COORD){ (SHORT)pos, 0 }
+		(COORD){ arrayList[arrayId].cellMapping[pos], 0 }
 	);
 
 	// Fill the used cells with conAttr.
@@ -122,15 +164,15 @@ void arcnclDrawItem(isort_t value, uintptr_t n, uintptr_t pos, uint8_t attr) {
 		conAttr,
 		1,
 		height,
-		(COORD){ (SHORT)pos, rendererCsbi.dwSize.Y - height }
+		(COORD){ arrayList[arrayId].cellMapping[pos], rendererCsbi.dwSize.Y - height }
 	);
 }
 
-void arcnclReadItemAttr(isort_t value, uintptr_t n, uintptr_t pos, uint8_t* pAttr) {
+void arcnclReadItemAttr(intptr_t arrayId, uintptr_t pos, uint8_t* pAttr) {
 
 	// TODO: scaling: nearest neighbor.
 	// TODO: negative values.
-	*pAttr = internalAttrBuffer[(SHORT)pos];
+	*pAttr = arrayList[arrayId].attrBuffer[(SHORT)pos];
 	return;
 
 }

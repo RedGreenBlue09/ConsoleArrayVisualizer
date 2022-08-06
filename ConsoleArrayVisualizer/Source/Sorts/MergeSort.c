@@ -4,7 +4,7 @@
 
 #include "malloc.h"
 
-void BIS_BinaryInsertion(isort_t* array, uintptr_t start, uintptr_t end);
+void BIS_BinaryInsertion(isort_t* array, intptr_t start, intptr_t end);
 
 void IMS_merge(isort_t* c, isort_t* d, size_t lt, size_t md, size_t rt) {
 
@@ -100,7 +100,7 @@ void IMS_iterativeMergeSort(isort_t* a, size_t n) {
 
 // Exports:
 
-void IterativeMergeSort(isort_t* array, uintptr_t n) {
+void IterativeMergeSort(isort_t* array, intptr_t n) {
 
 	if (n < 2) return;
 	IMS_iterativeMergeSort(array, n);

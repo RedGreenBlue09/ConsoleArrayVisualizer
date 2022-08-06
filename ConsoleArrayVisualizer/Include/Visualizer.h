@@ -13,6 +13,16 @@
 #define AR_ATTR_CORRECT (5)
 #define AR_ATTR_INCORRECT (6)
 
+#define AR_MAX_ARRAY_COUNT (16)
+
+// ARRAY_ITEM
+typedef struct {
+	uint8_t active;
+	isort_t* array;
+	intptr_t n;
+	isort_t valueMax;
+} AR_ARRAY;
+
 // WindowsConsole.c
 
 void cnFillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocation);
@@ -35,33 +45,45 @@ void cnDeleteBuffer(HANDLE hBuffer);
 
 void arcnclInit();
 void arcnclUninit();
-void arcnclDrawItem(isort_t value, uintptr_t n, uintptr_t pos, uint8_t attr);
-void arcnclReadItemAttr(isort_t value, uintptr_t n, uintptr_t pos, uint8_t* pAttr);
+
+void arcnclAddArray(intptr_t id, isort_t* array, intptr_t n);
+void arcnclRemoveArray(intptr_t id);
+
+void arcnclDrawItem(intptr_t arrayId, isort_t value, uintptr_t pos, uint8_t attr);
+void arcnclReadItemAttr(intptr_t arrayId, uintptr_t pos, uint8_t* pAttr);
 
 // Visualizer.c
 
-const uint64_t defaultSleepTime;
-isort_t valueMax;
+extern const uint64_t defaultSleepTime;
+extern uint8_t arInitialized;
+
+//
+AR_ARRAY arArrayList[AR_MAX_ARRAY_COUNT];
+
+// Low level renderer functions.
+
+void arUpdateItem(intptr_t arrayId, intptr_t pos, isort_t value, uint8_t attr);
+void arReadItemAttr(intptr_t arrayId, intptr_t pos, uint8_t* pAttr);
 
 void arInit();
 void arUninit();
 
-void arUpdateItem(isort_t value, uintptr_t n, uintptr_t pos, uint8_t attr);
-void arReadItemAttr(isort_t value, uintptr_t n, uintptr_t pos, uint8_t* pAttr);
-void arSetRange(isort_t newRange);
-
 void arSleep(double multiplier);
-void arUpdateArray(isort_t* array, uintptr_t n);
 
-void arUpdateRead(isort_t* array, uintptr_t n, uintptr_t pos, double sleepMultiplier);
-void arUpdateRead2(isort_t* array, uintptr_t n, uintptr_t posA, uintptr_t posB, double sleepMultiplier);
-void arUpdateWrite(isort_t* array, uintptr_t n, uintptr_t pos, isort_t value, double sleepMultiplier);
-void arUpdateSwap(isort_t* array, uintptr_t n, uintptr_t posA, uintptr_t posB, double sleepMultiplier);
+void arAddArray(intptr_t arrayId, isort_t* array, intptr_t n, isort_t valueMax);
+void arRemoveArray(intptr_t arrayId);
+void arSetRange(intptr_t arrayId, isort_t newRange);
+void arUpdateArray(intptr_t arrayId);
 
-uintptr_t prevPointers[256];
+void arUpdateRead(intptr_t arrayId, intptr_t pos, double sleepMultiplier);
+void arUpdateRead2(intptr_t arrayId, intptr_t posA, intptr_t posB, double sleepMultiplier);
+void arUpdateWrite(intptr_t arrayId, intptr_t pos, isort_t value, double sleepMultiplier);
+void arUpdateSwap(intptr_t arrayId, intptr_t posA, intptr_t posB, double sleepMultiplier);
 
-void arUpdatePointer(isort_t* array, uintptr_t n, uintptr_t pos, uint16_t pointerId, double sleepMultiplier);
-void arRemovePointer(isort_t* array, uintptr_t n, uint16_t pointerId);
+static uint8_t arIsPointerOverlapped(uint16_t pointerId);
 
+extern intptr_t myPointersN;
+extern intptr_t myPointers[];
 
-
+void arUpdatePointer(intptr_t arrayId, intptr_t pos, uint16_t pointerId, double sleepMultiplier);
+void arRemovePointer(intptr_t arrayId, uint16_t pointerId);

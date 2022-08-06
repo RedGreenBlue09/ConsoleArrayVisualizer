@@ -2,7 +2,7 @@
 #include "Sorts.h"
 #include "Visualizer.h"
 
-void BIS_BinaryInsertion(isort_t* array, uintptr_t start, uintptr_t end) {
+void BIS_BinaryInsertion(isort_t* array, intptr_t start, intptr_t end) {
 
 	intptr_t start2 = start;
 	intptr_t end2 = end;
@@ -14,7 +14,7 @@ void BIS_BinaryInsertion(isort_t* array, uintptr_t start, uintptr_t end) {
 		intptr_t high = i;
 
 		while (low < high) {
-			uintptr_t mid = low + ((high - low) / 2); // avoid int overflow!
+			intptr_t mid = low + ((high - low) / 2); // avoid int overflow!
 
 			// Do NOT move equal elements to right of inserted element.
 			// This maintains stability!
@@ -49,13 +49,13 @@ void BIS_BinaryInsertion(isort_t* array, uintptr_t start, uintptr_t end) {
 * Negative integer support     : Yes
 */
 
-void InsertionSort(isort_t* array, uintptr_t n) {
+void InsertionSort(isort_t* array, intptr_t n) {
 
 	if (n < 2) return;
 
-	for (uintptr_t i = 1; i < n; ++i) {
+	for (intptr_t i = 1; i < n; ++i) {
 		isort_t temp = array[i];
-		uintptr_t j = i;
+		intptr_t j = i;
 		while ((j > 0) && (array[j - 1] > temp)) {
 			array[j] = array[j - 1];
 			j -= 1;

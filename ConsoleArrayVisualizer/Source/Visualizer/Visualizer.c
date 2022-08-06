@@ -2,119 +2,160 @@
 #include "Visualizer.h"
 
 const uint64_t defaultSleepTime = 250;
-uint8_t bInitialized = FALSE;
+uint8_t arInitialized = FALSE;
 
-isort_t valueMax = 128;
+//
+AR_ARRAY_ITEM arArrayList[AR_MAX_ARRAY_COUNT];
 
-// Low level renderer functions
+// Low level renderer functions.
 
-uintptr_t myPointersN = 256;
-uintptr_t myPointers[256];
+void arUpdateItem(intptr_t arrayId, intptr_t pos, isort_t value, uint8_t attr) {
+	if (!arInitialized) return;
+	arcnclDrawItem(arrayId, value, pos, attr);
+}
+
+void arReadItemAttr(intptr_t arrayId, intptr_t pos, uint8_t* pAttr) {
+	if (!arInitialized) return;
+	arcnclReadItemAttr(arrayId, pos, pAttr);
+}
+
+// Init.
 
 void arInit() {
+
 	arcnclInit();
-	for (uintptr_t i = 0; i < myPointersN; ++i)
-		myPointers[i] = (uintptr_t)(-1);
-	bInitialized = TRUE;
+
+	for (intptr_t i = 0; i < myPointersN; ++i)
+		myPointers[i] = (intptr_t)(-1);
+
+	memset(arArrayList, 0, sizeof(arArrayList));
+	// This also set all .active to FALSE
+
+	arInitialized = TRUE;
 	return;
 }
 
 void arUninit() {
 	arcnclUninit();
-	bInitialized = FALSE;
+	arInitialized = FALSE;
 	return;
 }
 
-void arSetRange(isort_t newRange) {
-	valueMax = newRange;
-}
-
-void arUpdateItem(isort_t value, uintptr_t n, uintptr_t pos, uint8_t attr) {
-	if (!bInitialized) return;
-	arcnclDrawItem(value, n, pos, attr);
-}
-
-void arReadItemAttr(isort_t value, uintptr_t n, uintptr_t pos, uint8_t* pAttr) {
-	if (!bInitialized) return;
-	arcnclReadItemAttr(value, n, pos, pAttr);
-}
-
-// Useful operations
+// Sleep.
 
 void arSleep(double multiplier) {
-	if (!bInitialized) return;
+	if (!arInitialized) return;
 	sleep64((uint64_t)((double)defaultSleepTime * multiplier));
 	return;
 }
 
-void arUpdateArray(isort_t* array, uintptr_t n) {
-	if (!bInitialized) return;
-	for (uintptr_t i = 0; i < n; ++i)
+// Array.
+
+void arAddArray(intptr_t arrayId, isort_t* array, intptr_t n, isort_t valueMax) {
+	arArrayList[arrayId].array = array;
+	arArrayList[arrayId].n = n;
+	arArrayList[arrayId].valueMax = valueMax;
+
+	arArrayList->active = TRUE;
+	return;
+}
+
+void arRemoveArray(intptr_t arrayId) {
+	memset(&arArrayList[arrayId], 0, sizeof(arArrayList[arrayId]));
+	// This also set all .active to FALSE
+	return;
+}
+
+void arSetRange(intptr_t arrayId, isort_t newRange) {
+	arArrayList[arrayId].valueMax = newRange;
+}
+
+void arUpdateArray(intptr_t arrayId) {
+	isort_t* array = arArrayList[arrayId].array;
+	intptr_t n = arArrayList[arrayId].n;
+
+	if (!arInitialized) return;
+	for (intptr_t i = 0; i < n; ++i)
 		arUpdateItem(array[i], n, i, AR_ATTR_NORMAL);
 }
 
+// Read & Write.
 // These functions restore original attributes before they return.
-void arUpdateRead(isort_t* array, uintptr_t n, uintptr_t pos, double sleepMultiplier) {
-	if (pos >= n) return;
-	uint8_t oldAttr;
-	arReadItemAttr(array[pos], n, pos, &oldAttr);
 
-	arUpdateItem(array[pos], n, pos, AR_ATTR_READ);
+void arUpdateRead(intptr_t arrayId, intptr_t pos, double sleepMultiplier) {
+	isort_t* array = arArrayList[arrayId].array;
+	intptr_t n = arArrayList[arrayId].n;
+
+	uint8_t oldAttr;
+	arReadItemAttr(arrayId, pos, &oldAttr);
+
+	arUpdateItem(arrayId, pos, array[pos], AR_ATTR_READ);
 	arSleep(sleepMultiplier);
-	arUpdateItem(array[pos], n, pos, oldAttr);
+	arUpdateItem(arrayId, pos, array[pos], oldAttr);
 }
 
 // Update 2 items with a single sleep (used for comparisions)
-void arUpdateRead2(isort_t* array, uintptr_t n, uintptr_t posA, uintptr_t posB, double sleepMultiplier) {
-	if (posA >= n || posB >= n) return;
+void arUpdateRead2(intptr_t arrayId, intptr_t posA, intptr_t posB, double sleepMultiplier) {
+	isort_t* array = arArrayList[arrayId].array;
+	intptr_t n = arArrayList[arrayId].n;
+
 	uint8_t oldAttrA;
 	uint8_t oldAttrB;
-	arReadItemAttr(array[posA], n, posA, &oldAttrA);
-	arReadItemAttr(array[posB], n, posB, &oldAttrB);
+	arReadItemAttr(arrayId, posA, &oldAttrA);
+	arReadItemAttr(arrayId, posB, &oldAttrB);
 
-	arUpdateItem(array[posA], n, posA, AR_ATTR_READ);
-	arUpdateItem(array[posB], n, posB, AR_ATTR_READ);
+	arUpdateItem(arrayId, posA, array[posA], AR_ATTR_READ);
+	arUpdateItem(arrayId, posB, array[posB], AR_ATTR_READ);
 	arSleep(sleepMultiplier);
-	arUpdateItem(array[posA], n, posA, oldAttrA);
-	arUpdateItem(array[posB], n, posB, oldAttrB);
+	arUpdateItem(arrayId, posA, array[posA], oldAttrA);
+	arUpdateItem(arrayId, posB, array[posB], oldAttrB);
 }
 
 // For time precision, the sort will need to do the write(s) by itself.
-void arUpdateWrite(isort_t* array, uintptr_t n, uintptr_t pos, isort_t value, double sleepMultiplier) {
-	if (pos >= n) return;
-	uint8_t oldAttr;
-	arReadItemAttr(array[pos], n, pos, &oldAttr);
+void arUpdateWrite(intptr_t arrayId, intptr_t pos, isort_t value, double sleepMultiplier) {
+	isort_t* array = arArrayList[arrayId].array;
+	intptr_t n = arArrayList[arrayId].n;
 
-	arUpdateItem(array[pos], n, pos, AR_ATTR_WRITE);
+	uint8_t oldAttr;
+	arReadItemAttr(arrayId, pos, &oldAttr);
+
+	arUpdateItem(arrayId, pos, array[pos], AR_ATTR_WRITE);
 	arSleep(sleepMultiplier);
-	arUpdateItem(value, n, pos, oldAttr);
+	arUpdateItem(arrayId, pos, array[pos], oldAttr);
 }
 
-void arUpdateSwap(isort_t* array, uintptr_t n, uintptr_t posA, uintptr_t posB, double sleepMultiplier) {
-	if (posA >= n || posB >= n) return;
+void arUpdateSwap(intptr_t arrayId, intptr_t posA, intptr_t posB, double sleepMultiplier) {
+	isort_t* array = arArrayList[arrayId].array;
+	intptr_t n = arArrayList[arrayId].n;
+
 	uint8_t oldAttrA;
 	uint8_t oldAttrB;
-	arReadItemAttr(array[posA], n, posA, &oldAttrA);
-	arReadItemAttr(array[posB], n, posB, &oldAttrB);
+	arReadItemAttr(arrayId, posA, &oldAttrA);
+	arReadItemAttr(arrayId, posB, &oldAttrB);
 
-	arUpdateItem(array[posA], n, posA, AR_ATTR_WRITE);
-	arUpdateItem(array[posB], n, posB, AR_ATTR_WRITE);
-	arSleep(sleepMultiplier);
 	// Swap the values
-	arUpdateItem(array[posB], n, posA, oldAttrA);
-	arUpdateItem(array[posA], n, posB, oldAttrB);
+	arUpdateItem(arrayId, posA, array[posB], AR_ATTR_WRITE);
+	arUpdateItem(arrayId, posB, array[posA], AR_ATTR_WRITE);
+	arSleep(sleepMultiplier);
+
+	arUpdateItem(arrayId, posA, array[posB], oldAttrA);
+	arUpdateItem(arrayId, posB, array[posA], oldAttrB);
 
 }
 
+// Pointer.
 // These functions remember position,
 // and only them can leave highlights after they return.
 // Useful for pointer visualization.
 
 // 256 pointers at max. TODO: Dynamic array
 
+intptr_t myPointersN = 256;
+intptr_t myPointers[256];
+
 static uint8_t arIsPointerOverlapped(uint16_t pointerId) {
 	uint8_t isOverlapping = FALSE;
-	for (uintptr_t i = 0; i < myPointersN; ++i) {
+	for (intptr_t i = 0; i < myPointersN; ++i) {
 		if (
 			(i != pointerId) &&
 			(myPointers[i] == myPointers[pointerId])
@@ -126,27 +167,33 @@ static uint8_t arIsPointerOverlapped(uint16_t pointerId) {
 	return isOverlapping;
 }
 
-void arUpdatePointer(isort_t* array, uintptr_t n, uintptr_t pos, uint16_t pointerId, double sleepMultiplier) {
-	if (!bInitialized) return;
+void arUpdatePointer(intptr_t arrayId, intptr_t pos, uint16_t pointerId, double sleepMultiplier) {
+	isort_t* array = arArrayList[arrayId].array;
+	intptr_t n = arArrayList[arrayId].n;
+
+	if (!arInitialized) return;
 	if (pos >= n) return;
 	if (
-		(myPointers[pointerId] != (uintptr_t)(-1)) &&
+		(myPointers[pointerId] != (intptr_t)(-1)) &&
 		(!arIsPointerOverlapped(pointerId))
 		) {
 		// Reset old pointer to normal.
-		arUpdateItem(array[myPointers[pointerId]], n, myPointers[pointerId], AR_ATTR_NORMAL);
+		arUpdateItem(arrayId, myPointers[pointerId], array[myPointers[pointerId]], AR_ATTR_NORMAL);
 	}
 
 	myPointers[pointerId] = pos;
-	arUpdateItem(array[pos], n, pos, AR_ATTR_POINTER);
+	arUpdateItem(arrayId, pos, array[pos], AR_ATTR_POINTER);
 	arSleep(sleepMultiplier);
 }
 
-void arRemovePointer(isort_t* array, uintptr_t n, uint16_t pointerId) {
-	if (!bInitialized) return;
+void arRemovePointer(intptr_t arrayId, uint16_t pointerId) {
+	isort_t* array = arArrayList[arrayId].array;
+	intptr_t n = arArrayList[arrayId].n;
+
+	if (!arInitialized) return;
 	if (!arIsPointerOverlapped(pointerId)) {
 		// Reset old pointer to normal.
-		arUpdateItem(array[myPointers[pointerId]], n, myPointers[pointerId], AR_ATTR_NORMAL);
+		arUpdateItem(arrayId, myPointers[pointerId], array[myPointers[pointerId]], AR_ATTR_NORMAL);
 	}
-	myPointers[pointerId] = (uintptr_t)(-1);
+	myPointers[pointerId] = (intptr_t)(-1);
 }

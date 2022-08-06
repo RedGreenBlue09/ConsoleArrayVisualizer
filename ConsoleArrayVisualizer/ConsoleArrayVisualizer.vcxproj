@@ -27,6 +27,7 @@
     <ClCompile Include="Source\Sorts\ShellSort.c" />
     <ClCompile Include="Source\Utils\Time.c" />
     <ClCompile Include="Source\Utils\Random.c" />
+    <ClCompile Include="Source\Visualizer\Column_WindowsConsole.c" />
     <ClCompile Include="Source\Visualizer\Visualizer.c" />
     <ClCompile Include="Source\Visualizer\WindowsConsole.c" />
   </ItemGroup>

@@ -58,7 +58,7 @@ void PGHS_pigeonholeSort(isort_t* array, intptr_t n) {
 */
 
 
-void PigeonholeSort(isort_t* array, uintptr_t N) {
+void PigeonholeSort(isort_t* array, intptr_t N) {
 	PGHS_pigeonholeSort(array, (intptr_t)N);
 	return;
 }
