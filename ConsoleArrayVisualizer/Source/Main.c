@@ -15,31 +15,33 @@ int main() {
 
 	isort_t* input;
 
-	//arInit();
+	arInit();
 
-	uint64_t totalTime = 0;
-	for (uint64_t i = 0; i < 1000000; i += 100) {
-		input = rsCreateSortedArray(n);
-		/*
-		arUpdateArray(input, n);
-		LeftRightQuickSort(input, n);
+	
+	input = rsCreateSortedArray(n);
+	rsShuffle(input, n);
+	LeftRightQuickSort(input, n);
 
-		free(input);
+	free(input);
 
-		input = rsCreateSortedArray(n);
-		arUpdateArray(input, n);
-		BottomUpHeapSort(input, n);
+	input = rsCreateSortedArray(n);
+	rsShuffle(input, n);
+	BottomUpHeapSort(input, n);
 
-		free(input);
+	free(input);
 
-		input = rsCreateSortedArray(n);
-		arUpdateArray(input, n);
-		ShellSort248(input, n);
-		*/
-		free(input);
-	}
+	input = rsCreateSortedArray(n);
+	rsShuffle(input, n);
+	ShellSort248(input, n);
 
-	//arUninit();
+	arAddArray(0, input, n, (isort_t)n - 1);
+	arUpdateArray(0);
+	arRemoveArray(0);
+
+	free(input);
+
+	Sleep(10000000);
+	arUninit();
 
 	//rsRunSort(&sortsList[0], input, n);
 

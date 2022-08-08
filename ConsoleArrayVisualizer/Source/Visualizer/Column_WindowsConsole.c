@@ -22,7 +22,7 @@ static const USHORT conIncorrectAttr = 0x20;
 // For uninitialization
 static ULONG oldInputMode = 0;
 static HANDLE oldBuffer = NULL;
-
+LONG_PTR oldWindowStyle = 0;
 
 // Array
 typedef struct {
@@ -41,6 +41,13 @@ static ARCNCL_ARRAY arrayList[AR_MAX_ARRAY_COUNT];
 // TODO: Linked list to keep track of active (added) items.
 
 void arcnclInit() {
+	//
+
+	HWND Window = GetConsoleWindow();
+	oldWindowStyle = GetWindowLongPtrW(Window, GWL_STYLE);
+	SetWindowLongPtrW(Window, GWL_STYLE, oldWindowStyle & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
+	SetWindowPos(Window, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE);
+
 	//
 
 	rendererBuffer = cnCreateBuffer();
@@ -73,18 +80,30 @@ void arcnclInit() {
 	return;
 }
 
-void arcnclAddArray(intptr_t id, isort_t* array, intptr_t n) {
+void arcnclUninit() {
+
+	SetConsoleActiveScreenBuffer(oldBuffer);
+	cnDeleteBuffer(rendererBuffer);
+
+	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
+
+	HWND Window = GetConsoleWindow();
+	SetWindowLongPtrW(Window, GWL_STYLE, oldWindowStyle);
+	SetWindowPos(Window, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE);
+
+}
+
+void arcnclAddArray(intptr_t id) {
 	//
 	if (id >= AR_MAX_ARRAY_COUNT)
 		return;
 
 	arrayList[id].pArArray = arArrayList + id;
-	arrayList[id].pArArray->array = array;
-	arrayList[id].pArArray->n = n;
 
 	// TODO: proper exit
 	// Init cell mapping.
 
+	intptr_t n = arrayList[id].pArArray->n;
 	arrayList[id].cellMapping = malloc(n * sizeof(SHORT));
 	if (!arrayList[id].cellMapping)
 		exit(ERROR_NOT_ENOUGH_MEMORY);
@@ -96,7 +115,8 @@ void arcnclAddArray(intptr_t id, isort_t* array, intptr_t n) {
 
 	// Init attr buffer
 
-	arrayList[id].attrBufferN = ((SHORT)n > rendererCsbi.dwSize.X) ? rendererCsbi.dwSize.X : (SHORT)n; // No upscale yet.
+	//arrayList[id].attrBufferN = ((SHORT)n > rendererCsbi.dwSize.X) ? rendererCsbi.dwSize.X : (SHORT)n; // No upscale yet.
+	arrayList[id].attrBufferN = (SHORT)n; // No upscale yet.
 	arrayList[id].attrBuffer = malloc(arrayList[id].attrBufferN * sizeof(uint8_t));
 	if (!arrayList[id].attrBuffer)
 		exit(ERROR_NOT_ENOUGH_MEMORY);
@@ -119,15 +139,6 @@ void arcnclRemoveArray(intptr_t id) {
 	return;
 }
 
-void arcnclUninit() {
-
-	SetConsoleActiveScreenBuffer(oldBuffer);
-	cnDeleteBuffer(rendererBuffer);
-
-	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
-
-}
-
 static USHORT arcnclAttrToConAttr(uint8_t attr) {
 	USHORT conAttrs[256] = { 0 };
 	// 0: black background and black text. Make sense :)
@@ -142,7 +153,9 @@ static USHORT arcnclAttrToConAttr(uint8_t attr) {
 	return conAttrs[attr]; // return 0 on unknown attr.
 }
 
-void arcnclDrawItem(intptr_t arrayId, isort_t value, uintptr_t pos, uint8_t attr) {
+void arcnclDrawItem(intptr_t arrayId, uintptr_t pos, isort_t value, uint8_t attr) {
+
+	//printf("%llu\r\n",pos);
 
 	// double for extra range
 	isort_t valueMax = arrayList[arrayId].pArArray->valueMax;

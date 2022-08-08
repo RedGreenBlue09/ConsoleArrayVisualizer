@@ -47,10 +47,10 @@ void cnDeleteBuffer(HANDLE hBuffer);
 void arcnclInit();
 void arcnclUninit();
 
-void arcnclAddArray(intptr_t id, isort_t* array, intptr_t n);
+void arcnclAddArray(intptr_t id);
 void arcnclRemoveArray(intptr_t id);
 
-void arcnclDrawItem(intptr_t arrayId, isort_t value, uintptr_t pos, uint8_t attr);
+void arcnclDrawItem(intptr_t arrayId, uintptr_t pos, isort_t value, uint8_t attr);
 void arcnclReadItemAttr(intptr_t arrayId, uintptr_t pos, uint8_t* pAttr);
 
 // Visualizer.c

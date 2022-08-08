@@ -125,11 +125,11 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 
 void BottomUpHeapSort(isort_t* array, intptr_t n) {
 
-	arAddArray(0, array, globalN, (isort_t)n);
+	globalN = n;
+	arAddArray(0, array, globalN, (isort_t)n - 1);
 	arUpdateArray(0);
 
 	intptr_t length = n;
-	globalN = n;
 
 	for (intptr_t i = (length - 1) / 2; i >= 0; --i)
 		BUHS_SiftDown(array, i, length);
@@ -139,6 +139,7 @@ void BottomUpHeapSort(isort_t* array, intptr_t n) {
 		ISORT_SWAP(array[0], array[i]);
 		BUHS_SiftDown(array, 0, i);
 	}
+	arRemoveArray(0);
 }
 
 /*

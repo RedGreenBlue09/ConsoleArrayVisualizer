@@ -83,12 +83,13 @@ begin:
 
 void LeftRightQuickSort(isort_t* array, intptr_t n) {
 
-	arAddArray(0, array, globalN, (isort_t)n);
+	globalN = n;
+	arAddArray(0, array, n, (isort_t)n - 1);
 	arUpdateArray(0);
 
 	if (n < 2) return;
-	globalN = n;
 	LRQS_Partition(array, 0, n - 1);
+	arRemoveArray(0);
 }
 
 void StdlibQuickSort(isort_t* array, intptr_t n) {

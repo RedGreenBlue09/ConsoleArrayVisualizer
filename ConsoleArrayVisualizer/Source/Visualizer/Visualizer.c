@@ -11,7 +11,7 @@ AR_ARRAY arArrayList[AR_MAX_ARRAY_COUNT];
 
 void arUpdateItem(intptr_t arrayId, intptr_t pos, isort_t value, uint8_t attr) {
 	if (!arInitialized) return;
-	arcnclDrawItem(arrayId, value, pos, attr);
+	arcnclDrawItem(arrayId, pos, value, attr);
 }
 
 void arReadItemAttr(intptr_t arrayId, intptr_t pos, uint8_t* pAttr) {
@@ -55,12 +55,17 @@ void arAddArray(intptr_t arrayId, isort_t* array, intptr_t n, isort_t valueMax) 
 	arArrayList[arrayId].array = array;
 	arArrayList[arrayId].n = n;
 	arArrayList[arrayId].valueMax = valueMax;
+	arArrayList[arrayId].active = TRUE;
 
-	arArrayList->active = TRUE;
+	arcnclAddArray(arrayId);
+
 	return;
 }
 
 void arRemoveArray(intptr_t arrayId) {
+
+	arcnclRemoveArray(arrayId);
+
 	memset(&arArrayList[arrayId], 0, sizeof(arArrayList[arrayId]));
 	// This also set all .active to FALSE
 	return;
@@ -75,8 +80,9 @@ void arUpdateArray(intptr_t arrayId) {
 	intptr_t n = arArrayList[arrayId].n;
 
 	if (!arInitialized) return;
-	for (intptr_t i = 0; i < n; ++i)
-		arUpdateItem(arrayId, array[i], i, AR_ATTR_NORMAL);
+	for (intptr_t i = 0; i < n; ++i) {
+		arUpdateItem(arrayId, i, array[i], AR_ATTR_NORMAL);
+	}
 }
 
 // Read & Write.
@@ -119,9 +125,9 @@ void arUpdateWrite(intptr_t arrayId, intptr_t pos, isort_t value, double sleepMu
 	uint8_t oldAttr;
 	arReadItemAttr(arrayId, pos, &oldAttr);
 
-	arUpdateItem(arrayId, pos, array[pos], AR_ATTR_WRITE);
+	arUpdateItem(arrayId, pos, value, AR_ATTR_WRITE);
 	arSleep(sleepMultiplier);
-	arUpdateItem(arrayId, pos, array[pos], oldAttr);
+	arUpdateItem(arrayId, pos, value, oldAttr);
 }
 
 void arUpdateSwap(intptr_t arrayId, intptr_t posA, intptr_t posB, double sleepMultiplier) {
@@ -183,9 +189,9 @@ void arUpdatePointer(intptr_t arrayId, uint16_t pointerId, intptr_t pos, double 
 		arUpdateItem(arrayId, myPointers[pointerId], array[myPointers[pointerId]], AR_ATTR_NORMAL);
 	}
 
-	myPointers[pointerId] = pos;
 	arUpdateItem(arrayId, pos, array[pos], AR_ATTR_POINTER);
 	arSleep(sleepMultiplier);
+	myPointers[pointerId] = pos;
 }
 
 void arRemovePointer(intptr_t arrayId, uint16_t pointerId) {

@@ -57,7 +57,7 @@ void cnFillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocatio
 
 	for (LONG i = 0; i < wY; ++i) {
 		for (int j = 0; j < wX; ++j)
-			ciBlock[i * wX + j].Char.AsciiChar = str[i * wX + j];
+			ciBlock[i * wX + j].Char.AsciiChar = str[i * originalX + j];
 	}
 
 	WriteConsoleOutputA(
@@ -141,6 +141,7 @@ void cnFillAttr(HANDLE hBuffer, WORD attr, SHORT wX, SHORT wY, COORD coordLocati
 	}
 
 	SHORT originalX = wX;
+	SHORT originalY = wY;
 
 	if ((coordLocation.X + wX) >= CSBI.dwSize.X)
 		wX = CSBI.dwSize.X - coordLocation.X + 1;
@@ -168,8 +169,9 @@ void cnFillAttr(HANDLE hBuffer, WORD attr, SHORT wX, SHORT wY, COORD coordLocati
 	);
 
 	for (LONG i = 0; i < wY; ++i) {
-		for (int j = 0; j < wX; ++j)
+		for (int j = 0; j < wX; ++j) {
 			ciBlock[i * wX + j].Attributes = attr;
+		}
 	}
 
 	WriteConsoleOutputW(
@@ -225,7 +227,7 @@ void cnFillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLoc
 
 	for (LONG i = 0; i < wY; ++i) {
 		for (int j = 0; j < wX; ++j)
-			ciBlock[i * wX + j].Attributes = attrs[i * wX + j];
+			ciBlock[i * wX + j].Attributes = attrs[i * originalX + j];
 	}
 
 	WriteConsoleOutputW(
