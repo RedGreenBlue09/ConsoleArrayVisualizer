@@ -41,10 +41,10 @@ static WCC_ARRAY aWccArrayList[AR_MAX_ARRAY_COUNT];
 void RendererWcc_Initialize() {
 	//
 
-	HWND Window = GetConsoleWindow();
-	OldWindowStyle = GetWindowLongPtrW(Window, GWL_STYLE);
-	SetWindowLongPtrW(Window, GWL_STYLE, OldWindowStyle & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
-	SetWindowPos(Window, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE);
+	HWND hWindow = GetConsoleWindow();
+	OldWindowStyle = GetWindowLongPtrW(hWindow, GWL_STYLE);
+	SetWindowLongPtrW(hWindow, GWL_STYLE, OldWindowStyle & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
+	SetWindowPos(hWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE);
 
 	//
 
@@ -85,9 +85,9 @@ void RendererWcc_Uninitialize() {
 
 	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
 
-	HWND Window = GetConsoleWindow();
-	SetWindowLongPtrW(Window, GWL_STYLE, OldWindowStyle);
-	SetWindowPos(Window, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE);
+	HWND hWindow = GetConsoleWindow();
+	SetWindowLongPtrW(hWindow, GWL_STYLE, OldWindowStyle);
+	SetWindowPos(hWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE);
 
 }
 
@@ -113,9 +113,8 @@ void RendererWcc_RemoveArray(intptr_t ArrayId) {
 	return;
 }
 
-USHORT WinConAttrTable[256] = { 0 };
+USHORT WinConAttrTable[256] = { 0 }; // 0: black background and black text.
 static USHORT AttrToConAttr(uint8_t Attr) {
-	// 0: black background and black text. Make sense :)
 
 	WinConAttrTable[AR_ATTR_BACKGROUND] = WinConAttrBackground;
 	WinConAttrTable[AR_ATTR_NORMAL] = WinConAttrNormal;
@@ -129,7 +128,6 @@ static USHORT AttrToConAttr(uint8_t Attr) {
 
 void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr) {
 
-
 	isort_t ValueMin = aWccArrayList[ArrayId].pVArray->ValueMin;
 	isort_t ValueMax = aWccArrayList[ArrayId].pVArray->ValueMax;
 
@@ -140,11 +138,11 @@ void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8
 		Value = ValueMax;
 	}
 
-	double dfHeight = (double)Value * (double)csbiRenderer.dwSize.Y / (double)ValueMin;
+	double dfHeight = (double)Value * (double)csbiRenderer.dwSize.Y / (double)ValueMax;
 	SHORT FloorHeight = (SHORT)dfHeight;
-
+	printf("%u\r\n", Value);
 	//
-	USHORT conAttr = AttrToConAttr(Attr);
+	USHORT WinConAttr = AttrToConAttr(Attr);
 
 	// Fill the unused cells with background.
 	WinConsole_FillAttr(
@@ -154,11 +152,10 @@ void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8
 		csbiRenderer.dwSize.Y - FloorHeight,
 		(COORD){ (SHORT)iPos, 0 }
 	);
-
-	// Fill the used cells with conAttr.
+	// Fill the used cells with WinConAttr.
 	WinConsole_FillAttr(
 		hRendererBuffer,
-		conAttr,
+		WinConAttr,
 		1,
 		FloorHeight,
 		(COORD){ (SHORT)iPos, csbiRenderer.dwSize.Y - FloorHeight }

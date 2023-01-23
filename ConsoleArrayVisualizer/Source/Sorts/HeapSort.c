@@ -127,7 +127,6 @@ void BottomUpHeapSort(isort_t* array, intptr_t n) {
 
 	globalN = n;
 	Visualizer_AddArray(0, array, globalN);
-	// TODO: Update array before the sort function
 	Visualizer_UpdateArray(0, TRUE, 0, (isort_t)globalN - 1);
 
 	intptr_t length = n;
