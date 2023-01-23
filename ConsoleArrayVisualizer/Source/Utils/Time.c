@@ -21,7 +21,7 @@ void utilInitTime() {
 	NtQueryTimerResolution(&tickMinRes, &tickMaxRes, &tickResolution);
 
 	SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
-	SetThreadPriority(GetCurrentThread(), 31); // THREAD_PRIORITY_TIME_CRITICAL
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL); // THREAD_PRIORITY_TIME_CRITICAL
 
 }
 
@@ -32,11 +32,18 @@ uint64_t clock64() {
 }
 
 static void _sleep64_waitabletimer(uint64_t time) {
-
+	/*
 	HANDLE hTimer = CreateWaitableTimerExW(
 		NULL,
 		NULL,
 		CREATE_WAITABLE_TIMER_MANUAL_RESET | CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
+		TIMER_ALL_ACCESS
+	);
+	*/
+	HANDLE hTimer = CreateWaitableTimerExW(
+		NULL,
+		NULL,
+		CREATE_WAITABLE_TIMER_MANUAL_RESET,
 		TIMER_ALL_ACCESS
 	);
 	if (!hTimer) return; // if fail then continue waiting with QPC

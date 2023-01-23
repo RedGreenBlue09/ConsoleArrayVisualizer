@@ -16,30 +16,50 @@
 #define AR_MAX_ARRAY_COUNT (16)
 #define AR_MAX_POINTER_COUNT (256)
 
-// ARRAY_ITEM
+// V_ARRAY
 typedef struct {
-	uint8_t active; // boolean
-	isort_t* array;
-	intptr_t n;
-	isort_t valueMax; // aka. range
-} AR_ARRAY;
 
+	int32_t   bActive;
+
+	intptr_t  Size;
+	isort_t*  aArray;
+
+	intptr_t  nAttribute;
+	uint8_t*  aAttribute;
+
+	int32_t   bVisible;
+	isort_t   ValueMin;
+	isort_t   ValueMax;
+
+	intptr_t  nPointer;
+	intptr_t* aPointer;
+	// TODO: Tree stucture to store pointers
+
+} V_ARRAY;
+
+// V_POINTER
+typedef struct {
+
+	intptr_t iPos;
+	intptr_t ArrayId;
+
+} V_POINTER;
 // WindowsConsole.c
 
-void cnFillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocation);
-void cnFillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation);
-void cnFillAttr(HANDLE hBuffer, WORD attr, SHORT wX, SHORT wY, COORD coordLocation);
-void cnFillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation);
+void WinConsole_FillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocation);
+void WinConsole_FillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation);
+void WinConsole_FillAttr(HANDLE hBuffer, WORD Attr, SHORT wX, SHORT wY, COORD coordLocation);
+void WinConsole_FillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation);
 
-void cnWriteStr(HANDLE hBuffer, CHAR* str, COORD coordLocation, ULONG ulLen);
-void cnWriteChar(HANDLE hBuffer, CHAR ch, COORD coordLocation, ULONG ulLen);
-void cnWriteAttr(HANDLE hBuffer, USHORT attr, COORD coordLocation, ULONG ulLen);
+void WinConsole_WriteStr(HANDLE hBuffer, CHAR* str, COORD coordLocation, ULONG ulLen);
+void WinConsole_WriteChar(HANDLE hBuffer, CHAR ch, COORD coordLocation, ULONG ulLen);
+void WinConsole_WriteAttr(HANDLE hBuffer, USHORT Attr, COORD coordLocation, ULONG ulLen);
 
-void cnClear(HANDLE hBuffer);
-void cnPause();
+void WinConsole_Clear(HANDLE hBuffer);
+void WinConsole_Pause();
 
-HANDLE* cnCreateBuffer();
-void cnDeleteBuffer(HANDLE hBuffer);
+HANDLE* WinConsole_CreateBuffer();
+void WinConsole_FreeBuffer(HANDLE hBuffer);
 
 
 // Column_WindowsConsole.c
@@ -47,44 +67,61 @@ void cnDeleteBuffer(HANDLE hBuffer);
 void arcnclInit();
 void arcnclUninit();
 
-void arcnclAddArray(intptr_t id);
+void arcnclAddArray(V_ARRAY* parArray, intptr_t id);
 void arcnclRemoveArray(intptr_t id);
 
-void arcnclDrawItem(intptr_t arrayId, uintptr_t pos, isort_t value, uint8_t attr);
-void arcnclReadItemAttr(intptr_t arrayId, uintptr_t pos, uint8_t* pAttr);
+void arcnclDrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr);
+void arcnclReadItemAttr(intptr_t ArrayId, uintptr_t iPos, uint8_t* pAttr);
 
 // Visualizer.c
 
-extern const uint64_t arDefaultSleepTime;
-extern uint8_t arInitialized;
-
-//
-AR_ARRAY arArrayList[AR_MAX_ARRAY_COUNT];
-
 // Low level renderer functions.
+//#define VISUALIZER_DISABLED
 
-void arUpdateItem(intptr_t arrayId, intptr_t pos, isort_t value, uint8_t attr);
-void arReadItemAttr(intptr_t arrayId, intptr_t pos, uint8_t* pAttr);
+#ifndef VISUALIZER_DISABLED
 
-void arInit();
-void arUninit();
+void Visualizer_UpdateItem(intptr_t ArrayId, intptr_t iPos, isort_t Value, uint8_t Attr);
+void Visualizer_ReadItemAttribute(intptr_t ArrayId, intptr_t iPos, uint8_t* pAttr);
 
-void arSleep(double multiplier);
+void Visualizer_Initialize();
+void Visualizer_Uninitialize();
 
-void arAddArray(intptr_t arrayId, isort_t* array, intptr_t n, isort_t valueMax);
-void arRemoveArray(intptr_t arrayId);
-void arSetRange(intptr_t arrayId, isort_t newRange);
-void arUpdateArray(intptr_t arrayId);
+void Visualizer_Sleep(double fSleepMultiplier);
 
-void arUpdateRead(intptr_t arrayId, intptr_t pos, double sleepMultiplier);
-void arUpdateRead2(intptr_t arrayId, intptr_t posA, intptr_t posB, double sleepMultiplier);
-void arUpdateWrite(intptr_t arrayId, intptr_t pos, isort_t value, double sleepMultiplier);
-void arUpdateSwap(intptr_t arrayId, intptr_t posA, intptr_t posB, double sleepMultiplier);
+void Visualizer_AddArray(intptr_t ArrayId, isort_t* aArray, intptr_t Size, int32_t bVisible, isort_t ValueMin, isort_t ValueMax);
+void Visualizer_RemoveArray(intptr_t ArrayId);
+void Visualizer_SetArrayVisibility(intptr_t ArrayId, int32_t bVisible, isort_t ValueMin, isort_t ValueMax);
+void Visualizer_UpdateArray(intptr_t ArrayId);
 
-static uint8_t arIsPointerOverlapped(uint16_t pointerId);
+void Visualizer_UpdateRead(intptr_t ArrayId, intptr_t iPos, double fSleepMultiplier);
+void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier);
+void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t Value, double fSleepMultiplier);
+void Visualizer_UpdateSwap(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier);
 
-extern intptr_t myPointersN;
-extern intptr_t myPointers[];
+void Visualizer_UpdatePointer(intptr_t ArrayId, uint16_t PointerId, intptr_t iPos, double fSleepMultiplier);
+void Visualizer_RemovePointer(intptr_t ArrayId, uint16_t PointerId);
 
-void arUpdatePointer(intptr_t arrayId, uint16_t pointerId, intptr_t pos, double sleepMultiplier);
-void arRemovePointer(intptr_t arrayId, uint16_t pointerId);
+#else
+
+#define arUpdateItem(A, B, C, D) 
+#define arReadItemAttr(A, B, C) 
+
+#define arInit() 
+#define arUninit(A) 
+
+#define arSleep(A, B, C, D) 
+
+#define arAddArray(A, B, C, D) 
+#define arRemoveArray(A) 
+#define arSetRange(A, B) 
+#define arUpdateArray(A) 
+
+#define arUpdateRead(A, B, C) 
+#define arUpdateRead2(A, B, C, D) 
+#define arUpdateWrite(A, B, C, D) 
+#define arUpdateSwap(A, B, C, D) 
+
+#define arUpdatePointer(A, B, C, D) 
+#define arRemovePointer(A, B) 
+
+#endif

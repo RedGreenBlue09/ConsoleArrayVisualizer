@@ -3,7 +3,7 @@
 
 #include "Utils.h"
 
-uint32_t sortsCount = 10;
+uintptr_t sortsCount = sizeof(sortsList) / sizeof(*sortsList);
 
 SORT_INFO sortsList[128] = {
 	{
@@ -23,8 +23,20 @@ SORT_INFO sortsList[128] = {
 		ShellSort248,
 	},
 	{
-		"ShellSort (Unknown gaps #1)",
-		ShellSortUnkn1,
+		"ShellSort (Pigeon's gaps)",
+		ShellSortPigeon,
+	},
+	{
+		"ShellSort (Sedgewick's gaps)",
+		ShellSortSedgewick1986,
+	},
+	{
+		"ShellSort (Cbrt16 gaps)",
+		ShellSortCbrt16,
+	},
+	{
+		"ShellSort (Cbrt16-1 gaps)",
+		ShellSortCbrt16p1,
 	},
 	{
 		"stdlib QuickSort",

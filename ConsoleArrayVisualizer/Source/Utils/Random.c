@@ -103,31 +103,35 @@ void long_jump() {
 	s[3] = s3;
 }
 
-/* 
-   SplitMix64 RNG
-*/
 
-uint64_t sm64_state = 0x0123456789ABCDEF;           /* The state can be seeded with any (upto) 64 bit integer value. */
+/*  Written in 2015 by Sebastiano Vigna (vigna@acm.org)
 
-uint64_t sm64_next_int() {
-	sm64_state += 0x9e3779b97f4a7c15;               /* increment the state variable */
-	uint64_t z = sm64_state;                        /* copy the state to a working variable */
+To the extent possible under law, the author has dedicated all copyright
+and related and neighboring rights to this software to the public domain
+worldwide. This software is distributed without any warranty.
+
+See <http://creativecommons.org/publicdomain/zero/1.0/>. */
+
+
+uint64_t sm_state = 0x0123456789ABCDEF;           /* The state can be seeded with any (upto) 64 bit integer value. */
+
+uint64_t sm_next_int() {
+	sm_state += 0x9e3779b97f4a7c15;               /* increment the state variable */
+	uint64_t z = sm_state;                        /* copy the state to a working variable */
 	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;  /* xor the variable with the variable right bit shifted 30 then multiply by a constant */
 	z = (z ^ (z >> 27)) * 0x94d049bb133111eb;  /* xor the variable with the variable right bit shifted 27 then multiply by a constant */
 	return z ^ (z >> 31);                      /* return the variable xored with itself right bit shifted 31 */
 }
 
 
-/*
-   Wrapper
-*/
+/* Wrapper */
 
 void srand64(uint64_t seed) {
-	sm64_state = seed;
-	s[0] = sm64_next_int();
-	s[1] = sm64_next_int();
-	s[2] = sm64_next_int();
-	s[3] = sm64_next_int();
+	sm_state = seed;
+	s[0] = sm_next_int();
+	s[1] = sm_next_int();
+	s[2] = sm_next_int();
+	s[3] = sm_next_int();
 }
 
 uint64_t rand64() {

@@ -80,7 +80,7 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 		if (right < end) {
 			arUpdatePointer(0, 2, right, 0.0);
 
-			arUpdateRead2(0, right, left, 37.5);
+			arUpdateRead2(0, right, left, 32.0);
 			if ((array[right] > array[left])) {
 				j = right;
 			} else {
@@ -98,13 +98,13 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 
 	while (array[i] > array[j]) {
 		arUpdatePointer(0, 0, j, 0.0);
-		arUpdateRead2(0, i, j, 37.5);
+		arUpdateRead2(0, i, j, 32.0);
 		j = (j - 1) / 2;
 	}
 
 	while (j > i) {
 		arUpdatePointer(0, 0, j, 0.0);
-		arUpdateSwap(0, i, j, 37.5);
+		arUpdateSwap(0, i, j, 32.0);
 		ISORT_SWAP(array[i], array[j]);
 		j = (j - 1) / 2;
 	}
@@ -135,7 +135,7 @@ void BottomUpHeapSort(isort_t* array, intptr_t n) {
 		BUHS_SiftDown(array, i, length);
 
 	for (intptr_t i = length - 1; i > 0; --i) {
-		arUpdateSwap(0, 0, i, 37.5);
+		arUpdateSwap(0, 0, i, 32.0);
 		ISORT_SWAP(array[0], array[i]);
 		BUHS_SiftDown(array, 0, i);
 	}

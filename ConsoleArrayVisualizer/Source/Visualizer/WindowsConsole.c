@@ -9,6 +9,8 @@
 * and implements more functions.
 */
 
+// TODO: Change code style
+
 /*
 * 
 * Fill functions (by block)
@@ -16,7 +18,7 @@
 * 
 */
 
-void cnFillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocation) {
+void WinConsole_FillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocation) {
 
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
@@ -72,7 +74,7 @@ void cnFillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocatio
 	return;
 }
 
-void cnFillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation) {
+void WinConsole_FillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation) {
 
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
@@ -128,7 +130,7 @@ void cnFillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation
 	return;
 }
 
-void cnFillAttr(HANDLE hBuffer, WORD attr, SHORT wX, SHORT wY, COORD coordLocation) {
+void WinConsole_FillAttr(HANDLE hBuffer, WORD attr, SHORT wX, SHORT wY, COORD coordLocation) {
 
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
@@ -186,7 +188,7 @@ void cnFillAttr(HANDLE hBuffer, WORD attr, SHORT wX, SHORT wY, COORD coordLocati
 	return;
 }
 
-void cnFillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation) {
+void WinConsole_FillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation) {
 
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
@@ -248,7 +250,7 @@ void cnFillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLoc
 * 
 */
 
-void cnWriteStr(HANDLE hBuffer, CHAR* str, COORD coordLocation, ULONG ulLen) {
+void WinConsole_WriteStr(HANDLE hBuffer, CHAR* str, COORD coordLocation, ULONG ulLen) {
 
 	ULONG W;
 	WriteConsoleA(
@@ -261,7 +263,7 @@ void cnWriteStr(HANDLE hBuffer, CHAR* str, COORD coordLocation, ULONG ulLen) {
 	return;
 }
 
-void cnWriteChar(HANDLE hBuffer, CHAR ch, COORD coordLocation, ULONG ulLen) {
+void WinConsole_WriteChar(HANDLE hBuffer, CHAR ch, COORD coordLocation, ULONG ulLen) {
 
 	ULONG W;
 	FillConsoleOutputCharacterA(
@@ -274,7 +276,7 @@ void cnWriteChar(HANDLE hBuffer, CHAR ch, COORD coordLocation, ULONG ulLen) {
 	return;
 }
 
-void cnWriteAttr(HANDLE hBuffer, USHORT attr, COORD coordLocation, ULONG ulLen) {
+void WinConsole_WriteAttr(HANDLE hBuffer, USHORT attr, COORD coordLocation, ULONG ulLen) {
 
 	ULONG W;
 	FillConsoleOutputAttribute(
@@ -291,7 +293,7 @@ void cnWriteAttr(HANDLE hBuffer, USHORT attr, COORD coordLocation, ULONG ulLen) 
 * Buffer functions
 */
 
-HANDLE* cnCreateBuffer() {
+HANDLE* WinConsole_CreateBuffer() {
 	HANDLE hBuffer = CreateConsoleScreenBuffer(
 		GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -302,7 +304,7 @@ HANDLE* cnCreateBuffer() {
 	return hBuffer;
 }
 
-void cnDeleteBuffer(HANDLE hBuffer) {
+void WinConsole_FreeBuffer(HANDLE hBuffer) {
 	CloseHandle(hBuffer);
 	return;
 }
@@ -312,7 +314,7 @@ void cnDeleteBuffer(HANDLE hBuffer) {
 */
 
 // Similar to cmd "clear" command.
-void cnClear(HANDLE hBuffer) {
+void WinConsole_Clear(HANDLE hBuffer) {
 
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;
 	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
@@ -338,7 +340,7 @@ void cnClear(HANDLE hBuffer) {
 }
 
 // Similar to cmd "pause" command, no print.
-void cnPause() {
+void WinConsole_Pause() {
 
 	HANDLE hStdIn = GetStdHandle(STD_INPUT_HANDLE);
 
@@ -347,7 +349,7 @@ void cnPause() {
 	INPUT_RECORD InputRecord;
 	ULONG W;
 	do {
-		ReadConsoleInputA(hStdIn, &InputRecord, 1, &W);
+		ReadConsoleInputW(hStdIn, &InputRecord, 1, &W);
 	} while (InputRecord.EventType == KEY_EVENT);
 
 	return;
