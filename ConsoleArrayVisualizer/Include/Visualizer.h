@@ -23,8 +23,6 @@ typedef struct {
 
 	intptr_t  Size;
 	isort_t*  aArray;
-
-	intptr_t  nAttribute;
 	uint8_t*  aAttribute;
 
 	int32_t   bVisible;
@@ -44,18 +42,16 @@ typedef struct {
 
 #ifndef VISUALIZER_DISABLED
 
-void Visualizer_UpdateItem(intptr_t ArrayId, intptr_t iPos, isort_t Value, uint8_t Attr);
-void Visualizer_ReadItemAttribute(intptr_t ArrayId, intptr_t iPos, uint8_t* pAttr);
-
 void Visualizer_Initialize();
 void Visualizer_Uninitialize();
 
+void Visualizer_UpdateItem(intptr_t ArrayId, intptr_t iPos, isort_t Value, uint8_t Attr);
+
 void Visualizer_Sleep(double fSleepMultiplier);
 
-void Visualizer_AddArray(intptr_t ArrayId, isort_t* aArray, intptr_t Size, int32_t bVisible, isort_t ValueMin, isort_t ValueMax);
+void Visualizer_AddArray(intptr_t ArrayId, isort_t* aArray, intptr_t Size);
 void Visualizer_RemoveArray(intptr_t ArrayId);
-void Visualizer_SetArrayVisibility(intptr_t ArrayId, int32_t bVisible, isort_t ValueMin, isort_t ValueMax);
-void Visualizer_UpdateArray(intptr_t ArrayId);
+void Visualizer_UpdateArray(intptr_t ArrayId, int32_t bVisible, isort_t ValueMin, isort_t ValueMax);
 
 void Visualizer_UpdateRead(intptr_t ArrayId, intptr_t iPos, double fSleepMultiplier);
 void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier);
@@ -75,18 +71,18 @@ void Visualizer_RemovePointer(intptr_t ArrayId, uint16_t PointerId);
 
 #define arSleep(A, B, C, D) 
 
-#define arAddArray(A, B, C, D) 
-#define arRemoveArray(A) 
+#define Visualizer_AddArray(A, B, C, D) 
+#define Visualizer_RemoveArray(A) 
 #define arSetRange(A, B) 
-#define arUpdateArray(A) 
+#define Visualizer_UpdateArray(A) 
 
-#define arUpdateRead(A, B, C) 
-#define arUpdateRead2(A, B, C, D) 
-#define arUpdateWrite(A, B, C, D) 
-#define arUpdateSwap(A, B, C, D) 
+#define Visualizer_UpdateRead(A, B, C) 
+#define Visualizer_UpdateRead2(A, B, C, D) 
+#define Visualizer_UpdateWrite(A, B, C, D) 
+#define Visualizer_UpdateSwap(A, B, C, D) 
 
-#define arUpdatePointer(A, B, C, D) 
-#define arRemovePointer(A, B) 
+#define Visualizer_UpdatePointer(A, B, C, D) 
+#define Visualizer_RemovePointer(A, B) 
 
 #endif
 
@@ -111,11 +107,10 @@ void WinConsole_FreeBuffer(HANDLE hBuffer);
 
 // Column_WindowsConsole.c
 
-void arcnclInit();
-void arcnclUninit();
+void RendererWcc_Initialize();
+void RendererWcc_Uninitialize();
 
-void arcnclAddArray(V_ARRAY* parArray, intptr_t id);
-void arcnclRemoveArray(intptr_t id);
+void RendererWcc_AddArray(V_ARRAY* parArray, intptr_t id);
+void RendererWcc_RemoveArray(intptr_t id);
 
-void arcnclDrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr);
-void arcnclReadItemAttr(intptr_t ArrayId, uintptr_t iPos, uint8_t* pAttr);
+void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr);

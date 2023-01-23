@@ -12,14 +12,12 @@ static V_ARRAY Visualizer_aVArrayList[AR_MAX_ARRAY_COUNT];
 // Low level renderer functions
 
 void Visualizer_UpdateItem(intptr_t ArrayId, intptr_t iPos, isort_t Value, uint8_t Attr) {
-	if (!Visualizer_bInitialized) return;
-	arcnclDrawItem(ArrayId, iPos, Value, Attr);
-	return;
-}
 
-void Visualizer_ReadItemAttribute(intptr_t ArrayId, intptr_t iPos, uint8_t* pAttr) {
 	if (!Visualizer_bInitialized) return;
-	arcnclReadItemAttr(ArrayId, iPos, pAttr);
+
+
+	RendererWcc_DrawItem(ArrayId, iPos, Value, Attr);
+
 	return;
 }
 
@@ -28,17 +26,15 @@ void Visualizer_ReadItemAttribute(intptr_t ArrayId, intptr_t iPos, uint8_t* pAtt
 void Visualizer_Initialize() {
 
 	// Initialize Renderer
-	arcnclInit();
+	RendererWcc_Initialize();
 
 	for (intptr_t i = 0; i < AR_MAX_ARRAY_COUNT; ++i) {
 
 		Visualizer_aVArrayList[i].bActive = FALSE;
 
-		Visualizer_aVArrayList[i].aArray = NULL;
 		Visualizer_aVArrayList[i].Size = 0;
-
+		Visualizer_aVArrayList[i].aArray = NULL;
 		Visualizer_aVArrayList[i].aAttribute = NULL;
-		Visualizer_aVArrayList[i].nAttribute = 0;
 
 		Visualizer_aVArrayList[i].bVisible = FALSE;
 		Visualizer_aVArrayList[i].ValueMin = 0;
@@ -55,7 +51,7 @@ void Visualizer_Initialize() {
 }
 
 void Visualizer_Uninitialize() {
-	arcnclUninit();
+	RendererWcc_Uninitialize();
 	Visualizer_bInitialized = FALSE;
 	return;
 }
@@ -70,41 +66,13 @@ void Visualizer_Sleep(double fSleepMultiplier) {
 
 // Array
 
-void Visualizer_AddArray(intptr_t ArrayId, isort_t* aArray, intptr_t Size, int32_t bVisible, isort_t ValueMin, isort_t ValueMax) {
+void Visualizer_AddArray(intptr_t ArrayId, isort_t* aArray, intptr_t Size) {
 
 	Visualizer_aVArrayList[ArrayId].bActive = TRUE;
 
-	Visualizer_aVArrayList[ArrayId].aArray = aArray;
 	Visualizer_aVArrayList[ArrayId].Size = Size;
-
-	Visualizer_aVArrayList[ArrayId].aAttribute = NULL;
-	Visualizer_aVArrayList[ArrayId].nAttribute = Size;
-
-	Visualizer_aVArrayList[ArrayId].bVisible = FALSE;
-	Visualizer_aVArrayList[ArrayId].ValueMin = ValueMin;
-	Visualizer_aVArrayList[ArrayId].ValueMax = ValueMax;
-
-	Visualizer_aVArrayList[ArrayId].nPointer = AR_MAX_POINTER_COUNT;
-	Visualizer_aVArrayList[ArrayId].aPointer = malloc(AR_MAX_POINTER_COUNT * sizeof(intptr_t));
-
-	arcnclAddArray(&Visualizer_aVArrayList[ArrayId], ArrayId);
-
-	return;
-
-}
-
-void Visualizer_RemoveArray(intptr_t ArrayId) {
-
-	arcnclRemoveArray(ArrayId);
-
-	//
-	Visualizer_aVArrayList[ArrayId].bActive = FALSE;
-
-	Visualizer_aVArrayList[ArrayId].aArray = NULL;
-	Visualizer_aVArrayList[ArrayId].Size = 0;
-
-	Visualizer_aVArrayList[ArrayId].aAttribute = NULL;
-	Visualizer_aVArrayList[ArrayId].nAttribute = 0;
+	Visualizer_aVArrayList[ArrayId].aArray = aArray;
+	Visualizer_aVArrayList[ArrayId].aAttribute = malloc(Size * sizeof(intptr_t));
 
 	Visualizer_aVArrayList[ArrayId].bVisible = FALSE;
 	Visualizer_aVArrayList[ArrayId].ValueMin = 0;
@@ -113,21 +81,43 @@ void Visualizer_RemoveArray(intptr_t ArrayId) {
 	Visualizer_aVArrayList[ArrayId].nPointer = AR_MAX_POINTER_COUNT;
 	Visualizer_aVArrayList[ArrayId].aPointer = malloc(AR_MAX_POINTER_COUNT * sizeof(intptr_t));
 
+	RendererWcc_AddArray(&Visualizer_aVArrayList[ArrayId], ArrayId);
+
+	return;
+
+}
+
+void Visualizer_RemoveArray(intptr_t ArrayId) {
+
+	RendererWcc_RemoveArray(ArrayId);
+
+	//
+	Visualizer_aVArrayList[ArrayId].bActive = FALSE;
+
+	Visualizer_aVArrayList[ArrayId].Size = 0;
+	Visualizer_aVArrayList[ArrayId].aArray = NULL;
+	free(Visualizer_aVArrayList[ArrayId].aAttribute);
+	Visualizer_aVArrayList[ArrayId].aAttribute = NULL;
+
+	Visualizer_aVArrayList[ArrayId].bVisible = FALSE;
+	Visualizer_aVArrayList[ArrayId].ValueMin = 0;
+	Visualizer_aVArrayList[ArrayId].ValueMax = 0;
+
+	Visualizer_aVArrayList[ArrayId].nPointer = AR_MAX_POINTER_COUNT;
+	free(Visualizer_aVArrayList[ArrayId].aPointer);
+	Visualizer_aVArrayList[ArrayId].aPointer = NULL;
+
 
 	// This also set all .active to FALSE
 	return;
 
 }
 
-void Visualizer_SetArrayVisibility(intptr_t ArrayId, int32_t bVisible, isort_t ValueMin, isort_t ValueMax) {
+void Visualizer_UpdateArray(intptr_t ArrayId, int32_t bVisible, isort_t ValueMin, isort_t ValueMax) {
+	
 	Visualizer_aVArrayList[ArrayId].bVisible = bVisible;
 	Visualizer_aVArrayList[ArrayId].ValueMin = ValueMin;
 	Visualizer_aVArrayList[ArrayId].ValueMax = ValueMax;
-	// TODO: In real time
-	return;
-}
-
-void Visualizer_UpdateArray(intptr_t ArrayId) {
 
 	isort_t* aArray = Visualizer_aVArrayList[ArrayId].aArray;
 	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
@@ -139,7 +129,6 @@ void Visualizer_UpdateArray(intptr_t ArrayId) {
 	}
 
 	return;
-
 }
 
 // Read & Write
@@ -150,8 +139,7 @@ void Visualizer_UpdateRead(intptr_t ArrayId, intptr_t iPos, double fSleepMultipl
 	isort_t* aArray = Visualizer_aVArrayList[ArrayId].aArray;
 	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
 
-	uint8_t AttrOld;
-	Visualizer_ReadItemAttribute(ArrayId, iPos, &AttrOld);
+	uint8_t AttrOld = Visualizer_aVArrayList[ArrayId].aAttribute[iPos];
 
 	Visualizer_UpdateItem(ArrayId, iPos, aArray[iPos], AR_ATTR_READ);
 	Visualizer_Sleep(fSleepMultiplier);
@@ -167,10 +155,8 @@ void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, do
 	isort_t* aArray = Visualizer_aVArrayList[ArrayId].aArray;
 	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
 
-	uint8_t AttrOldA;
-	uint8_t AttrOldB;
-	Visualizer_ReadItemAttribute(ArrayId, iPosA, &AttrOldA);
-	Visualizer_ReadItemAttribute(ArrayId, iPosB, &AttrOldB);
+	uint8_t AttrOldA = Visualizer_aVArrayList[ArrayId].aAttribute[iPosA];
+	uint8_t AttrOldB = Visualizer_aVArrayList[ArrayId].aAttribute[iPosB];
 
 	Visualizer_UpdateItem(ArrayId, iPosA, aArray[iPosA], AR_ATTR_READ);
 	Visualizer_UpdateItem(ArrayId, iPosB, aArray[iPosB], AR_ATTR_READ);
@@ -188,8 +174,7 @@ void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t Value, doub
 	isort_t* aArray = Visualizer_aVArrayList[ArrayId].aArray;
 	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
 
-	uint8_t AttrOld;
-	Visualizer_ReadItemAttribute(ArrayId, iPos, &AttrOld);
+	uint8_t AttrOld = Visualizer_aVArrayList[ArrayId].aAttribute[iPos];
 
 	Visualizer_UpdateItem(ArrayId, iPos, Value, AR_ATTR_WRITE);
 	Visualizer_Sleep(fSleepMultiplier);
@@ -204,10 +189,8 @@ void Visualizer_UpdateSwap(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, dou
 	isort_t* aArray = Visualizer_aVArrayList[ArrayId].aArray;
 	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
 
-	uint8_t AttrOldA;
-	uint8_t AttrOldB;
-	Visualizer_ReadItemAttribute(ArrayId, iPosA, &AttrOldA);
-	Visualizer_ReadItemAttribute(ArrayId, iPosB, &AttrOldB);
+	uint8_t AttrOldA = Visualizer_aVArrayList[ArrayId].aAttribute[iPosA];
+	uint8_t AttrOldB = Visualizer_aVArrayList[ArrayId].aAttribute[iPosB];
 
 	// Swap the values
 	Visualizer_UpdateItem(ArrayId, iPosA, aArray[iPosB], AR_ATTR_WRITE);

@@ -5,21 +5,21 @@
 #ifndef VISUALIZER_DISABLED
 
 // Buffer stuff
-static HANDLE rendererBuffer = NULL;
-static CONSOLE_SCREEN_BUFFER_INFOEX rendererCsbi = { 0 };
+static HANDLE hRendererBuffer = NULL;
+static CONSOLE_SCREEN_BUFFER_INFOEX csbiRenderer = { 0 };
 
-// Console attr
-// cmd "color /?" explains this very well
-static const USHORT AttrBackground = 0x0F;
+// Console Attr
+// cmd "color /?" explains this very well.
+static const USHORT WinConAttrBackground = 0x0F;
 
-static const USHORT AttrNormal = 0xF0;
-static const USHORT AttrRead = 0x10;
-static const USHORT AttrWrite = 0x40;
+static const USHORT WinConAttrNormal = 0xF0;
+static const USHORT WinConAttrRead = 0x10;
+static const USHORT WinConAttrWrite = 0x40;
 
-static const USHORT AttrPointer = 0x30;
+static const USHORT WinConAttrPointer = 0x30;
 
-static const USHORT AttrCorrect = 0x40;
-static const USHORT AttrIncorrect = 0x20;
+static const USHORT WinConAttrCorrect = 0x40;
+static const USHORT WinConAttrIncorrect = 0x20;
 
 // For uninitialization
 static ULONG OldInputMode = 0;
@@ -28,21 +28,17 @@ static LONG_PTR OldWindowStyle = 0;
 
 // Array
 typedef struct {
-	V_ARRAY VArrayList;
+	V_ARRAY* pVArray;
 
-	// Array to keep track of atributes without reading console.
-	// Useful in cases where value = 0 or too small to be rendered.
-	uint8_t* aAttribute;
-	int16_t nAttribute;
 
 	// TODO: Horizontal scaling
 
-} ARCNCL_ARRAY;
+} WCC_ARRAY;
 
-static ARCNCL_ARRAY arrayList[AR_MAX_ARRAY_COUNT];
+static WCC_ARRAY aWccArrayList[AR_MAX_ARRAY_COUNT];
 // TODO: Linked list to keep track of active (added) items.
 
-void arcnclInit() {
+void RendererWcc_Initialize() {
 	//
 
 	HWND Window = GetConsoleWindow();
@@ -52,40 +48,40 @@ void arcnclInit() {
 
 	//
 
-	rendererBuffer = WinConsole_CreateBuffer();
+	hRendererBuffer = WinConsole_CreateBuffer();
 
 	//
 
 	hOldBuffer = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleActiveScreenBuffer(rendererBuffer);
+	SetConsoleActiveScreenBuffer(hRendererBuffer);
 
 	// Set console IO mode to RAW.
 
 	GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &OldInputMode);
-	SetConsoleMode(rendererBuffer, 0);
-	SetConsoleMode(rendererBuffer, 0);
+	SetConsoleMode(hRendererBuffer, 0);
+	SetConsoleMode(hRendererBuffer, 0);
 
 	// Set cursor to top left
 
-	rendererCsbi.cbSize = sizeof(rendererCsbi);
-	GetConsoleScreenBufferInfoEx(rendererBuffer, &rendererCsbi);
-	rendererCsbi.dwCursorPosition = (COORD){ 0, 0 };
-	rendererCsbi.wAttributes = AttrBackground;
-	SetConsoleScreenBufferInfoEx(rendererBuffer, &rendererCsbi);
+	csbiRenderer.cbSize = sizeof(csbiRenderer);
+	GetConsoleScreenBufferInfoEx(hRendererBuffer, &csbiRenderer);
+	csbiRenderer.dwCursorPosition = (COORD){ 0, 0 };
+	csbiRenderer.wAttributes = WinConAttrBackground;
+	SetConsoleScreenBufferInfoEx(hRendererBuffer, &csbiRenderer);
 
 	ULONG ul = GetLastError();
 
 	//
 
-	WinConsole_Clear(rendererBuffer);
+	WinConsole_Clear(hRendererBuffer);
 
 	return;
 }
 
-void arcnclUninit() {
+void RendererWcc_Uninitialize() {
 
 	SetConsoleActiveScreenBuffer(hOldBuffer);
-	WinConsole_FreeBuffer(rendererBuffer);
+	WinConsole_FreeBuffer(hRendererBuffer);
 
 	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
 
@@ -95,100 +91,80 @@ void arcnclUninit() {
 
 }
 
-void arcnclAddArray(V_ARRAY* parArray, intptr_t id) {
+void RendererWcc_AddArray(V_ARRAY* pVArray, intptr_t ArrayId) {
 	//
-	if (id >= AR_MAX_ARRAY_COUNT)
+	if (ArrayId >= AR_MAX_ARRAY_COUNT)
 		return;
 
-	arrayList[id].arArray = *parArray;
+	aWccArrayList[ArrayId].pVArray = pVArray;
 
 	// TODO: scaling
-	intptr_t n = arrayList[id].arArray.n;
-
-	// Init attr buffer
-
-	arrayList[id].nAttribute = (SHORT)n; // No upscale yet.
-	arrayList[id].aAttribute = malloc(n * sizeof(uint8_t));
-	if (!arrayList[id].aAttribute)
-		exit(ERROR_NOT_ENOUGH_MEMORY);
+	intptr_t ArraySize = aWccArrayList[ArrayId].pVArray->Size;
 
 	// TODO: scaling
-
-	for (SHORT i = 0; i < n; ++i)
-		arrayList[id].aAttribute[i] = AR_ATTR_BACKGROUND;
 
 	return;
 }
 
-// UB if array at id not added.
-void arcnclRemoveArray(intptr_t id) {
-	if (id >= AR_MAX_ARRAY_COUNT)
+// UB if array at ArrayId not added.
+void RendererWcc_RemoveArray(intptr_t ArrayId) {
+	if (ArrayId >= AR_MAX_ARRAY_COUNT)
 		return;
-
-	free(arrayList[id].aAttribute);
 	return;
 }
 
-USHORT conAttrs[256] = { 0 };
-static USHORT arcnclAttrToConAttr(uint8_t attr) {
+USHORT WinConAttrTable[256] = { 0 };
+static USHORT AttrToConAttr(uint8_t Attr) {
 	// 0: black background and black text. Make sense :)
 
-	conAttrs[AR_ATTR_BACKGROUND] = AttrBackground;
-	conAttrs[AR_ATTR_NORMAL] = AttrNormal;
-	conAttrs[AR_ATTR_READ] = AttrRead;
-	conAttrs[AR_ATTR_WRITE] = AttrWrite;
-	conAttrs[AR_ATTR_POINTER] = AttrPointer;
-	conAttrs[AR_ATTR_CORRECT] = AttrCorrect;
-	conAttrs[AR_ATTR_INCORRECT] = AttrIncorrect;
-	return conAttrs[attr]; // return 0 on unknown attr.
+	WinConAttrTable[AR_ATTR_BACKGROUND] = WinConAttrBackground;
+	WinConAttrTable[AR_ATTR_NORMAL] = WinConAttrNormal;
+	WinConAttrTable[AR_ATTR_READ] = WinConAttrRead;
+	WinConAttrTable[AR_ATTR_WRITE] = WinConAttrWrite;
+	WinConAttrTable[AR_ATTR_POINTER] = WinConAttrPointer;
+	WinConAttrTable[AR_ATTR_CORRECT] = WinConAttrCorrect;
+	WinConAttrTable[AR_ATTR_INCORRECT] = WinConAttrIncorrect;
+	return WinConAttrTable[Attr]; // return 0 on unknown Attr.
 }
 
-void arcnclDrawItem(intptr_t arrayId, uintptr_t pos, isort_t value, uint8_t attr) {
+void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr) {
 
-	//printf("%llu\r\n",pos);
 
-	// double for extra range
-	isort_t valueMax = arrayList[arrayId].arArray.valueMax;
-	if (value > valueMax)
-		value = valueMax;
-	double dfHeight = (double)value * (double)rendererCsbi.dwSize.Y / (double)valueMax;
-	SHORT height = (SHORT)dfHeight;
+	isort_t ValueMin = aWccArrayList[ArrayId].pVArray->ValueMin;
+	isort_t ValueMax = aWccArrayList[ArrayId].pVArray->ValueMax;
 
-	// TODO: scaling: nearest neighbor.
-	// TODO: negative values.
+	Value -= ValueMin;
+	ValueMax -= ValueMin; // Warning: Overflow
 
-	// Save attribute
-	arrayList[arrayId].aAttribute[(SHORT)pos] = attr;
-	USHORT conAttr = arcnclAttrToConAttr(attr);
+	if (Value > ValueMax) {
+		Value = ValueMax;
+	}
+
+	double dfHeight = (double)Value * (double)csbiRenderer.dwSize.Y / (double)ValueMin;
+	SHORT FloorHeight = (SHORT)dfHeight;
+
+	//
+	USHORT conAttr = AttrToConAttr(Attr);
 
 	// Fill the unused cells with background.
 	WinConsole_FillAttr(
-		rendererBuffer,
-		AttrBackground,
+		hRendererBuffer,
+		WinConAttrBackground,
 		1,
-		rendererCsbi.dwSize.Y - height,
-		(COORD){ pos, 0 }
+		csbiRenderer.dwSize.Y - FloorHeight,
+		(COORD){ (SHORT)iPos, 0 }
 	);
 
 	// Fill the used cells with conAttr.
 	WinConsole_FillAttr(
-		rendererBuffer,
+		hRendererBuffer,
 		conAttr,
 		1,
-		height,
-		(COORD){ pos, rendererCsbi.dwSize.Y - height }
+		FloorHeight,
+		(COORD){ (SHORT)iPos, csbiRenderer.dwSize.Y - FloorHeight }
 	);
 
 	return;
-}
-
-void arcnclReadItemAttr(intptr_t arrayId, uintptr_t pos, uint8_t* pAttr) {
-
-	// TODO: scaling: nearest neighbor.
-	// TODO: negative values.
-	*pAttr = arrayList[arrayId].aAttribute[(SHORT)pos];
-	return;
-
 }
 
 #else

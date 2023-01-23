@@ -2,9 +2,6 @@
 #include "Sorts.h"
 #include "Visualizer.h"
 
-uint64_t nCompare;
-uint64_t nWrite;
-
 /*
 * ALGORITHM INFORMATION:
 * Time complexity          : O(n * log2(n))
@@ -91,11 +88,11 @@ intptr_t gapsCbrt16p1[] = {
 
 void SHS_ShellSort(isort_t* array, intptr_t n, intptr_t* gaps, intptr_t nGaps) {
 
-	nCompare = 0;
-	nWrite = 0;
-
-	arAddArray(0, array, n, (isort_t)n - 1);
-	arUpdateArray(0);
+	//nCompare = 0;
+	//nWrite = 0;
+	
+	Visualizer_AddArray(0, array, n);
+	Visualizer_UpdateArray(0, TRUE, 0, (isort_t)n - 1);
 
 	if (n < 2) return;
 
@@ -109,26 +106,26 @@ void SHS_ShellSort(isort_t* array, intptr_t n, intptr_t* gaps, intptr_t nGaps) {
 
 		for (intptr_t i = gap; i < n; ++i) {
 			isort_t temp = array[i];
-			arUpdatePointer(0, 0, i, 0.0);
+			Visualizer_UpdatePointer(0, 0, i, 0.0);
 			intptr_t j;
 
-			arUpdateRead(0, i - gap, 25.0);
-			++nCompare;
+			Visualizer_UpdateRead(0, i - gap, 25.0);
+			//++nCompare;
 			for (j = i; (j >= gap) && (array[j - gap] > temp); j -= gap) {
-				++nCompare;
-				++nWrite;
-				arUpdateRead(0, j - gap, 25.0);
-				arUpdateWrite(0, j, array[j - gap], 25.0);
+				//++nCompare;
+				//++nWrite;
+				Visualizer_UpdateRead(0, j - gap, 25.0);
+				Visualizer_UpdateWrite(0, j, array[j - gap], 25.0);
 				array[j] = array[j - gap];
 			}
-			arUpdateWrite(0, j, temp, 25.0);
+			Visualizer_UpdateWrite(0, j, temp, 25.0);
 			array[j] = temp;
-			++nWrite;
+			//++nWrite;
 		}
-		arRemovePointer(0, 0);
+		Visualizer_RemovePointer(0, 0);
 		--pass;
 	}
-	arRemoveArray(0);
+	Visualizer_RemoveArray(0);
 	return;
 }
 

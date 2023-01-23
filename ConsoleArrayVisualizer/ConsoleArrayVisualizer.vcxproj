@@ -16,7 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Main.c" />
-    <ClCompile Include="Source\RunSort.c" />
     <ClCompile Include="Source\Sorts.c" />
     <ClCompile Include="Source\Sorts\FlashSort.c" />
     <ClCompile Include="Source\Sorts\HeapSort.c" />
@@ -32,7 +31,6 @@
     <ClCompile Include="Source\Visualizer\WindowsConsole.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Include\RunSort.h" />
     <ClInclude Include="Include\Visualizer.h" />
     <ClInclude Include="Include\Sorts.h" />
     <ClInclude Include="Include\Utils.h" />

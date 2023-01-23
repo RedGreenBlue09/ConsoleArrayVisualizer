@@ -1,7 +1,6 @@
 
 #include "Sorts.h"
 #include "Visualizer.h"
-#include "RunSort.h"
 
 #define _USE_MATH_DEFINES
 
@@ -41,105 +40,9 @@ double log2fact(double x) {
 	}
 }
 
-// ShellSort.c
-extern uint64_t nCompare;
-extern uint64_t nWrite;
-
 int main() {
 	utilInitTime();
 
-	//const intptr_t n = 1ll << 27ll;
-	//const intptr_t n = 256;
 
-	isort_t* input;
-	/*
-
-	arInit();
-	
-	input = rsCreateSortedArray(n);
-	rsShuffle(input, n);
-	LeftRightQuickSort(input, n);
-
-	free(input);
-
-	input = rsCreateSortedArray(n);
-	rsShuffle(input, n);
-	BottomUpHeapSort(input, n);
-
-	free(input);
-
-	input = rsCreateSortedArray(n);
-	rsShuffle(input, n);
-	ShellSort248(input, n);
-
-	arAddArray(0, input, n, (isort_t)n - 1);
-	arUpdateArray(0);
-	arRemoveArray(0);
-
-	free(input);
-
-	arUninit();
-	*/
-
-	FILE* file;
-	if (fopen_s(&file, "Results.txt", "w") == EINVAL) {
-		printf("Unable to open file.\r\n");
-		return 0;
-	}
-
-	for (uintptr_t j = 0; j < 1; ++j) {
-
-		double dfLimit = 27.0;
-
-		printf("Running: %s\r\n", Sorts_aSortList[j].sName);
-		fprintf(file, "\r\n%s\r\n", Sorts_aSortList[j].sName);
-
-		for (double dfi = 1.0; dfi <= dfLimit; dfi += 0.25) {
-
-			intptr_t n;
-			uint64_t nIteration;
-
-			uint64_t sumCompare;
-			uint64_t sumWrite;
-
-			n = (intptr_t)exp2(dfi);
-			//nIteration = (uint64_t)round(exp2(dfLimit - dfi
-			nIteration = (1ull << 20ull) / n;
-
-			if (nIteration > (1ull << 20ull))
-				nIteration = (1ull << 20ull);
-			else if (nIteration < 2)
-				nIteration = 2;
-
-			sumCompare = 0;
-			sumWrite = 0;
-
-			for (uint64_t i = 0; i < nIteration; ++i) {
-
-				input = rsCreateSortedArray(n);
-				rsShuffle(input, n);
-
-				Sorts_aSortList[j].SortFunction(input, n);
-
-				free(input);
-
-				sumCompare += nCompare;
-				sumWrite += nWrite;
-
-			}
-			fprintf(
-				file,
-				"%g||%.4f|%.4f||%.4f|%.4f\r\n",
-				dfi,                                        // 2^x
-				(double)sumCompare / (double)nIteration,    // avg comparisions
-				(double)sumWrite / (double)nIteration,      // avg writes
-				log2fact((double)n),                        // log2 n!
-				(double)n * log2((double)n)                 // n log n
-			);
-
-		}
-	}
-
-	fclose(file);
 	return 0;
 }

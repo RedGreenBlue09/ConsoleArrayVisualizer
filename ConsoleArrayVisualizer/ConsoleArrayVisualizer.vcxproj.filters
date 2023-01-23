@@ -60,9 +60,6 @@
     <ClCompile Include="Source\Visualizer\Visualizer.c">
       <Filter>Source Files\Visualizer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\RunSort.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Sorts.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -78,9 +75,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\Visualizer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\RunSort.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

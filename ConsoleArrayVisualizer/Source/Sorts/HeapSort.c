@@ -75,42 +75,42 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 	//arAddPointer(array, globalN, right, 2, 0.0);
 
 	while (left < end) {
-		arUpdatePointer(0, 1, left, 0.0);
+		Visualizer_UpdatePointer(0, 1, left, 0.0);
 
 		if (right < end) {
-			arUpdatePointer(0, 2, right, 0.0);
+			Visualizer_UpdatePointer(0, 2, right, 0.0);
 
-			arUpdateRead2(0, right, left, 32.0);
+			Visualizer_UpdateRead2(0, right, left, 32.0);
 			if ((array[right] > array[left])) {
 				j = right;
 			} else {
 				j = left;
 			}
-			arUpdatePointer(0, 0, j, 0.0);
+			Visualizer_UpdatePointer(0, 0, j, 0.0);
 
 		} else {
 			j = left;
-			arUpdatePointer(0, 0, j, 0.0);
+			Visualizer_UpdatePointer(0, 0, j, 0.0);
 		}
 		left = 2 * j + 1;
 		right = 2 * j + 2;
 	}
 
 	while (array[i] > array[j]) {
-		arUpdatePointer(0, 0, j, 0.0);
-		arUpdateRead2(0, i, j, 32.0);
+		Visualizer_UpdatePointer(0, 0, j, 0.0);
+		Visualizer_UpdateRead2(0, i, j, 32.0);
 		j = (j - 1) / 2;
 	}
 
 	while (j > i) {
-		arUpdatePointer(0, 0, j, 0.0);
-		arUpdateSwap(0, i, j, 32.0);
+		Visualizer_UpdatePointer(0, 0, j, 0.0);
+		Visualizer_UpdateSwap(0, i, j, 32.0);
 		ISORT_SWAP(array[i], array[j]);
 		j = (j - 1) / 2;
 	}
-	arRemovePointer(0, 0);
-	arRemovePointer(0, 1);
-	arRemovePointer(0, 2);
+	Visualizer_RemovePointer(0, 0);
+	Visualizer_RemovePointer(0, 1);
+	Visualizer_RemovePointer(0, 2);
 }
 
 // Exports:
@@ -126,8 +126,9 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 void BottomUpHeapSort(isort_t* array, intptr_t n) {
 
 	globalN = n;
-	arAddArray(0, array, globalN, (isort_t)n - 1);
-	arUpdateArray(0);
+	Visualizer_AddArray(0, array, globalN);
+	// TODO: Update array before the sort function
+	Visualizer_UpdateArray(0, TRUE, 0, (isort_t)globalN - 1);
 
 	intptr_t length = n;
 
@@ -135,11 +136,11 @@ void BottomUpHeapSort(isort_t* array, intptr_t n) {
 		BUHS_SiftDown(array, i, length);
 
 	for (intptr_t i = length - 1; i > 0; --i) {
-		arUpdateSwap(0, 0, i, 32.0);
+		Visualizer_UpdateSwap(0, 0, i, 32.0);
 		ISORT_SWAP(array[0], array[i]);
 		BUHS_SiftDown(array, 0, i);
 	}
-	arRemoveArray(0);
+	Visualizer_RemoveArray(0);
 }
 
 /*
