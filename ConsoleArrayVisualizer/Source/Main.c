@@ -91,8 +91,8 @@ int main() {
 
 		double dfLimit = 27.0;
 
-		printf("Running: %s\r\n", sortsList[j].name);
-		fprintf(file, "\r\n%s\r\n", sortsList[j].name);
+		printf("Running: %s\r\n", Sorts_aSortList[j].sName);
+		fprintf(file, "\r\n%s\r\n", Sorts_aSortList[j].sName);
 
 		for (double dfi = 1.0; dfi <= dfLimit; dfi += 0.25) {
 
@@ -119,7 +119,7 @@ int main() {
 				input = rsCreateSortedArray(n);
 				rsShuffle(input, n);
 
-				sortsList[j].sortFunc(input, n);
+				Sorts_aSortList[j].SortFunction(input, n);
 
 				free(input);
 

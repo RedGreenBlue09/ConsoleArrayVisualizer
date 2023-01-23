@@ -3,9 +3,9 @@
 
 #include "Utils.h"
 
-uintptr_t sortsCount = sizeof(sortsList) / sizeof(*sortsList);
+uintptr_t Sorts_nSort = sizeof(Sorts_aSortList) / sizeof(*Sorts_aSortList);
 
-SORT_INFO sortsList[128] = {
+SORT_INFO Sorts_aSortList[128] = {
 	{
 		"ShellSort (Tokuda's gaps)",
 		ShellSortTokuda,

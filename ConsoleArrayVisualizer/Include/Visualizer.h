@@ -37,42 +37,6 @@ typedef struct {
 
 } V_ARRAY;
 
-// V_POINTER
-typedef struct {
-
-	intptr_t iPos;
-	intptr_t ArrayId;
-
-} V_POINTER;
-// WindowsConsole.c
-
-void WinConsole_FillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocation);
-void WinConsole_FillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation);
-void WinConsole_FillAttr(HANDLE hBuffer, WORD Attr, SHORT wX, SHORT wY, COORD coordLocation);
-void WinConsole_FillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation);
-
-void WinConsole_WriteStr(HANDLE hBuffer, CHAR* str, COORD coordLocation, ULONG ulLen);
-void WinConsole_WriteChar(HANDLE hBuffer, CHAR ch, COORD coordLocation, ULONG ulLen);
-void WinConsole_WriteAttr(HANDLE hBuffer, USHORT Attr, COORD coordLocation, ULONG ulLen);
-
-void WinConsole_Clear(HANDLE hBuffer);
-void WinConsole_Pause();
-
-HANDLE* WinConsole_CreateBuffer();
-void WinConsole_FreeBuffer(HANDLE hBuffer);
-
-
-// Column_WindowsConsole.c
-
-void arcnclInit();
-void arcnclUninit();
-
-void arcnclAddArray(V_ARRAY* parArray, intptr_t id);
-void arcnclRemoveArray(intptr_t id);
-
-void arcnclDrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr);
-void arcnclReadItemAttr(intptr_t ArrayId, uintptr_t iPos, uint8_t* pAttr);
-
 // Visualizer.c
 
 // Low level renderer functions.
@@ -125,3 +89,33 @@ void Visualizer_RemovePointer(intptr_t ArrayId, uint16_t PointerId);
 #define arRemovePointer(A, B) 
 
 #endif
+
+
+// WindowsConsole.c
+
+void WinConsole_FillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocation);
+void WinConsole_FillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation);
+void WinConsole_FillAttr(HANDLE hBuffer, WORD Attr, SHORT wX, SHORT wY, COORD coordLocation);
+void WinConsole_FillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation);
+
+void WinConsole_WriteStr(HANDLE hBuffer, CHAR* str, COORD coordLocation, ULONG ulLen);
+void WinConsole_WriteChar(HANDLE hBuffer, CHAR ch, COORD coordLocation, ULONG ulLen);
+void WinConsole_WriteAttr(HANDLE hBuffer, USHORT Attr, COORD coordLocation, ULONG ulLen);
+
+void WinConsole_Clear(HANDLE hBuffer);
+void WinConsole_Pause();
+
+HANDLE* WinConsole_CreateBuffer();
+void WinConsole_FreeBuffer(HANDLE hBuffer);
+
+
+// Column_WindowsConsole.c
+
+void arcnclInit();
+void arcnclUninit();
+
+void arcnclAddArray(V_ARRAY* parArray, intptr_t id);
+void arcnclRemoveArray(intptr_t id);
+
+void arcnclDrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr);
+void arcnclReadItemAttr(intptr_t ArrayId, uintptr_t iPos, uint8_t* pAttr);

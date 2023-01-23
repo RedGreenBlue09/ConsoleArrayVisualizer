@@ -8,8 +8,8 @@ typedef int32_t isort_t;
 typedef uint32_t usort_t;
 
 typedef struct {
-	char name[64];
-	void (*sortFunc)(isort_t*, intptr_t);
+	char sName[64];
+	void (*SortFunction)(isort_t*, intptr_t);
 } SORT_INFO;
 
 // Swap macros
@@ -55,5 +55,5 @@ void FlashSort          (isort_t* array, intptr_t n);
 
 // Sorts.c
 
-uintptr_t sortsCount;
-SORT_INFO sortsList[128];
+uintptr_t Sorts_nSort;
+SORT_INFO Sorts_aSortList[128];
