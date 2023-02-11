@@ -2,7 +2,7 @@
 #include "Sorts.h"
 #include "Visualizer.h"
 
-intptr_t globalN;
+intptr_t GlobalPrimaryArrayId;
 
 int NTQS_isortCompare(const isort_t* a, const isort_t* b) {
 	return (*a > *b) - (*a < *b);
@@ -18,27 +18,27 @@ begin:
 	pivot = array[low + (high - low + 1) / 2];
 	left = low;
 	right = high;
-	Visualizer_UpdatePointer(0, 0, low + (high - low + 1) / 2, 0.0);
+	Visualizer_UpdatePointer(GlobalPrimaryArrayId, 0, low + (high - low + 1) / 2, 0.0);
 
 	while (left <= right) {
 		while (array[left] < pivot) {
-			Visualizer_UpdateRead2(0, left, right, 62.5);
+			Visualizer_UpdateRead2(GlobalPrimaryArrayId, left, right, 62.5);
 			++left;
 
 		}
 		while (array[right] > pivot) {
-			Visualizer_UpdateRead2(0, left, right, 62.5);
+			Visualizer_UpdateRead2(GlobalPrimaryArrayId, left, right, 62.5);
 			--right;
 		}
 
 		if (left <= right) {
-			Visualizer_UpdateSwap(0, left, right, 62.5);
+			Visualizer_UpdateSwap(GlobalPrimaryArrayId, left, right, 62.5);
 			ISORT_SWAP(array[left], array[right]);
 			++left;
 			--right;
 		}
 	}
-	Visualizer_RemovePointer(0, 0);
+	Visualizer_RemovePointer(GlobalPrimaryArrayId, 0);
 
 	// Call tail optimization
 	// (prevents O(n) call stack in worst case)
@@ -81,18 +81,12 @@ begin:
 * Negative integer support     : Yes
 */
 
-void LeftRightQuickSort(isort_t* array, intptr_t n) {
-
-	globalN = n;
-	Visualizer_AddArray(0, array, n);
-	Visualizer_UpdateArray(0, TRUE, 0, (isort_t)n - 1);
+void LeftRightQuickSort(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
 
 	if (n < 2) return;
 	LRQS_Partition(array, 0, n - 1);
-	Visualizer_RemoveArray(0);
-}
 
-void StdlibQuickSort(isort_t* array, intptr_t n) {
-	if (n < 2) return;
-	qsort(array, n, sizeof(isort_t), NTQS_isortCompare);
+	GlobalPrimaryArrayId = PrimaryArrayId;
+
+	return;
 }

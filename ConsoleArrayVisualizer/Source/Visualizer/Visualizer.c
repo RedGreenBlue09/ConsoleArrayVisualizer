@@ -1,9 +1,8 @@
 
 #include "Visualizer.h"
 
-#ifndef VISUALIZER_DISABLED
 
-static const uint64_t Visualizer_TimeDefaultDelay = 4000;
+static const uint64_t Visualizer_TimeDefaultDelay = 500;
 static uint8_t Visualizer_bInitialized = FALSE;
 
 //
@@ -94,10 +93,15 @@ void Visualizer_AddArray(intptr_t ArrayId, isort_t* aArray, intptr_t Size) {
 	Visualizer_aVArrayList[ArrayId].nPointer = AR_MAX_POINTER_COUNT;
 	Visualizer_aVArrayList[ArrayId].aPointer = malloc(AR_MAX_POINTER_COUNT * sizeof(intptr_t));
 
+	// Set all pointers to -1
 	for (intptr_t i = 0; i < AR_MAX_POINTER_COUNT; ++i)
 		Visualizer_aVArrayList[ArrayId].aPointer[i] = (-1);
 
-	RendererWcc_AddArray(&Visualizer_aVArrayList[ArrayId], ArrayId);
+	// Set all attributes to AR_ATTR_NORMAL
+	for (intptr_t i = 0; i < AR_MAX_POINTER_COUNT; ++i)
+		Visualizer_aVArrayList[ArrayId].aAttribute[i] = AR_ATTR_NORMAL;
+
+	RendererWcc_AddArray(ArrayId, &Visualizer_aVArrayList[ArrayId]);
 
 	return;
 
@@ -107,8 +111,6 @@ void Visualizer_RemoveArray(intptr_t ArrayId) {
 
 	if (!Visualizer_bInitialized) return;
 	if (!Visualizer_aVArrayList[ArrayId].bActive) return;
-
-	RendererWcc_RemoveArray(ArrayId);
 
 	//
 	Visualizer_aVArrayList[ArrayId].bActive = FALSE;
@@ -122,12 +124,12 @@ void Visualizer_RemoveArray(intptr_t ArrayId) {
 	Visualizer_aVArrayList[ArrayId].ValueMin = 0;
 	Visualizer_aVArrayList[ArrayId].ValueMax = 0;
 
-	Visualizer_aVArrayList[ArrayId].nPointer = AR_MAX_POINTER_COUNT;
+	Visualizer_aVArrayList[ArrayId].nPointer = 0;
 	free(Visualizer_aVArrayList[ArrayId].aPointer);
 	Visualizer_aVArrayList[ArrayId].aPointer = NULL;
 
+	RendererWcc_RemoveArray(ArrayId);
 
-	// This also set all .active to FALSE
 	return;
 
 }
@@ -141,14 +143,7 @@ void Visualizer_UpdateArray(intptr_t ArrayId, int32_t bVisible, isort_t ValueMin
 	Visualizer_aVArrayList[ArrayId].ValueMin = ValueMin;
 	Visualizer_aVArrayList[ArrayId].ValueMax = ValueMax;
 
-	isort_t* aArray = Visualizer_aVArrayList[ArrayId].aArray;
-	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
-
-	// TODO: Specific renderer function
-	for (intptr_t i = 0; i < Size; ++i) {
-
-		RendererWcc_DrawItem(ArrayId, i, aArray[i], AR_ATTR_NORMAL);
-	}
+	RendererWcc_UpdateArray(ArrayId, bVisible, ValueMin, ValueMax);
 
 	return;
 }
@@ -221,6 +216,8 @@ void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t Value, doub
 
 void Visualizer_UpdateSwap(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier) {
 
+	// TODO: ValueA and ValueB
+
 	if (!Visualizer_bInitialized) return;
 	if (!Visualizer_aVArrayList[ArrayId].bActive) return;
 	if (iPosA >= Visualizer_aVArrayList[ArrayId].Size) return;
@@ -267,7 +264,7 @@ static uint8_t Visualizer_IsPointerOverlapped(intptr_t ArrayId, uint16_t Pointer
 
 }
 
-void Visualizer_UpdatePointer(intptr_t ArrayId, uint16_t PointerId, intptr_t iPos, double fSleepMultiplier) {
+void Visualizer_UpdatePointer(intptr_t ArrayId, uint16_t PointerId, intptr_t iNewPos, double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
 
@@ -276,20 +273,27 @@ void Visualizer_UpdatePointer(intptr_t ArrayId, uint16_t PointerId, intptr_t iPo
 	intptr_t nPointer = Visualizer_aVArrayList[ArrayId].nPointer;
 	intptr_t* aPointer = Visualizer_aVArrayList[ArrayId].aPointer;
 
-	if (iPos >= Size) return;
+	if (iNewPos >= Size) return;
 	if (PointerId >= nPointer) return;
 
 	if (
 		(aPointer[PointerId] != (-1)) &&
 		(!Visualizer_IsPointerOverlapped(ArrayId, PointerId))
 		) {
+
 		// Reset old pointer to normal.
+		Visualizer_aVArrayList[ArrayId].aAttribute[aPointer[PointerId]] = AR_ATTR_NORMAL;
+
 		RendererWcc_DrawItem(ArrayId, aPointer[PointerId], aArray[aPointer[PointerId]], AR_ATTR_NORMAL);
+
 	}
 
-	RendererWcc_DrawItem(ArrayId, iPos, aArray[iPos], AR_ATTR_POINTER);
+	Visualizer_aVArrayList[ArrayId].aAttribute[iNewPos] = AR_ATTR_POINTER;
+
+	RendererWcc_DrawItem(ArrayId, iNewPos, aArray[iNewPos], AR_ATTR_POINTER);
+
 	Visualizer_Sleep(fSleepMultiplier);
-	aPointer[PointerId] = iPos;
+	aPointer[PointerId] = iNewPos;
 
 	return;
 
@@ -306,15 +310,20 @@ void Visualizer_RemovePointer(intptr_t ArrayId, uint16_t PointerId) {
 
 	if (PointerId >= nPointer) return;
 
-	if (!Visualizer_IsPointerOverlapped(ArrayId, PointerId)) {
+	if (
+		(aPointer[PointerId] != (-1)) &&
+		(!Visualizer_IsPointerOverlapped(ArrayId, PointerId))
+		) {
+
 		// Reset old pointer to normal.
+		Visualizer_aVArrayList[ArrayId].aAttribute[aPointer[PointerId]] = AR_ATTR_NORMAL;
+
 		RendererWcc_DrawItem(ArrayId, aPointer[PointerId], aArray[aPointer[PointerId]], AR_ATTR_NORMAL);
+
 	}
+
 	aPointer[PointerId] = (intptr_t)(-1);
 
 	return;
 
 }
-
-#else
-#endif

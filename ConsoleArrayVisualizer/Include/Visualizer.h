@@ -19,18 +19,19 @@
 // V_ARRAY
 typedef struct {
 
-	int32_t   bActive;
+	int32_t   bActive;    // Non-updatable
 
-	intptr_t  Size;
-	isort_t*  aArray;
-	uint8_t*  aAttribute;
+	intptr_t  Size;       // Non-updatable
+	isort_t*  aArray;     // Non-updatable
+	uint8_t*  aAttribute; // Non-updatable
 
-	int32_t   bVisible;
-	isort_t   ValueMin;
-	isort_t   ValueMax;
+	int32_t   bVisible;   // Updatable
+	isort_t   ValueMin;   // Updatable
+	isort_t   ValueMax;   // Updatable
 
-	intptr_t  nPointer;
-	intptr_t* aPointer;
+	intptr_t  nPointer;   // Non-updatable
+	intptr_t* aPointer;   // Non-updatable
+
 	// TODO: Tree stucture to store pointers
 
 } V_ARRAY;
@@ -58,34 +59,25 @@ void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, do
 void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t Value, double fSleepMultiplier);
 void Visualizer_UpdateSwap(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier);
 
-void Visualizer_UpdatePointer(intptr_t ArrayId, uint16_t PointerId, intptr_t iPos, double fSleepMultiplier);
+void Visualizer_UpdatePointer(intptr_t ArrayId, uint16_t PointerId, intptr_t iNewPos, double fSleepMultiplier);
 void Visualizer_RemovePointer(intptr_t ArrayId, uint16_t PointerId);
 
 #else
 
-#define arUpdateItem(A, B, C, D) 
-#define arReadItemAttr(A, B, C) 
-
-#define arInit() 
-#define arUninit(A) 
-
-#define arSleep(A, B, C, D) 
-
-#define Visualizer_AddArray(A, B, C, D) 
-#define Visualizer_RemoveArray(A) 
-#define arSetRange(A, B) 
-#define Visualizer_UpdateArray(A) 
-
-#define Visualizer_UpdateRead(A, B, C) 
-#define Visualizer_UpdateRead2(A, B, C, D) 
-#define Visualizer_UpdateWrite(A, B, C, D) 
-#define Visualizer_UpdateSwap(A, B, C, D) 
-
-#define Visualizer_UpdatePointer(A, B, C, D) 
-#define Visualizer_RemovePointer(A, B) 
+// Define fake functions
 
 #endif
 
+// Column_WindowsConsole.c
+
+void RendererWcc_Initialize();
+void RendererWcc_Uninitialize();
+
+void RendererWcc_AddArray(intptr_t id, V_ARRAY* pVArray);
+void RendererWcc_RemoveArray(intptr_t ArrayId);
+void RendererWcc_UpdateArray(intptr_t ArrayId, int32_t bVisible, isort_t ValueMin, isort_t ValueMax);
+
+void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr);
 
 // WindowsConsole.c
 
@@ -103,14 +95,3 @@ void WinConsole_Pause();
 
 HANDLE* WinConsole_CreateBuffer();
 void WinConsole_FreeBuffer(HANDLE hBuffer);
-
-
-// Column_WindowsConsole.c
-
-void RendererWcc_Initialize();
-void RendererWcc_Uninitialize();
-
-void RendererWcc_AddArray(V_ARRAY* parArray, intptr_t id);
-void RendererWcc_RemoveArray(intptr_t id);
-
-void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr);

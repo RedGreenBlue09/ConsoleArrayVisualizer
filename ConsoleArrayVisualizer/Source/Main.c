@@ -43,12 +43,9 @@ double log2fact(double x) {
 	}
 }
 
-int main() {
+void mainShuffle(isort_t* aArray, intptr_t N) {
 
-	utilInitTime();
-
-	intptr_t N = 128;
-	isort_t* aArray = malloc(N * sizeof(isort_t));
+	// Dumb shuffle for testing
 
 	srand64(84968308895689544);
 	for (intptr_t i = 0; i < N; ++i) {
@@ -58,13 +55,43 @@ int main() {
 
 	}
 
+	return;
+
+}
+
+int main() {
+
+	utilInitTime();
+
+	intptr_t N = 128;
+	isort_t* aArray = malloc(N * sizeof(isort_t));
+
 	Visualizer_Initialize();
+	Visualizer_AddArray(0, aArray, N);
 
-	BottomUpHeapSort(aArray, N);
-	//Visualizer_AddArray(0, aArray, N);
-	//Visualizer_UpdateArray(0, TRUE, 0, (isort_t)N - 1);
+	//
+	mainShuffle(aArray, N);
+	Visualizer_UpdateArray(0, TRUE, 0, (isort_t)(N - 1));
 
-	Sleep(100000);
+	//
+	BottomUpHeapSort(aArray, N, 0);
+
+	//
+	mainShuffle(aArray, N);
+	Visualizer_UpdateArray(0, TRUE, 0, (isort_t)(N - 1));
+
+	//
+	LeftRightQuickSort(aArray, N, 0);
+
+	//
+	mainShuffle(aArray, N);
+	Visualizer_UpdateArray(0, TRUE, 0, (isort_t)(N - 1));
+
+	//
+	ShellSortCiura(aArray, N, 0);
+
+	//
+	Visualizer_RemoveArray(0);
 
 	Visualizer_Uninitialize();
 

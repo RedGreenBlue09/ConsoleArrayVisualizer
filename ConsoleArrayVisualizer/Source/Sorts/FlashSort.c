@@ -4,6 +4,8 @@
 
 #include "malloc.h"
 
+intptr_t GlobalPrimaryArrayId;
+
 void FS_flashSort(usort_t* array, intptr_t n) {
 
 	if (n < 2) return;
@@ -105,7 +107,7 @@ void FS_flashSort(usort_t* array, intptr_t n) {
 			FS_flashSort(array + L[k], classSize);
 	}
 	free(L);
-	InsertionSort(array, n);
+	InsertionSort(array, n, GlobalPrimaryArrayId);
 
 }
 
@@ -118,7 +120,9 @@ void FS_flashSort(usort_t* array, intptr_t n) {
 * Integer only!
 */
 
-void FlashSort(isort_t* array, intptr_t n) {
+void FlashSort(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
+
+	GlobalPrimaryArrayId = PrimaryArrayId;
 
 	if (n < 2) return;
 	FS_flashSort((usort_t*)array, n);

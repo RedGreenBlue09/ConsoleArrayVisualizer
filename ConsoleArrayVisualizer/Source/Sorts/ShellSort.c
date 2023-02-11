@@ -70,13 +70,7 @@ intptr_t gapsCbrt16p1[] = {
 	42275937, 106528683, 268435457, 676414966
 };
 
-void SHS_ShellSort(isort_t* array, intptr_t n, intptr_t* gaps, intptr_t nGaps) {
-
-	//nCompare = 0;
-	//nWrite = 0;
-	
-	Visualizer_AddArray(0, array, n);
-	Visualizer_UpdateArray(0, TRUE, 0, (isort_t)n - 1);
+void SHS_ShellSort(isort_t* array, intptr_t n, intptr_t PrimaryArrayId, intptr_t* gaps, intptr_t nGaps) {
 
 	if (n < 2) return;
 
@@ -90,67 +84,64 @@ void SHS_ShellSort(isort_t* array, intptr_t n, intptr_t* gaps, intptr_t nGaps) {
 
 		for (intptr_t i = gap; i < n; ++i) {
 			isort_t temp = array[i];
-			Visualizer_UpdatePointer(0, 0, i, 0.0);
+			Visualizer_UpdatePointer(PrimaryArrayId, 0, i, 0.0);
 			intptr_t j;
 
-			Visualizer_UpdateRead(0, i - gap, 25.0);
-			//++nCompare;
+			Visualizer_UpdateRead(PrimaryArrayId, i - gap, 25.0);
 			for (j = i; (j >= gap) && (array[j - gap] > temp); j -= gap) {
-				//++nCompare;
-				//++nWrite;
-				Visualizer_UpdateRead(0, j - gap, 25.0);
-				Visualizer_UpdateWrite(0, j, array[j - gap], 25.0);
+				Visualizer_UpdateRead(PrimaryArrayId, j - gap, 25.0);
+				Visualizer_UpdateWrite(PrimaryArrayId, j, array[j - gap], 25.0);
 				array[j] = array[j - gap];
 			}
-			Visualizer_UpdateWrite(0, j, temp, 25.0);
+			Visualizer_UpdateWrite(PrimaryArrayId, j, temp, 25.0);
 			array[j] = temp;
-			//++nWrite;
 		}
-		Visualizer_RemovePointer(0, 0);
+		Visualizer_RemovePointer(PrimaryArrayId, 0);
 		--pass;
 	}
-	Visualizer_RemoveArray(0);
+
 	return;
+
 }
 
 // Exports:
 
-void ShellSortTokuda(isort_t* array, intptr_t n) {
-	SHS_ShellSort(array, n, gapsTokuda, sizeof(gapsTokuda) / sizeof(*gapsTokuda));
+void ShellSortTokuda(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
+	SHS_ShellSort(array, n, PrimaryArrayId, gapsTokuda, sizeof(gapsTokuda) / sizeof(*gapsTokuda));
 	return;
 }
 
-void ShellSortCiura(isort_t* array, intptr_t n) {
-	SHS_ShellSort(array, n, gapsCiura, sizeof(gapsCiura) / sizeof(*gapsCiura));
+void ShellSortCiura(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
+	SHS_ShellSort(array, n, PrimaryArrayId, gapsCiura, sizeof(gapsCiura) / sizeof(*gapsCiura));
 	return;
 }
 
-void ShellSortPrimeMean(isort_t* array, intptr_t n) {
-	SHS_ShellSort(array, n, gapsPrimeMean, sizeof(gapsPrimeMean) / sizeof(*gapsPrimeMean));
+void ShellSortPrimeMean(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
+	SHS_ShellSort(array, n, PrimaryArrayId, gapsPrimeMean, sizeof(gapsPrimeMean) / sizeof(*gapsPrimeMean));
 	return;
 }
 
-void ShellSort248(isort_t* array, intptr_t n) {
-	SHS_ShellSort(array, n, gaps248, sizeof(gaps248) / sizeof(*gaps248));
+void ShellSort248(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
+	SHS_ShellSort(array, n, PrimaryArrayId, gaps248, sizeof(gaps248) / sizeof(*gaps248));
 	return;
 }
 
-void ShellSortPigeon(isort_t* array, intptr_t n) {
-	SHS_ShellSort(array, n, gapsPigeon, sizeof(gapsPigeon) / sizeof(*gapsPigeon));
+void ShellSortPigeon(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
+	SHS_ShellSort(array, n, PrimaryArrayId, gapsPigeon, sizeof(gapsPigeon) / sizeof(*gapsPigeon));
 	return;
 }
 
-void ShellSortSedgewick1986(isort_t* array, intptr_t n) {
-	SHS_ShellSort(array, n, gapsSedgewick1986, sizeof(gapsSedgewick1986) / sizeof(*gapsSedgewick1986));
+void ShellSortSedgewick1986(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
+	SHS_ShellSort(array, n, PrimaryArrayId, gapsSedgewick1986, sizeof(gapsSedgewick1986) / sizeof(*gapsSedgewick1986));
 	return;
 }
 
-void ShellSortCbrt16(isort_t* array, intptr_t n) {
-	SHS_ShellSort(array, n, gapsCbrt16, sizeof(gapsCbrt16) / sizeof(*gapsCbrt16));
+void ShellSortCbrt16(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
+	SHS_ShellSort(array, n, PrimaryArrayId, gapsCbrt16, sizeof(gapsCbrt16) / sizeof(*gapsCbrt16));
 	return;
 }
 
-void ShellSortCbrt16p1(isort_t* array, intptr_t n) {
-	SHS_ShellSort(array, n, gapsCbrt16p1, sizeof(gapsCbrt16p1) / sizeof(*gapsCbrt16p1));
+void ShellSortCbrt16p1(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
+	SHS_ShellSort(array, n, PrimaryArrayId, gapsCbrt16p1, sizeof(gapsCbrt16p1) / sizeof(*gapsCbrt16p1));
 	return;
 }

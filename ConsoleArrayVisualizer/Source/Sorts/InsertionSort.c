@@ -49,7 +49,7 @@ void BIS_BinaryInsertion(isort_t* array, intptr_t start, intptr_t end) {
 * Negative integer support     : Yes
 */
 
-void InsertionSort(isort_t* array, intptr_t n) {
+void InsertionSort(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
 
 	if (n < 2) return;
 

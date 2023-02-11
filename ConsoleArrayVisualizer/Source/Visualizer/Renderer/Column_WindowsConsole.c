@@ -28,8 +28,8 @@ static LONG_PTR OldWindowStyle = 0;
 
 // Array
 typedef struct {
-	V_ARRAY* pVArray;
 
+	V_ARRAY* pVArray;
 
 	// TODO: Horizontal scaling
 
@@ -91,27 +91,44 @@ void RendererWcc_Uninitialize() {
 
 }
 
-void RendererWcc_AddArray(V_ARRAY* pVArray, intptr_t ArrayId) {
-	//
-	if (ArrayId >= AR_MAX_ARRAY_COUNT)
-		return;
+void RendererWcc_AddArray(intptr_t ArrayId, V_ARRAY* pVArray) {
+
+	// VArray structure is shared between Visualizer.c and the renderer.
 
 	aWccArrayList[ArrayId].pVArray = pVArray;
 
 	// TODO: scaling
-	intptr_t ArraySize = aWccArrayList[ArrayId].pVArray->Size;
-
-	// TODO: scaling
 
 	return;
 }
 
-// UB if array at ArrayId not added.
 void RendererWcc_RemoveArray(intptr_t ArrayId) {
-	if (ArrayId >= AR_MAX_ARRAY_COUNT)
-		return;
+
+	aWccArrayList[ArrayId].pVArray = NULL;
+
 	return;
+
 }
+
+void RendererWcc_UpdateArray(intptr_t ArrayId, int32_t bVisible, isort_t ValueMin, isort_t ValueMax) {
+
+	isort_t* aArray = aWccArrayList[ArrayId].pVArray->aArray;
+	intptr_t Size = aWccArrayList[ArrayId].pVArray->Size;
+
+	// TODO: Specific renderer function
+	for (intptr_t i = 0; i < Size; ++i) {
+
+		uint8_t Attribute = aWccArrayList[ArrayId].pVArray->aAttribute[i];
+		RendererWcc_DrawItem(ArrayId, i, aArray[i], Attribute);
+
+	}
+
+	return;
+
+}
+
+
+
 
 USHORT WinConAttrTable[256] = { 0 }; // 0: black background and black text.
 static USHORT AttrToConAttr(uint8_t Attr) {
@@ -124,6 +141,7 @@ static USHORT AttrToConAttr(uint8_t Attr) {
 	WinConAttrTable[AR_ATTR_CORRECT] = WinConAttrCorrect;
 	WinConAttrTable[AR_ATTR_INCORRECT] = WinConAttrIncorrect;
 	return WinConAttrTable[Attr]; // return 0 on unknown Attr.
+
 }
 
 void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr) {
@@ -140,7 +158,7 @@ void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8
 
 	double dfHeight = (double)Value * (double)csbiRenderer.dwSize.Y / (double)ValueMax;
 	SHORT FloorHeight = (SHORT)dfHeight;
-	printf("%u\r\n", Value);
+
 	//
 	USHORT WinConAttr = AttrToConAttr(Attr);
 

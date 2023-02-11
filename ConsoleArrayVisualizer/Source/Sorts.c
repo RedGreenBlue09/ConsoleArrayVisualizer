@@ -39,10 +39,6 @@ SORT_INFO Sorts_aSortList[128] = {
 		ShellSortCbrt16p1,
 	},
 	{
-		"stdlib QuickSort",
-		StdlibQuickSort,
-	},
-	{
 		"Left/Right QuickSort",
 		LeftRightQuickSort,
 	},
