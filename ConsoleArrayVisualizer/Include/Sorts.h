@@ -19,6 +19,9 @@ typedef struct {
 #define UINTPTR_SWAP(X, Y) {uintptr_t temp = (X); (X) = (Y); (Y) = temp;}
 #define PTR_SWAP(X, Y) {void* temp = (X); (X) = (Y); (Y) = temp;}
 
+
+// TODO: RunSort.c for sorting algorithms,
+//       which will always use 0 as primary array id.
 // InsertionSort.c
 
 void InsertionSort      (isort_t* array, intptr_t n, intptr_t PrimaryArrayId);

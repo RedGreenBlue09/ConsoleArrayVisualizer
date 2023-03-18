@@ -130,10 +130,14 @@ void WinConsole_FillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coor
 	return;
 }
 
-void WinConsole_FillAttr(HANDLE hBuffer, WORD attr, SHORT wX, SHORT wY, COORD coordLocation) {
+void WinConsole_FillAttr(HANDLE hBuffer, CONSOLE_SCREEN_BUFFER_INFOEX* pCSBI, WORD attr, SHORT wX, SHORT wY, COORD coordLocation) {
 
-	CONSOLE_SCREEN_BUFFER_INFO CSBI;
-	GetConsoleScreenBufferInfo(hBuffer, &CSBI);
+	// Dummy code
+	// TODO: Cache console buffer to eliminate slow ReadConsoleOutputW()
+
+	CONSOLE_SCREEN_BUFFER_INFOEX CSBI = *pCSBI;
+	// apparently GetConsoleScreenBufferInfo() is turtle slow
+	//GetConsoleScreenBufferInfo(hBuffer, &CSBI);
 
 	if (
 		coordLocation.X >= CSBI.dwSize.X ||

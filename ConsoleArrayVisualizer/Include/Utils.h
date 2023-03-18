@@ -1,5 +1,7 @@
 #pragma once
 
+// TODO: Separate this header to multiple files
+
 #include <stdint.h>
 
 #include <stdio.h>

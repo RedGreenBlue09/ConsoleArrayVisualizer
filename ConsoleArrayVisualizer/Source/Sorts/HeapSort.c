@@ -75,10 +75,8 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 	//arAddPointer(array, globalN, right, 2, 0.0);
 
 	while (left < end) {
-		Visualizer_UpdatePointer(GlobalPrimaryArrayId, 1, left, 0.0);
 
 		if (right < end) {
-			Visualizer_UpdatePointer(GlobalPrimaryArrayId, 2, right, 0.0);
 
 			Visualizer_UpdateRead2(GlobalPrimaryArrayId, right, left, 32.0);
 			if ((array[right] > array[left])) {
@@ -109,8 +107,6 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 		j = (j - 1) / 2;
 	}
 	Visualizer_RemovePointer(GlobalPrimaryArrayId, 0);
-	Visualizer_RemovePointer(GlobalPrimaryArrayId, 1);
-	Visualizer_RemovePointer(GlobalPrimaryArrayId, 2);
 }
 
 // Exports:

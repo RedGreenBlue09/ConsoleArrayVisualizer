@@ -72,6 +72,9 @@
     <ClCompile Include="Source\Visualizer\Renderer\Column_WindowsConsole.c">
       <Filter>Source Files\Visualizer\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Utils\Tree234.c">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Sorts.h">
@@ -81,6 +84,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\Visualizer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Tree234.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

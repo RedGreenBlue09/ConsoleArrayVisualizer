@@ -47,7 +47,7 @@ void mainShuffle(isort_t* aArray, intptr_t N) {
 
 	// Dumb shuffle for testing
 
-	srand64(84968308895689544);
+	srand64(clock64());
 	for (intptr_t i = 0; i < N; ++i) {
 
 		isort_t X = (isort_t)(((rand64() >> 32ull) * (int64_t)N) >> 32ull);
@@ -63,8 +63,9 @@ int main() {
 
 	utilInitTime();
 
-	intptr_t N = 128;
+	intptr_t N = 512;
 	isort_t* aArray = malloc(N * sizeof(isort_t));
+	Sleep(5000);
 
 	Visualizer_Initialize();
 	Visualizer_AddArray(0, aArray, N);

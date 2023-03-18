@@ -69,6 +69,8 @@ void RendererWcc_Initialize() {
 	csbiRenderer.wAttributes = WinConAttrBackground;
 	SetConsoleScreenBufferInfoEx(hRendererBuffer, &csbiRenderer);
 
+	GetConsoleScreenBufferInfoEx(hRendererBuffer, &csbiRenderer);
+
 	ULONG ul = GetLastError();
 
 	//
@@ -91,6 +93,9 @@ void RendererWcc_Uninitialize() {
 
 }
 
+
+
+
 void RendererWcc_AddArray(intptr_t ArrayId, V_ARRAY* pVArray) {
 
 	// VArray structure is shared between Visualizer.c and the renderer.
@@ -110,17 +115,13 @@ void RendererWcc_RemoveArray(intptr_t ArrayId) {
 
 }
 
-void RendererWcc_UpdateArray(intptr_t ArrayId, int32_t bVisible, isort_t ValueMin, isort_t ValueMax) {
+void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t* aNewArrayState, int32_t bVisible, isort_t ValueMin, isort_t ValueMax) {
 
-	isort_t* aArray = aWccArrayList[ArrayId].pVArray->aArray;
 	intptr_t Size = aWccArrayList[ArrayId].pVArray->Size;
 
-	// TODO: Specific renderer function
 	for (intptr_t i = 0; i < Size; ++i) {
-
 		uint8_t Attribute = aWccArrayList[ArrayId].pVArray->aAttribute[i];
-		RendererWcc_DrawItem(ArrayId, i, aArray[i], Attribute);
-
+		RendererWcc_DrawItem(ArrayId, i, aNewArrayState[i], Attribute);
 	}
 
 	return;
@@ -146,6 +147,11 @@ static USHORT AttrToConAttr(uint8_t Attr) {
 
 void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr) {
 
+	if (ArrayId > 0) {
+		return;
+		// TOOD: Multiple array render
+	}
+
 	isort_t ValueMin = aWccArrayList[ArrayId].pVArray->ValueMin;
 	isort_t ValueMax = aWccArrayList[ArrayId].pVArray->ValueMax;
 
@@ -165,6 +171,7 @@ void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8
 	// Fill the unused cells with background.
 	WinConsole_FillAttr(
 		hRendererBuffer,
+		&csbiRenderer,
 		WinConAttrBackground,
 		1,
 		csbiRenderer.dwSize.Y - FloorHeight,
@@ -173,6 +180,7 @@ void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8
 	// Fill the used cells with WinConAttr.
 	WinConsole_FillAttr(
 		hRendererBuffer,
+		&csbiRenderer,
 		WinConAttr,
 		1,
 		FloorHeight,
