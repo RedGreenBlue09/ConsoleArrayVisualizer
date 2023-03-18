@@ -1,66 +1,14 @@
 
 #include <stdlib.h>
-#include <stdint.h>
 #include "Sorts.h"
-
-#define FALSE 0
-#define TRUE 1
-
-#define AR_MAX_ARRAY_COUNT (16)
-#define AR_MAX_POINTER_COUNT (256)
-
-enum VisualizerAttribute_tag {
-	Background,
-	Normal,
-	Read,
-	Write,
-	Pointer,
-	Correct,
-	Incorrect
-};
-typedef enum VisualizerAttribute_tag VisualizerAttribute;
+#include "Visualizer.h"
+#include "Utils.h"
 
 static const uint64_t Visualizer_TimeDefaultDelay = 100; // miliseconds
 static uint8_t Visualizer_bInitialized = FALSE;
 
-// TODO: More types (attribute, bool)
-// V_ARRAY
-struct V_ARRAY_tag {
-
-	int32_t   bActive;    // Non-updatable
-
-	intptr_t  Size;       // Non-updatable
-	isort_t*  aArrayState; // Non-updatable - Only affected by write calls to Visualizer.
-	uint8_t*  aAttribute;  // Non-updatable
-
-	int32_t   bVisible;   // Updatable
-	isort_t   ValueMin;   // Updatable
-	isort_t   ValueMax;   // Updatable
-
-	intptr_t  nPointer;   // Non-updatable
-	intptr_t* aPointer;   // Non-updatable
-
-	// TODO: Tree stucture to store pointers
-
-};
-
-typedef struct V_ARRAY_tag V_ARRAY;
-
 // Todo: tree struct
-static V_ARRAY Visualizer_aVArrayList[AR_MAX_ARRAY_COUNT];
-
-// Low level renderer functions
-
-void Visualizer_UpdateItem(intptr_t ArrayId, intptr_t iPos, isort_t Value, uint8_t Attr) {
-
-	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_aVArrayList[ArrayId].bActive) return;
-	if (iPos >= Visualizer_aVArrayList[ArrayId].Size) return;
-
-	RendererWcc_DrawItem(ArrayId, iPos, Value, Attr);
-
-	return;
-}
+static AV_ARRAY Visualizer_aVArrayList[AV_MAX_ARRAY_COUNT];
 
 // Init
 
@@ -71,7 +19,7 @@ void Visualizer_Initialize() {
 	// Initialize Renderer
 	RendererWcc_Initialize();
 
-	for (intptr_t i = 0; i < AR_MAX_ARRAY_COUNT; ++i) {
+	for (intptr_t i = 0; i < AV_MAX_ARRAY_COUNT; ++i) {
 
 		Visualizer_aVArrayList[i].bActive = FALSE;
 
@@ -125,14 +73,14 @@ void Visualizer_AddArray(intptr_t ArrayId, intptr_t Size) {
 
 	Visualizer_aVArrayList[ArrayId].Size = Size;
 	Visualizer_aVArrayList[ArrayId].aArrayState = malloc(Size * sizeof(isort_t));
-	Visualizer_aVArrayList[ArrayId].aAttribute = malloc(Size * sizeof(uint8_t));
+	Visualizer_aVArrayList[ArrayId].aAttribute = malloc(Size * sizeof(AvAttribute));
 
 	Visualizer_aVArrayList[ArrayId].bVisible = FALSE;
 	Visualizer_aVArrayList[ArrayId].ValueMin = 0;
-	Visualizer_aVArrayList[ArrayId].ValueMax = 0;
+	Visualizer_aVArrayList[ArrayId].ValueMax = 1;
 
-	Visualizer_aVArrayList[ArrayId].nPointer = AR_MAX_POINTER_COUNT;
-	Visualizer_aVArrayList[ArrayId].aPointer = malloc(AR_MAX_POINTER_COUNT * sizeof(intptr_t));
+	Visualizer_aVArrayList[ArrayId].nPointer = AV_MAX_POINTER_COUNT;
+	Visualizer_aVArrayList[ArrayId].aPointer = malloc(AV_MAX_POINTER_COUNT * sizeof(intptr_t));
 
 	if (!Visualizer_aVArrayList[ArrayId].aArrayState)
 		abort();
@@ -147,10 +95,10 @@ void Visualizer_AddArray(intptr_t ArrayId, intptr_t Size) {
 
 	// Set all attributes to AR_ATTR_NORMAL
 	for (intptr_t i = 0; i < Size; ++i)
-		Visualizer_aVArrayList[ArrayId].aAttribute[i] = AR_ATTR_NORMAL;
+		Visualizer_aVArrayList[ArrayId].aAttribute[i] = AvAttribute_Normal;
 
 	// Set all pointers to -1
-	for (intptr_t i = 0; i < AR_MAX_POINTER_COUNT; ++i)
+	for (intptr_t i = 0; i < AV_MAX_POINTER_COUNT; ++i)
 		Visualizer_aVArrayList[ArrayId].aPointer[i] = (-1);
 
 	RendererWcc_AddArray(ArrayId, &Visualizer_aVArrayList[ArrayId]);
@@ -198,8 +146,10 @@ void Visualizer_UpdateArray(intptr_t ArrayId, isort_t* aNewArrayState, int32_t b
 	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
 	isort_t* aArrayState = Visualizer_aVArrayList[ArrayId].aArrayState;
 
-	for (intptr_t i = 0; i < Size; ++i)
-		aArrayState[i] = aNewArrayState[i];
+	if (aNewArrayState) {
+		for (intptr_t i = 0; i < Size; ++i)
+			aArrayState[i] = aNewArrayState[i];
+	}
 
 	RendererWcc_UpdateArray(ArrayId, aNewArrayState, bVisible, ValueMin, ValueMax);
 
@@ -218,9 +168,9 @@ void Visualizer_UpdateRead(intptr_t ArrayId, intptr_t iPos, double fSleepMultipl
 	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
 	isort_t* aArrayState = Visualizer_aVArrayList[ArrayId].aArrayState;
 
-	uint8_t AttrOld = Visualizer_aVArrayList[ArrayId].aAttribute[iPos];
+	AvAttribute AttrOld = Visualizer_aVArrayList[ArrayId].aAttribute[iPos];
 
-	RendererWcc_DrawItem(ArrayId, iPos, aArrayState[iPos], AR_ATTR_READ);
+	RendererWcc_DrawItem(ArrayId, iPos, aArrayState[iPos], AvAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
 	RendererWcc_DrawItem(ArrayId, iPos, aArrayState[iPos], AttrOld);
 
@@ -239,11 +189,11 @@ void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, do
 	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
 	isort_t* aArrayState = Visualizer_aVArrayList[ArrayId].aArrayState;
 
-	uint8_t AttrOldA = Visualizer_aVArrayList[ArrayId].aAttribute[iPosA];
-	uint8_t AttrOldB = Visualizer_aVArrayList[ArrayId].aAttribute[iPosB];
+	AvAttribute AttrOldA = Visualizer_aVArrayList[ArrayId].aAttribute[iPosA];
+	AvAttribute AttrOldB = Visualizer_aVArrayList[ArrayId].aAttribute[iPosB];
 
-	RendererWcc_DrawItem(ArrayId, iPosA, aArrayState[iPosA], AR_ATTR_READ);
-	RendererWcc_DrawItem(ArrayId, iPosB, aArrayState[iPosB], AR_ATTR_READ);
+	RendererWcc_DrawItem(ArrayId, iPosA, aArrayState[iPosA], AvAttribute_Read);
+	RendererWcc_DrawItem(ArrayId, iPosB, aArrayState[iPosB], AvAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
 	RendererWcc_DrawItem(ArrayId, iPosA, aArrayState[iPosA], AttrOldA);
 	RendererWcc_DrawItem(ArrayId, iPosB, aArrayState[iPosB], AttrOldB);
@@ -253,7 +203,7 @@ void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, do
 }
 
 // For time precision, the sort will need to do the write(s) by itself.
-void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t Value, double fSleepMultiplier) {
+void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t NewValue, double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
 	if (!Visualizer_aVArrayList[ArrayId].bActive) return;
@@ -264,17 +214,17 @@ void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t Value, doub
 
 	uint8_t AttrOld = Visualizer_aVArrayList[ArrayId].aAttribute[iPos];
 
-	RendererWcc_DrawItem(ArrayId, iPos, aArrayState[iPos], AR_ATTR_WRITE);
+	RendererWcc_DrawItem(ArrayId, iPos, aArrayState[iPos], AvAttribute_Write);
 	Visualizer_Sleep(fSleepMultiplier);
-	RendererWcc_DrawItem(ArrayId, iPos, Value, AttrOld);
+	RendererWcc_DrawItem(ArrayId, iPos, NewValue, AttrOld);
 
-	aArrayState[iPos] = Value;
+	aArrayState[iPos] = NewValue;
 
 	return;
 
 }
 
-void Visualizer_UpdateSwap(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, isort_t ValueA, isort_t ValueB, double fSleepMultiplier) {
+void Visualizer_UpdateSwap(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
 	if (!Visualizer_aVArrayList[ArrayId].bActive) return;
@@ -283,18 +233,17 @@ void Visualizer_UpdateSwap(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, iso
 
 	isort_t* aArrayState = Visualizer_aVArrayList[ArrayId].aArrayState;
 
-	uint8_t AttrOldA = Visualizer_aVArrayList[ArrayId].aAttribute[iPosA];
-	uint8_t AttrOldB = Visualizer_aVArrayList[ArrayId].aAttribute[iPosB];
+	AvAttribute AttrOldA = Visualizer_aVArrayList[ArrayId].aAttribute[iPosA];
+	AvAttribute AttrOldB = Visualizer_aVArrayList[ArrayId].aAttribute[iPosB];
 
 	// Swap the values
-	RendererWcc_DrawItem(ArrayId, iPosA, aArrayState[iPosA], AR_ATTR_WRITE);
-	RendererWcc_DrawItem(ArrayId, iPosB, aArrayState[iPosB], AR_ATTR_WRITE);
+	RendererWcc_DrawItem(ArrayId, iPosA, aArrayState[iPosA], AvAttribute_Write);
+	RendererWcc_DrawItem(ArrayId, iPosB, aArrayState[iPosB], AvAttribute_Write);
 	Visualizer_Sleep(fSleepMultiplier);
-	RendererWcc_DrawItem(ArrayId, iPosA, ValueA, AttrOldA);
-	RendererWcc_DrawItem(ArrayId, iPosB, ValueB, AttrOldB);
+	RendererWcc_DrawItem(ArrayId, iPosA, aArrayState[iPosB], AttrOldA);
+	RendererWcc_DrawItem(ArrayId, iPosB, aArrayState[iPosA], AttrOldB);
 
-	aArrayState[iPosA] = ValueA;
-	aArrayState[iPosB] = ValueB;
+	ISORT_SWAP(aArrayState[iPosA], aArrayState[iPosB]);
 
 	return;
 
@@ -342,15 +291,15 @@ void Visualizer_UpdatePointer(intptr_t ArrayId, intptr_t PointerId, intptr_t iNe
 		) {
 
 		// Reset old pointer to normal.
-		Visualizer_aVArrayList[ArrayId].aAttribute[aPointer[PointerId]] = AR_ATTR_NORMAL;
+		Visualizer_aVArrayList[ArrayId].aAttribute[aPointer[PointerId]] = AvAttribute_Normal;
 
-		RendererWcc_DrawItem(ArrayId, aPointer[PointerId], aArrayState[aPointer[PointerId]], AR_ATTR_NORMAL);
+		RendererWcc_DrawItem(ArrayId, aPointer[PointerId], aArrayState[aPointer[PointerId]], AvAttribute_Normal);
 
 	}
 
-	Visualizer_aVArrayList[ArrayId].aAttribute[iNewPos] = AR_ATTR_POINTER;
+	Visualizer_aVArrayList[ArrayId].aAttribute[iNewPos] = AvAttribute_Pointer;
 
-	RendererWcc_DrawItem(ArrayId, iNewPos, aArrayState[iNewPos], AR_ATTR_POINTER);
+	RendererWcc_DrawItem(ArrayId, iNewPos, aArrayState[iNewPos], AvAttribute_Pointer);
 
 	Visualizer_Sleep(fSleepMultiplier);
 	aPointer[PointerId] = iNewPos;
@@ -376,9 +325,9 @@ void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId) {
 		) {
 
 		// Reset old pointer to normal.
-		Visualizer_aVArrayList[ArrayId].aAttribute[aPointer[PointerId]] = AR_ATTR_NORMAL;
+		Visualizer_aVArrayList[ArrayId].aAttribute[aPointer[PointerId]] = AvAttribute_Normal;
 
-		RendererWcc_DrawItem(ArrayId, aPointer[PointerId], aArrayState[aPointer[PointerId]], AR_ATTR_NORMAL);
+		RendererWcc_DrawItem(ArrayId, aPointer[PointerId], aArrayState[aPointer[PointerId]], AvAttribute_Normal);
 
 	}
 

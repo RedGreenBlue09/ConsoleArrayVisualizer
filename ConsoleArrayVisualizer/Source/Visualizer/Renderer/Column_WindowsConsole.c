@@ -10,16 +10,13 @@ static CONSOLE_SCREEN_BUFFER_INFOEX csbiRenderer = { 0 };
 
 // Console Attr
 // cmd "color /?" explains this very well.
-static const USHORT WinConAttrBackground = 0x0F;
-
-static const USHORT WinConAttrNormal = 0xF0;
-static const USHORT WinConAttrRead = 0x10;
-static const USHORT WinConAttrWrite = 0x40;
-
-static const USHORT WinConAttrPointer = 0x30;
-
-static const USHORT WinConAttrCorrect = 0x40;
-static const USHORT WinConAttrIncorrect = 0x20;
+#define ATTR_WINCON_BACKGROUND 0x0FU
+#define ATTR_WINCON_NORMAL     0xF0U
+#define ATTR_WINCON_READ       0x10U
+#define ATTR_WINCON_WRITE      0x40U
+#define ATTR_WINCON_POINTER    0x30U
+#define ATTR_WINCON_CORRECT    0x40U
+#define ATTR_WINCON_INCORRECT  0x20U
 
 // For uninitialization
 static ULONG OldInputMode = 0;
@@ -29,13 +26,13 @@ static LONG_PTR OldWindowStyle = 0;
 // Array
 typedef struct {
 
-	V_ARRAY* pVArray;
+	AV_ARRAY* pVArray;
 
 	// TODO: Horizontal scaling
 
 } WCC_ARRAY;
 
-static WCC_ARRAY aWccArrayList[AR_MAX_ARRAY_COUNT];
+static WCC_ARRAY aWccArrayList[AV_MAX_ARRAY_COUNT];
 // TODO: Linked list to keep track of active (added) items.
 
 void RendererWcc_Initialize() {
@@ -66,12 +63,10 @@ void RendererWcc_Initialize() {
 	csbiRenderer.cbSize = sizeof(csbiRenderer);
 	GetConsoleScreenBufferInfoEx(hRendererBuffer, &csbiRenderer);
 	csbiRenderer.dwCursorPosition = (COORD){ 0, 0 };
-	csbiRenderer.wAttributes = WinConAttrBackground;
+	csbiRenderer.wAttributes = ATTR_WINCON_BACKGROUND;
 	SetConsoleScreenBufferInfoEx(hRendererBuffer, &csbiRenderer);
 
 	GetConsoleScreenBufferInfoEx(hRendererBuffer, &csbiRenderer);
-
-	ULONG ul = GetLastError();
 
 	//
 
@@ -96,7 +91,7 @@ void RendererWcc_Uninitialize() {
 
 
 
-void RendererWcc_AddArray(intptr_t ArrayId, V_ARRAY* pVArray) {
+void RendererWcc_AddArray(intptr_t ArrayId, AV_ARRAY* pVArray) {
 
 	// VArray structure is shared between Visualizer.c and the renderer.
 
@@ -110,7 +105,6 @@ void RendererWcc_AddArray(intptr_t ArrayId, V_ARRAY* pVArray) {
 void RendererWcc_RemoveArray(intptr_t ArrayId) {
 
 	aWccArrayList[ArrayId].pVArray = NULL;
-
 	return;
 
 }
@@ -119,30 +113,28 @@ void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t* aNewArrayState, int32_t 
 
 	intptr_t Size = aWccArrayList[ArrayId].pVArray->Size;
 
-	for (intptr_t i = 0; i < Size; ++i) {
-		uint8_t Attribute = aWccArrayList[ArrayId].pVArray->aAttribute[i];
-		RendererWcc_DrawItem(ArrayId, i, aNewArrayState[i], Attribute);
+	if (aNewArrayState) {
+		for (intptr_t i = 0; i < Size; ++i) {
+			uint8_t Attribute = aWccArrayList[ArrayId].pVArray->aAttribute[i];
+			RendererWcc_DrawItem(ArrayId, i, aNewArrayState[i], Attribute);
+		}
 	}
-
 	return;
 
 }
 
+static const USHORT WinConAttrTable[256] = {
+	ATTR_WINCON_BACKGROUND,
+	ATTR_WINCON_NORMAL,
+	ATTR_WINCON_READ,
+	ATTR_WINCON_WRITE,
+	ATTR_WINCON_POINTER,
+	ATTR_WINCON_CORRECT,
+	ATTR_WINCON_INCORRECT,
+}; // 0: black background and black text.
 
-
-
-USHORT WinConAttrTable[256] = { 0 }; // 0: black background and black text.
 static USHORT AttrToConAttr(uint8_t Attr) {
-
-	WinConAttrTable[AR_ATTR_BACKGROUND] = WinConAttrBackground;
-	WinConAttrTable[AR_ATTR_NORMAL] = WinConAttrNormal;
-	WinConAttrTable[AR_ATTR_READ] = WinConAttrRead;
-	WinConAttrTable[AR_ATTR_WRITE] = WinConAttrWrite;
-	WinConAttrTable[AR_ATTR_POINTER] = WinConAttrPointer;
-	WinConAttrTable[AR_ATTR_CORRECT] = WinConAttrCorrect;
-	WinConAttrTable[AR_ATTR_INCORRECT] = WinConAttrIncorrect;
 	return WinConAttrTable[Attr]; // return 0 on unknown Attr.
-
 }
 
 void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr) {
@@ -172,7 +164,7 @@ void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8
 	WinConsole_FillAttr(
 		hRendererBuffer,
 		&csbiRenderer,
-		WinConAttrBackground,
+		ATTR_WINCON_BACKGROUND,
 		1,
 		csbiRenderer.dwSize.Y - FloorHeight,
 		(COORD){ (SHORT)iPos, 0 }

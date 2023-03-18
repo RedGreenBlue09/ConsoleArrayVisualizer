@@ -96,7 +96,7 @@ void WinConsole_FillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coor
 	CHAR_INFO* ciBlock;
 	LONG blockN = wX * wY;
 	ciBlock = malloc(blockN * sizeof(CHAR_INFO));
-	if (ciBlock == NULL)
+	if (!ciBlock)
 		return;
 
 	SMALL_RECT rect = (SMALL_RECT){
@@ -317,7 +317,7 @@ void WinConsole_FreeBuffer(HANDLE hBuffer) {
 * Extra functions
 */
 
-// Similar to cmd "clear" command.
+// Similar to cmd "cls" command.
 void WinConsole_Clear(HANDLE hBuffer) {
 
 	CONSOLE_SCREEN_BUFFER_INFO CSBI;

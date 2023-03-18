@@ -1,11 +1,8 @@
 #pragma once
 
-#include <stdint.h>
+#include "Visualizer.h"
 
 // Sorts.h
-
-typedef int32_t isort_t;
-typedef uint32_t usort_t;
 
 typedef struct {
 	char sName[64];

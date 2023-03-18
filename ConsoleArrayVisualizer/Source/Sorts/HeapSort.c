@@ -123,9 +123,6 @@ void BottomUpHeapSort(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
 
 	GlobalPrimaryArrayId = PrimaryArrayId;
 
-	Visualizer_AddArray(GlobalPrimaryArrayId, array, n);
-	Visualizer_UpdateArray(GlobalPrimaryArrayId, TRUE, 0, (isort_t)n - 1);
-
 	intptr_t length = n;
 
 	for (intptr_t i = (length - 1) / 2; i >= 0; --i)
