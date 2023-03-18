@@ -75,21 +75,21 @@ int main() {
 	Visualizer_UpdateArray(0, aArray, TRUE, 0, (isort_t)(N - 1));
 
 	//
-	BottomUpHeapSort(aArray, N, 0);
+	BottomUpHeapSort(aArray, N);
 
 	//
 	mainShuffle(aArray, N);
 	Visualizer_UpdateArray(0, aArray, TRUE, 0, (isort_t)(N - 1));
 
 	//
-	LeftRightQuickSort(aArray, N, 0);
+	LeftRightQuickSort(aArray, N);
 
 	//
 	mainShuffle(aArray, N);
 	Visualizer_UpdateArray(0, aArray, TRUE, 0, (isort_t)(N - 1));
 
 	//
-	ShellSortCiura(aArray, N, 0);
+	ShellSortCiura(aArray, N);
 
 	//
 	Visualizer_RemoveArray(0);

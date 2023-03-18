@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "Tree234.h"
 
 typedef int32_t isort_t;
 typedef uint32_t usort_t;
@@ -32,9 +33,10 @@ typedef struct {
 	isort_t      ValueMin;    // Visualizer, Renderer
 	isort_t      ValueMax;    // Visualizer, Renderer
 
-	intptr_t     nPointer;    // Visualizer
-	intptr_t*    aPointer;    // Visualizer
-
+	//intptr_t     nPointer;    // Visualizer
+	//intptr_t*    aPointer;    // Visualizer
+	tree234*     ptreePointerId;
+	intptr_t*    aPointerCount;
 	// TODO: Tree stucture to store pointers
 
 } AV_ARRAY;

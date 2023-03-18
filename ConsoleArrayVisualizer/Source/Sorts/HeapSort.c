@@ -4,8 +4,6 @@
 
 #include "malloc.h"
 
-intptr_t GlobalPrimaryArrayId;
-
 void WHS_weakHeapSort(isort_t* array, intptr_t n) {
 
 	intptr_t i, j, x, y, Gparent;
@@ -78,35 +76,35 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 
 		if (right < end) {
 
-			Visualizer_UpdateRead2(GlobalPrimaryArrayId, right, left, 32.0);
+			Visualizer_UpdateRead2(0, right, left, 32.0);
 			if ((array[right] > array[left])) {
 				j = right;
 			} else {
 				j = left;
 			}
-			Visualizer_UpdatePointer(GlobalPrimaryArrayId, 0, j, 0.0);
+			Visualizer_UpdatePointer(0, 0, j, 0.0);
 
 		} else {
 			j = left;
-			Visualizer_UpdatePointer(GlobalPrimaryArrayId, 0, j, 0.0);
+			Visualizer_UpdatePointer(0, 0, j, 0.0);
 		}
 		left = 2 * j + 1;
 		right = 2 * j + 2;
 	}
 
 	while (array[i] > array[j]) {
-		Visualizer_UpdatePointer(GlobalPrimaryArrayId, 0, j, 0.0);
-		Visualizer_UpdateRead2(GlobalPrimaryArrayId, i, j, 32.0);
+		Visualizer_UpdatePointer(0, 0, j, 0.0);
+		Visualizer_UpdateRead2(0, i, j, 32.0);
 		j = (j - 1) / 2;
 	}
 
 	while (j > i) {
-		Visualizer_UpdatePointer(GlobalPrimaryArrayId, 0, j, 0.0);
-		Visualizer_UpdateSwap(GlobalPrimaryArrayId, i, j, 32.0);
+		Visualizer_UpdatePointer(0, 0, j, 0.0);
+		Visualizer_UpdateSwap(0, i, j, 32.0);
 		ISORT_SWAP(array[i], array[j]);
 		j = (j - 1) / 2;
 	}
-	Visualizer_RemovePointer(GlobalPrimaryArrayId, 0);
+	Visualizer_RemovePointer(0, 0);
 }
 
 // Exports:
@@ -119,9 +117,7 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 * Negative integer support     : Yes
 */
 
-void BottomUpHeapSort(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
-
-	GlobalPrimaryArrayId = PrimaryArrayId;
+void BottomUpHeapSort(isort_t* array, intptr_t n) {
 
 	intptr_t length = n;
 
@@ -129,7 +125,7 @@ void BottomUpHeapSort(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
 		BUHS_SiftDown(array, i, length);
 
 	for (intptr_t i = length - 1; i > 0; --i) {
-		Visualizer_UpdateSwap(GlobalPrimaryArrayId, 0, i, 32.0);
+		Visualizer_UpdateSwap(0, 0, i, 32.0);
 		ISORT_SWAP(array[0], array[i]);
 		BUHS_SiftDown(array, 0, i);
 	}
@@ -145,7 +141,7 @@ void BottomUpHeapSort(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
 * Negative integer support     : Yes
 */
 
-void WeakHeapSort(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
+void WeakHeapSort(isort_t* array, intptr_t n) {
 
 	if (n < 2) return;
 	WHS_weakHeapSort(array, n);

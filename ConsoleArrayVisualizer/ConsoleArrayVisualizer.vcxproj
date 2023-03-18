@@ -24,6 +24,7 @@
     <ClCompile Include="Source\Sorts\PigeonholeSort.c" />
     <ClCompile Include="Source\Sorts\QuickSort.c" />
     <ClCompile Include="Source\Sorts\ShellSort.c" />
+    <ClCompile Include="Source\Utils\DynamicArray.c" />
     <ClCompile Include="Source\Utils\Time.c" />
     <ClCompile Include="Source\Utils\Random.c" />
     <ClCompile Include="Source\Utils\Tree234.c" />
@@ -32,6 +33,7 @@
     <ClCompile Include="Source\Visualizer\Visualizer.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Include\DynamicArray.h" />
     <ClInclude Include="Include\Tree234.h" />
     <ClInclude Include="Include\Visualizer.h" />
     <ClInclude Include="Include\Sorts.h" />

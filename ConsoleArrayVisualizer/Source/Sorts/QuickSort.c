@@ -18,27 +18,27 @@ begin:
 	pivot = array[low + (high - low + 1) / 2];
 	left = low;
 	right = high;
-	Visualizer_UpdatePointer(GlobalPrimaryArrayId, 0, low + (high - low + 1) / 2, 0.0);
+	Visualizer_UpdatePointer(0, 0, low + (high - low + 1) / 2, 0.0);
 
 	while (left <= right) {
 		while (array[left] < pivot) {
-			Visualizer_UpdateRead2(GlobalPrimaryArrayId, left, right, 62.5);
+			Visualizer_UpdateRead2(0, left, right, 62.5);
 			++left;
 
 		}
 		while (array[right] > pivot) {
-			Visualizer_UpdateRead2(GlobalPrimaryArrayId, left, right, 62.5);
+			Visualizer_UpdateRead2(0, left, right, 62.5);
 			--right;
 		}
 
 		if (left <= right) {
-			Visualizer_UpdateSwap(GlobalPrimaryArrayId, left, right, 62.5);
+			Visualizer_UpdateSwap(0, left, right, 62.5);
 			ISORT_SWAP(array[left], array[right]);
 			++left;
 			--right;
 		}
 	}
-	Visualizer_RemovePointer(GlobalPrimaryArrayId, 0);
+	Visualizer_RemovePointer(0, 0);
 
 	// Call tail optimization
 	// (prevents O(n) call stack in worst case)
@@ -81,12 +81,10 @@ begin:
 * Negative integer support     : Yes
 */
 
-void LeftRightQuickSort(isort_t* array, intptr_t n, intptr_t PrimaryArrayId) {
+void LeftRightQuickSort(isort_t* array, intptr_t n) {
 
 	if (n < 2) return;
 	LRQS_Partition(array, 0, n - 1);
-
-	GlobalPrimaryArrayId = PrimaryArrayId;
 
 	return;
 }

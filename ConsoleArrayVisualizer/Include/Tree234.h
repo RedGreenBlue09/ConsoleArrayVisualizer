@@ -30,9 +30,9 @@
  * SOFTWARE.
  */
 
-#include <stdint.h>
-
 #pragma once
+
+#include <stdint.h>
 
 /*
  * This typedef is opaque outside tree234.c itself.
