@@ -35,8 +35,9 @@
 #include <assert.h>
 
 #include "tree234.h"
+#include "GuardedMalloc.h"
 
-#define smalloc malloc
+#define smalloc malloc_guarded
 #define sfree free
 
 void* mknew_helper(size_t size) {

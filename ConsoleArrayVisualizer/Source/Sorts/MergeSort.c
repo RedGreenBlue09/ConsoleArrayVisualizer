@@ -2,7 +2,7 @@
 #include "Sorts.h"
 #include "Visualizer.h"
 
-#include "malloc.h"
+#include "GuardedMalloc.h"
 
 void BIS_BinaryInsertion(isort_t* array, intptr_t start, intptr_t end);
 
@@ -69,7 +69,7 @@ void IMS_iterativeMergeSort(isort_t* a, size_t n) {
 		return;
 	}
 
-	isort_t* b = malloc(n * sizeof(isort_t));
+	isort_t* b = malloc_guarded(n * sizeof(isort_t));
 
 	size_t s = 16; // segment size
 	size_t i;

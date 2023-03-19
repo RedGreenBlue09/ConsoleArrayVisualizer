@@ -34,6 +34,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\DynamicArray.h" />
+    <ClInclude Include="Include\GuardedMalloc.h" />
     <ClInclude Include="Include\Tree234.h" />
     <ClInclude Include="Include\Visualizer.h" />
     <ClInclude Include="Include\Sorts.h" />

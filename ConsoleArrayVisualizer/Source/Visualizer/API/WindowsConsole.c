@@ -1,6 +1,6 @@
 
 #include <Windows.h>
-#include <malloc.h>
+#include <GuardedMalloc.h>
 #include <stdio.h>
 
 /*
@@ -39,7 +39,7 @@ void WinConsole_FillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coo
 
 	CHAR_INFO* ciBlock;
 	LONG blockN = wX * wY;
-	ciBlock = malloc(blockN * sizeof(CHAR_INFO));
+	ciBlock = malloc_guarded(blockN * sizeof(CHAR_INFO));
 	if (ciBlock == NULL)
 		return;
 
@@ -95,7 +95,7 @@ void WinConsole_FillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coor
 
 	CHAR_INFO* ciBlock;
 	LONG blockN = wX * wY;
-	ciBlock = malloc(blockN * sizeof(CHAR_INFO));
+	ciBlock = malloc_guarded(blockN * sizeof(CHAR_INFO));
 	if (!ciBlock)
 		return;
 
@@ -156,7 +156,7 @@ void WinConsole_FillAttr(HANDLE hBuffer, CONSOLE_SCREEN_BUFFER_INFOEX* pCSBI, WO
 
 	CHAR_INFO* ciBlock;
 	LONG blockN = wX * wY;
-	ciBlock = malloc(blockN * sizeof(CHAR_INFO));
+	ciBlock = malloc_guarded(blockN * sizeof(CHAR_INFO));
 	if (ciBlock == NULL)
 		return;
 
@@ -213,7 +213,7 @@ void WinConsole_FillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD
 
 	CHAR_INFO* ciBlock;
 	LONG blockN = wX * wY;
-	ciBlock = malloc(blockN * sizeof(CHAR_INFO));
+	ciBlock = malloc_guarded(blockN * sizeof(CHAR_INFO));
 	if (ciBlock == NULL)
 		return;
 

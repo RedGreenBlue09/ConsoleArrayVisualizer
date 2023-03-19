@@ -2,7 +2,7 @@
 #include "Sorts.h"
 #include "Visualizer.h"
 
-#include "malloc.h"
+#include "GuardedMalloc.h"
 
 void FS_flashSort(usort_t* array, intptr_t n) {
 
@@ -50,7 +50,7 @@ void FS_flashSort(usort_t* array, intptr_t n) {
 
 	if (max == min) return;
 
-	usort_t* L = malloc((M + 1) * sizeof(usort_t));
+	usort_t* L = malloc_guarded((M + 1) * sizeof(usort_t));
 	if (L == 0) return;
 
 	for (intptr_t t = 1; t <= M; ++t)

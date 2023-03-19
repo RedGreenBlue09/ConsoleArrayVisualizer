@@ -4,9 +4,10 @@
 
 #define _USE_MATH_DEFINES
 
-#include "Utils.h"
 #include <stdio.h>
 #include <math.h>
+#include "Utils.h"
+#include "GuardedMalloc.h"
 
 double myKahanSum(double* ax, size_t n) {
 
@@ -59,12 +60,17 @@ void mainShuffle(isort_t* aArray, intptr_t N) {
 
 }
 
+int intcmp(void* a, void* b) {
+	return *(int*)a - *(int*)b;
+}
+
 int main() {
 
+	/*
 	utilInitTime();
 
 	intptr_t N = 512;
-	isort_t* aArray = malloc(N * sizeof(isort_t));
+	isort_t* aArray = malloc_guarded(N * sizeof(isort_t));
 	Sleep(5000);
 
 	Visualizer_Initialize();
@@ -72,21 +78,21 @@ int main() {
 
 	//
 	mainShuffle(aArray, N);
-	Visualizer_UpdateArray(0, aArray, TRUE, 0, (isort_t)(N - 1));
+	Visualizer_UpdateArray(0, 0, aArray, TRUE, 0, (isort_t)(N - 1));
 
 	//
 	BottomUpHeapSort(aArray, N);
 
 	//
 	mainShuffle(aArray, N);
-	Visualizer_UpdateArray(0, aArray, TRUE, 0, (isort_t)(N - 1));
+	Visualizer_UpdateArray(0, 0, aArray, TRUE, 0, (isort_t)(N - 1));
 
 	//
 	LeftRightQuickSort(aArray, N);
 
 	//
 	mainShuffle(aArray, N);
-	Visualizer_UpdateArray(0, aArray, TRUE, 0, (isort_t)(N - 1));
+	Visualizer_UpdateArray(0, 0, aArray, TRUE, 0, (isort_t)(N - 1));
 
 	//
 	ShellSortCiura(aArray, N);
@@ -97,6 +103,24 @@ int main() {
 	Visualizer_Uninitialize();
 
 	free(aArray);
+	*/
+
+	int a[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+	tree234* ptree = newtree234(intcmp);
+
+
+	add234(ptree, a + 9);
+	add234(ptree, a + 1);
+	add234(ptree, a + 6);
+	add234(ptree, a + 4);
+
+	for (int i = 0; i < 4; ++i) {
+		int* px = index234(ptree, i);
+		printf("%i\r\n", *px);
+	}
+
+	freetree234(ptree);
 
 	return 0;
 

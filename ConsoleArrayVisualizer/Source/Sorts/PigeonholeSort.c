@@ -2,7 +2,7 @@
 #include "Sorts.h"
 #include "Visualizer.h"
 
-#include "malloc.h"
+#include "GuardedMalloc.h"
 
 void PGHS_pigeonholeSort(isort_t* array, intptr_t n) {
 
@@ -23,7 +23,7 @@ void PGHS_pigeonholeSort(isort_t* array, intptr_t n) {
 	intptr_t Range = Max - Min + 1;
 	if (Range < 2) return;
 
-	isort_t* Holes = malloc(Range * sizeof(isort_t));
+	isort_t* Holes = malloc_guarded(Range * sizeof(isort_t));
 	if (Holes == 0) return;
 
 	Holes -= Min;

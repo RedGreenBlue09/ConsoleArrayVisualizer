@@ -28,20 +28,6 @@
 
 	#define MACHINE_PTR64
 
-#else
-// The above didn't work.
-// Try detecting using compiler-specific macros.
-	#ifdef _MSC_VER
-		#ifdef _WIN32
-			#define MACHINE_PTR32
-		#else
-			#define MACHINE_PTR64
-		#endif
-	#else
-		// Still not work.
-		#define MACHINE_PTRUNKN
-	#endif
-
 #endif
 
 // Random.c

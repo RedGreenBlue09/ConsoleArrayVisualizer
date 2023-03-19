@@ -4,12 +4,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "Tree234.h"
+#include "DynamicArray.h"
 
 typedef int32_t isort_t;
 typedef uint32_t usort_t;
 
-#define AV_MAX_ARRAY_COUNT (16)
+#define AV_MAX_ARRAY_COUNT   (16)
 #define AV_MAX_POINTER_COUNT (256)
+
+#define AV_RENDERER_UPDATEVALUE (0x01)
+#define AV_RENDERER_UPDATEATTR  (0x02)
 
 typedef enum {
 	AvAttribute_Background,
@@ -21,25 +25,33 @@ typedef enum {
 	AvAttribute_Incorrect
 } AvAttribute;
 
+// Array properties struct
+
 typedef struct {
 
-	int32_t      bActive;     // Visualizer
+	int32_t         bActive;
 
-	intptr_t     Size;        // Visualizer, Renderer
-	isort_t*     aArrayState; // Visualizer
-	AvAttribute* aAttribute;  // Visualizer
+	intptr_t        Size;
+	DYNAMIC_ARRAY   daUniqueMarkerIdHoles; // dynamic array
+	tree234*        ptreeUniqueMarker;     // a stack
+	tree234**       aptreeUniqueMarkerMap; // a stack O(log(n)) everything
 
-	int32_t      bVisible;    // Visualizer, Renderer
-	isort_t      ValueMin;    // Visualizer, Renderer
-	isort_t      ValueMax;    // Visualizer, Renderer
+	tree234*        ptreePointerId;
+	intptr_t*       aPointerCount;
 
-	//intptr_t     nPointer;    // Visualizer
-	//intptr_t*    aPointer;    // Visualizer
-	tree234*     ptreePointerId;
-	intptr_t*    aPointerCount;
-	// TODO: Tree stucture to store pointers
+} AV_ARRAYPROP;
 
-} AV_ARRAY;
+typedef struct {
+
+	intptr_t     Size;
+	isort_t*     aArrayState;
+	AvAttribute* aAttribute;
+
+	int32_t      bVisible;
+	isort_t      ValueMin;
+	isort_t      ValueMax;
+
+} AV_ARRAYPROP_RENDERER;
 
 // Visualizer.c
 
@@ -55,7 +67,14 @@ void Visualizer_Sleep(double fSleepMultiplier);
 
 void Visualizer_AddArray(intptr_t ArrayId, intptr_t Size);
 void Visualizer_RemoveArray(intptr_t ArrayId);
-void Visualizer_UpdateArray(intptr_t ArrayId, isort_t* aNewArrayState, int32_t bVisible, isort_t ValueMin, isort_t ValueMax);
+void Visualizer_UpdateArray(
+	intptr_t ArrayId,
+	isort_t NewSize,
+	isort_t* aNewArrayState,
+	int32_t bVisible,
+	isort_t ValueMin,
+	isort_t ValueMax
+);
 
 void Visualizer_UpdateRead(intptr_t ArrayId, intptr_t iPos, double fSleepMultiplier);
 void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier);
@@ -68,6 +87,18 @@ void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId);
 #else
 
 // Define fake functions
+#define Visualizer_Initialize()
+#define Visualizer_Uninitialize()
+#define Visualizer_Sleep(A)
+#define Visualizer_AddArray(A, B)
+#define Visualizer_RemoveArray(A)
+#define Visualizer_UpdateArray(A, B, C, D, E, F)
+#define Visualizer_UpdateRead(A, B, C)
+#define Visualizer_UpdateRead2(A, B, C, D)
+#define Visualizer_UpdateWrite(A, B, C, D)
+#define Visualizer_UpdateSwap(A, B, C, D)
+#define Visualizer_UpdatePointer(A, B, C, D)
+#define Visualizer_RemovePointer(A, B)
 
 #endif
 
@@ -76,11 +107,33 @@ void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId);
 void RendererWcc_Initialize();
 void RendererWcc_Uninitialize();
 
-void RendererWcc_AddArray(intptr_t ArrayId, AV_ARRAY* pVArray);
+void RendererWcc_AddArray(intptr_t ArrayId, intptr_t Size);
 void RendererWcc_RemoveArray(intptr_t ArrayId);
-void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t* aNewArrayState, int32_t bVisible, isort_t ValueMin, isort_t ValueMax);
+void RendererWcc_UpdateArray(
+	intptr_t ArrayId,
+	isort_t NewSize,
+	isort_t* aNewArrayState,
+	int32_t bVisible,
+	isort_t ValueMin,
+	isort_t ValueMax
+);
 
-void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr);
+
+
+/*
+ * UpdateRequest:
+ *   AV_RENDERER_UPDATEVALUE
+ *   AV_RENDERER_UPDATEATTR
+ *
+ */
+
+void RendererWcc_UpdateItem(
+	intptr_t ArrayId,
+	uintptr_t iPos,
+	uint32_t UpdateRequest,
+	isort_t NewValue,
+	AvAttribute NewAttr
+);
 
 // WindowsConsole.c
 

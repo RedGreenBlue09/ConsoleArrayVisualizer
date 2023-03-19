@@ -1,6 +1,6 @@
 
 #include "Visualizer.h"
-#include <malloc.h>
+#include "GuardedMalloc.h"
 
 #ifndef VISUALIZER_DISABLED
 
@@ -26,13 +26,13 @@ static LONG_PTR OldWindowStyle = 0;
 // Array
 typedef struct {
 
-	AV_ARRAY* pVArray;
+	AV_ARRAYPROP_RENDERER vapr;
 
 	// TODO: Horizontal scaling
 
-} WCC_ARRAY;
+} RWCC_ARRAYPROP;
 
-static WCC_ARRAY aWccArrayList[AV_MAX_ARRAY_COUNT];
+static RWCC_ARRAYPROP RendererWcc_aRwccArrayProp[AV_MAX_ARRAY_COUNT];
 // TODO: Linked list to keep track of active (added) items.
 
 void RendererWcc_Initialize() {
@@ -91,11 +91,23 @@ void RendererWcc_Uninitialize() {
 
 
 
-void RendererWcc_AddArray(intptr_t ArrayId, AV_ARRAY* pVArray) {
+void RendererWcc_AddArray(intptr_t ArrayId, intptr_t Size) {
 
-	// VArray structure is shared between Visualizer.c and the renderer.
+	RendererWcc_aRwccArrayProp[ArrayId].vapr.Size = Size;
+	RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState = malloc_guarded(Size * sizeof(isort_t));
+	RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute = malloc_guarded(Size * sizeof(AvAttribute));
 
-	aWccArrayList[ArrayId].pVArray = pVArray;
+	RendererWcc_aRwccArrayProp[ArrayId].vapr.bVisible = FALSE;
+	RendererWcc_aRwccArrayProp[ArrayId].vapr.ValueMin = 0;
+	RendererWcc_aRwccArrayProp[ArrayId].vapr.ValueMax = 1;
+
+	// Initialize arrays
+
+	for (intptr_t i = 0; i < Size; ++i)
+		RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState[i] = 0;
+
+	for (intptr_t i = 0; i < Size; ++i)
+		RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute[i] = AvAttribute_Normal;
 
 	// TODO: scaling
 
@@ -104,26 +116,86 @@ void RendererWcc_AddArray(intptr_t ArrayId, AV_ARRAY* pVArray) {
 
 void RendererWcc_RemoveArray(intptr_t ArrayId) {
 
-	aWccArrayList[ArrayId].pVArray = NULL;
+	free(RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute);
+	free(RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState);
 	return;
 
 }
 
-void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t* aNewArrayState, int32_t bVisible, isort_t ValueMin, isort_t ValueMax) {
+void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArrayState, int32_t bVisible, isort_t ValueMin, isort_t ValueMax) {
 
-	intptr_t Size = aWccArrayList[ArrayId].pVArray->Size;
+	RendererWcc_aRwccArrayProp[ArrayId].vapr.bVisible = bVisible;
+	RendererWcc_aRwccArrayProp[ArrayId].vapr.ValueMin = ValueMin;
+	RendererWcc_aRwccArrayProp[ArrayId].vapr.ValueMax = ValueMax;
 
-	if (aNewArrayState) {
-		for (intptr_t i = 0; i < Size; ++i) {
-			uint8_t Attribute = aWccArrayList[ArrayId].pVArray->aAttribute[i];
-			RendererWcc_DrawItem(ArrayId, i, aNewArrayState[i], Attribute);
-		}
+	// Handle array resize
+
+	if ((NewSize > 0) && (NewSize != RendererWcc_aRwccArrayProp[ArrayId].vapr.Size)) {
+
+		// Realloc state array
+
+		isort_t* aResizedArrayState = realloc_guarded(RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState, NewSize);
+
+
+		// Realloc attribute array
+
+		isort_t* aResizedAttribute = realloc_guarded(RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute, NewSize);
+
+
+		intptr_t OldSize = RendererWcc_aRwccArrayProp[ArrayId].vapr.Size;
+		intptr_t NewPartSize = NewSize - OldSize;
+
+		// Fill the new part with 0
+
+		for (intptr_t i = 0; i < NewPartSize; ++i)
+			aResizedArrayState[OldSize + i] = 0;
+
+		RendererWcc_aRwccArrayProp[ArrayId].vapr.Size = NewSize;
+		RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState = aResizedArrayState;
+
+
 	}
+
+	isort_t* aArrayState = RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState;
+	intptr_t Size = RendererWcc_aRwccArrayProp[ArrayId].vapr.Size;
+
+	// Handle new array state
+
+	if (aNewArrayState)
+		for (intptr_t i = 0; i < Size; ++i)
+			aArrayState[i] = aNewArrayState[i];
+
+	// Re-render with new props
+
+	/*
+	// Clear screen
+	// TODO: Fast clear screen
+	for (intptr_t i = 0; i < Size; ++i) {
+		RendererWcc_UpdateItem(
+			ArrayId,
+			i,
+			AV_RENDERER_UPDATEVALUE,
+			0,
+			0
+		);
+	}
+	*/
+	// Re-render using the same attribute
+	for (intptr_t i = 0; i < Size; ++i) {
+		RendererWcc_UpdateItem(
+			ArrayId,
+			i,
+			AV_RENDERER_UPDATEVALUE,
+			aArrayState[i],
+			0
+		);
+	}
+
 	return;
 
 }
 
-static const USHORT WinConAttrTable[256] = {
+static const USHORT RendererWcc_WinConAttrTable[256] = {
 	ATTR_WINCON_BACKGROUND,
 	ATTR_WINCON_NORMAL,
 	ATTR_WINCON_READ,
@@ -133,34 +205,50 @@ static const USHORT WinConAttrTable[256] = {
 	ATTR_WINCON_INCORRECT,
 }; // 0: black background and black text.
 
-static USHORT AttrToConAttr(uint8_t Attr) {
-	return WinConAttrTable[Attr]; // return 0 on unknown Attr.
+static USHORT RendererWcc_AttrToConAttr(AvAttribute Attr) {
+	return RendererWcc_WinConAttrTable[Attr]; // return 0 on unknown Attr.
 }
 
-void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8_t Attr) {
+void RendererWcc_UpdateItem(
+	intptr_t ArrayId,
+	uintptr_t iPos,
+	uint32_t UpdateRequest,
+	isort_t NewValue,
+	AvAttribute NewAttr
+) {
 
-	if (ArrayId > 0) {
-		return;
-		// TOOD: Multiple array render
-	}
+	// Choose the correct value & attribute
 
-	isort_t ValueMin = aWccArrayList[ArrayId].pVArray->ValueMin;
-	isort_t ValueMax = aWccArrayList[ArrayId].pVArray->ValueMax;
+	isort_t TargetValue = RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState[iPos];
+	if (UpdateRequest & AV_RENDERER_UPDATEVALUE)
+		TargetValue = NewValue;
 
-	Value -= ValueMin;
+	AvAttribute TargetAttr = RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute[iPos];
+	if (UpdateRequest & AV_RENDERER_UPDATEATTR)
+		TargetValue = NewAttr;
+
+	RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState[iPos] = TargetValue;
+	RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute[iPos] = TargetAttr;
+
+	isort_t ValueMin = RendererWcc_aRwccArrayProp[ArrayId].vapr.ValueMin;
+	isort_t ValueMax = RendererWcc_aRwccArrayProp[ArrayId].vapr.ValueMax;
+
+	TargetValue -= ValueMin;
 	ValueMax -= ValueMin; // Warning: Overflow
 
-	if (Value > ValueMax) {
-		Value = ValueMax;
-	}
+	if (TargetValue > ValueMax)
+		TargetValue = ValueMax;
 
-	double dfHeight = (double)Value * (double)csbiRenderer.dwSize.Y / (double)ValueMax;
+	// Scale the value to the corresponding screen height
+
+	double dfHeight = (double)TargetValue * (double)csbiRenderer.dwSize.Y / (double)ValueMax;
 	SHORT FloorHeight = (SHORT)dfHeight;
 
-	//
-	USHORT WinConAttr = AttrToConAttr(Attr);
+	// Convert AvAttribute to windows console attribute
+	USHORT WinConAttr = RendererWcc_AttrToConAttr(TargetAttr);
 
 	// Fill the unused cells with background.
+
 	WinConsole_FillAttr(
 		hRendererBuffer,
 		&csbiRenderer,
@@ -169,7 +257,9 @@ void RendererWcc_DrawItem(intptr_t ArrayId, uintptr_t iPos, isort_t Value, uint8
 		csbiRenderer.dwSize.Y - FloorHeight,
 		(COORD){ (SHORT)iPos, 0 }
 	);
+
 	// Fill the used cells with WinConAttr.
+
 	WinConsole_FillAttr(
 		hRendererBuffer,
 		&csbiRenderer,

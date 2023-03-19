@@ -4,12 +4,18 @@
 #include "Visualizer.h"
 
 #include "Utils.h"
+#include "GuardedMalloc.h"
 
-static const uint64_t Visualizer_TimeDefaultDelay = 100; // miliseconds
+#ifndef VISUALIZER_DISABLED
+
+// TODO: Overlapped marker system with priority queue
+//       Write & swap functions will change the value before sleep
+
+static const uint64_t Visualizer_TimeDefaultDelay = 10000; // microseconds
 static uint8_t Visualizer_bInitialized = FALSE;
 
 // TODO: Maybe tree struct for this.
-static AV_ARRAY Visualizer_aVArrayList[AV_MAX_ARRAY_COUNT];
+static AV_ARRAYPROP Visualizer_aArrayProp[AV_MAX_ARRAY_COUNT];
 
 // Init
 
@@ -19,7 +25,7 @@ void Visualizer_Initialize() {
 
 	RendererWcc_Initialize();
 
-	memset(Visualizer_aVArrayList, 0, sizeof(Visualizer_aVArrayList));
+	memset(Visualizer_aArrayProp, 0, sizeof(Visualizer_aArrayProp));
 
 	Visualizer_bInitialized = TRUE;
 	return;
@@ -54,41 +60,23 @@ int VpidCompare(void* pA, void* pB);
 void Visualizer_AddArray(intptr_t ArrayId, intptr_t Size) {
 
 	if (!Visualizer_bInitialized) return;
-	if (Visualizer_aVArrayList[ArrayId].bActive) return;
+	if (Visualizer_aArrayProp[ArrayId].bActive) return;
 	if (Size < 1) return;
 
-	Visualizer_aVArrayList[ArrayId].bActive = TRUE;
-
-	Visualizer_aVArrayList[ArrayId].Size = Size;
-	Visualizer_aVArrayList[ArrayId].aArrayState = malloc(Size * sizeof(isort_t));
-	Visualizer_aVArrayList[ArrayId].aAttribute = malloc(Size * sizeof(AvAttribute));
-
-	Visualizer_aVArrayList[ArrayId].bVisible = FALSE;
-	Visualizer_aVArrayList[ArrayId].ValueMin = 0;
-	Visualizer_aVArrayList[ArrayId].ValueMax = 1;
-
-	Visualizer_aVArrayList[ArrayId].ptreePointerId = newtree234(VpidCompare);
-	Visualizer_aVArrayList[ArrayId].aPointerCount = malloc(Size * sizeof(intptr_t));
-
-	if (!Visualizer_aVArrayList[ArrayId].aArrayState)
-		abort();
-	if (!Visualizer_aVArrayList[ArrayId].aAttribute)
-		abort();
-	if (!Visualizer_aVArrayList[ArrayId].aPointerCount)
-		abort();// TODO: Whole program: force abort on error
+	Visualizer_aArrayProp[ArrayId].bActive = TRUE;
+	Visualizer_aArrayProp[ArrayId].Size = Size;
+	Visualizer_aArrayProp[ArrayId].aPointerCount = malloc_guarded(Size * sizeof(intptr_t));
 
 	// Initialize arrays
 
 	for (intptr_t i = 0; i < Size; ++i)
-		Visualizer_aVArrayList[ArrayId].aArrayState[i] = 0;
+		Visualizer_aArrayProp[ArrayId].aPointerCount[i] = 0;
 
-	for (intptr_t i = 0; i < Size; ++i)
-		Visualizer_aVArrayList[ArrayId].aAttribute[i] = AvAttribute_Normal;
+	Visualizer_aArrayProp[ArrayId].ptreePointerId = newtree234(VpidCompare);
 
-	for (intptr_t i = 0; i < Size; ++i)
-		Visualizer_aVArrayList[ArrayId].aPointerCount[i] = 0;
+	// Call visualizer
 
-	RendererWcc_AddArray(ArrayId, &Visualizer_aVArrayList[ArrayId]);
+	RendererWcc_AddArray(ArrayId, Size);
 
 	return;
 
@@ -97,14 +85,12 @@ void Visualizer_AddArray(intptr_t ArrayId, intptr_t Size) {
 void Visualizer_RemoveArray(intptr_t ArrayId) {
 
 	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_aVArrayList[ArrayId].bActive) return;
+	if (!Visualizer_aArrayProp[ArrayId].bActive) return;
 
-	free(Visualizer_aVArrayList[ArrayId].aAttribute);
-	free(Visualizer_aVArrayList[ArrayId].aArrayState);
-	free(Visualizer_aVArrayList[ArrayId].aPointerCount);
-	freetree234(Visualizer_aVArrayList[ArrayId].ptreePointerId);
+	free(Visualizer_aArrayProp[ArrayId].aPointerCount);
+	freetree234(Visualizer_aArrayProp[ArrayId].ptreePointerId);
 
-	memset(&Visualizer_aVArrayList[ArrayId], 0, sizeof(Visualizer_aVArrayList[ArrayId]));
+	memset(&Visualizer_aArrayProp[ArrayId], 0, sizeof(Visualizer_aArrayProp[ArrayId]));
 
 	RendererWcc_RemoveArray(ArrayId);
 
@@ -112,27 +98,99 @@ void Visualizer_RemoveArray(intptr_t ArrayId) {
 
 }
 
-void Visualizer_UpdateArray(intptr_t ArrayId, isort_t* aNewArrayState, int32_t bVisible, isort_t ValueMin, isort_t ValueMax) {
+void Visualizer_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArrayState, int32_t bVisible, isort_t ValueMin, isort_t ValueMax) {
 
 	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_aVArrayList[ArrayId].bActive) return;
+	if (!Visualizer_aArrayProp[ArrayId].bActive) return;
+	// Handle array resize
 
-	Visualizer_aVArrayList[ArrayId].bVisible = bVisible;
-	Visualizer_aVArrayList[ArrayId].ValueMin = ValueMin;
-	Visualizer_aVArrayList[ArrayId].ValueMax = ValueMax;
+	if ((NewSize > 0) && (NewSize != Visualizer_aArrayProp[ArrayId].Size)) {
+		// TODO: Resize pointer count array
 
-	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
-	isort_t* aArrayState = Visualizer_aVArrayList[ArrayId].aArrayState;
+		isort_t* aResizedArrayState = realloc_guarded(Visualizer_aArrayProp[ArrayId].aArrayState, NewSize);
 
-	if (aNewArrayState) {
-		for (intptr_t i = 0; i < Size; ++i)
-			aArrayState[i] = aNewArrayState[i];
+		intptr_t OldSize = Visualizer_aArrayProp[ArrayId].Size;
+		intptr_t NewPartSize = NewSize - OldSize;
+
+		// Fill the new part with 0
+
+		for (intptr_t i = 0; i < NewPartSize; ++i)
+			aResizedArrayState[OldSize + i] = 0;
+
+		Visualizer_aArrayProp[ArrayId].Size = NewSize;
+		Visualizer_aArrayProp[ArrayId].aArrayState = aResizedArrayState;
+
+
 	}
 
-	RendererWcc_UpdateArray(ArrayId, aNewArrayState, bVisible, ValueMin, ValueMax);
+	isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
+	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
+
+	// Handle new array state
+
+	if (aNewArrayState)
+		for (intptr_t i = 0; i < Size; ++i)
+			aArrayState[i] = aNewArrayState[i];
+
+	// Call renderer
+
+	RendererWcc_UpdateArray(ArrayId, NewSize, aNewArrayState, bVisible, ValueMin, ValueMax);
 
 	return;
 }
+
+// Marker
+
+typedef struct {
+	intptr_t UniqueId;
+	intptr_t iPos;
+	AvAttribute Attribute;
+} AV_UNIQUEMARKER;
+
+intptr_t Visualizer_NewUniqueMarker(
+	intptr_t ArrayId,
+	intptr_t iPos,
+	uint8_t bUpdateValue,
+	isort_t NewValue,
+	AvAttribute Attribute
+) {
+
+	tree234* ptreeUniqueMarker = Visualizer_aArrayProp[ArrayId].ptreeUniqueMarker;
+	DYNAMIC_ARRAY* pdaUniqueMarkerIdHoles = &Visualizer_aArrayProp[ArrayId].daUniqueMarkerIdHoles;
+	tree234** aptreeUniqueMarkerMap = Visualizer_aArrayProp[ArrayId].aptreeUniqueMarkerMap;
+
+	// Acquire new ID (unique)
+	if (DaSize(pdaUniqueMarkerIdHoles)) // Out of ids
+		return INTPTR_MIN; // INTPTR_MIN is reserved for error handling
+	intptr_t* pNewId = DaIndex(pdaUniqueMarkerIdHoles, 0);
+
+	// Add new unique marker to id tree
+	AV_UNIQUEMARKER* pvumNewUniqueMarker = malloc_guarded(sizeof(AV_UNIQUEMARKER));
+	pvumNewUniqueMarker->UniqueId = *pNewId;
+	pvumNewUniqueMarker->iPos = iPos;
+	add234(ptreeUniqueMarker, pvumNewUniqueMarker);
+
+	// Add the new marker iPos slot
+	addpos234(aptreeUniqueMarkerMap[iPos], pvumNewUniqueMarker, 0);
+
+	// Call renderer
+	// The newly added marker is the highest priority one
+	uint32_t UpdateRequest = AV_RENDERER_UPDATEATTR;
+	if (bUpdateValue)
+		UpdateRequest |= AV_RENDERER_UPDATEVALUE;
+
+	RendererWcc_UpdateItem(
+		ArrayId,
+		iPos,
+		UpdateRequest,
+		NewValue,
+		Attribute
+	);
+
+	return *pNewId;
+
+}
+
 
 // Read & Write
 // These functions restore original attributes before they return.
@@ -140,41 +198,41 @@ void Visualizer_UpdateArray(intptr_t ArrayId, isort_t* aNewArrayState, int32_t b
 void Visualizer_UpdateRead(intptr_t ArrayId, intptr_t iPos, double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_aVArrayList[ArrayId].bActive) return;
-	if (iPos >= Visualizer_aVArrayList[ArrayId].Size || iPos < 0) return;
+	if (!Visualizer_aArrayProp[ArrayId].bActive) return;
+	if (iPos >= Visualizer_aArrayProp[ArrayId].Size || iPos < 0) return;
 
-	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
-	isort_t* aArrayState = Visualizer_aVArrayList[ArrayId].aArrayState;
+	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
+	isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
 
-	AvAttribute AttrOld = Visualizer_aVArrayList[ArrayId].aAttribute[iPos];
+	AvAttribute AttrOld = Visualizer_aArrayProp[ArrayId].aAttribute[iPos];
 
-	RendererWcc_DrawItem(ArrayId, iPos, aArrayState[iPos], AvAttribute_Read);
+	RendererWcc_UpdateItem(ArrayId, iPos, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
-	RendererWcc_DrawItem(ArrayId, iPos, aArrayState[iPos], AttrOld);
+	RendererWcc_UpdateItem(ArrayId, iPos, AV_RENDERER_UPDATEATTR, 0, AttrOld);
 
 	return;
 
 }
 
-// Update 2 items with a single sleep (used for comparisions).
+// Update 2 items (used for comparisions).
 void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_aVArrayList[ArrayId].bActive) return;
-	if (iPosA >= Visualizer_aVArrayList[ArrayId].Size || iPosA < 0) return;
-	if (iPosB >= Visualizer_aVArrayList[ArrayId].Size || iPosB < 0) return;
+	if (!Visualizer_aArrayProp[ArrayId].bActive) return;
+	if (iPosA >= Visualizer_aArrayProp[ArrayId].Size || iPosA < 0) return;
+	if (iPosB >= Visualizer_aArrayProp[ArrayId].Size || iPosB < 0) return;
 
-	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
-	isort_t* aArrayState = Visualizer_aVArrayList[ArrayId].aArrayState;
+	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
+	isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
 
-	AvAttribute AttrOldA = Visualizer_aVArrayList[ArrayId].aAttribute[iPosA];
-	AvAttribute AttrOldB = Visualizer_aVArrayList[ArrayId].aAttribute[iPosB];
+	AvAttribute AttrOldA = Visualizer_aArrayProp[ArrayId].aAttribute[iPosA];
+	AvAttribute AttrOldB = Visualizer_aArrayProp[ArrayId].aAttribute[iPosB];
 
-	RendererWcc_DrawItem(ArrayId, iPosA, aArrayState[iPosA], AvAttribute_Read);
-	RendererWcc_DrawItem(ArrayId, iPosB, aArrayState[iPosB], AvAttribute_Read);
+	RendererWcc_UpdateItem(ArrayId, iPosA, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Read);
+	RendererWcc_UpdateItem(ArrayId, iPosB, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
-	RendererWcc_DrawItem(ArrayId, iPosA, aArrayState[iPosA], AttrOldA);
-	RendererWcc_DrawItem(ArrayId, iPosB, aArrayState[iPosB], AttrOldB);
+	RendererWcc_UpdateItem(ArrayId, iPosA, AV_RENDERER_UPDATEATTR, 0, AttrOldA);
+	RendererWcc_UpdateItem(ArrayId, iPosB, AV_RENDERER_UPDATEATTR, 0, AttrOldB);
 
 	return;
 
@@ -184,17 +242,17 @@ void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, do
 void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t NewValue, double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_aVArrayList[ArrayId].bActive) return;
-	if (iPos >= Visualizer_aVArrayList[ArrayId].Size || iPos < 0) return;
+	if (!Visualizer_aArrayProp[ArrayId].bActive) return;
+	if (iPos >= Visualizer_aArrayProp[ArrayId].Size || iPos < 0) return;
 
-	isort_t* aArrayState = Visualizer_aVArrayList[ArrayId].aArrayState;
-	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
+	isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
+	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
 
-	uint8_t AttrOld = Visualizer_aVArrayList[ArrayId].aAttribute[iPos];
+	uint8_t AttrOld = Visualizer_aArrayProp[ArrayId].aAttribute[iPos];
 
-	RendererWcc_DrawItem(ArrayId, iPos, aArrayState[iPos], AvAttribute_Write);
+	RendererWcc_UpdateItem(ArrayId, iPos, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Write);
 	Visualizer_Sleep(fSleepMultiplier);
-	RendererWcc_DrawItem(ArrayId, iPos, NewValue, AttrOld);
+	RendererWcc_UpdateItem(ArrayId, iPos, AV_RENDERER_UPDATEATTR | AV_RENDERER_UPDATEVALUE, NewValue, AttrOld);
 
 	aArrayState[iPos] = NewValue;
 
@@ -205,21 +263,21 @@ void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t NewValue, d
 void Visualizer_UpdateSwap(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_aVArrayList[ArrayId].bActive) return;
-	if (iPosA >= Visualizer_aVArrayList[ArrayId].Size || iPosA < 0) return;
-	if (iPosB >= Visualizer_aVArrayList[ArrayId].Size || iPosB < 0) return;
+	if (!Visualizer_aArrayProp[ArrayId].bActive) return;
+	if (iPosA >= Visualizer_aArrayProp[ArrayId].Size || iPosA < 0) return;
+	if (iPosB >= Visualizer_aArrayProp[ArrayId].Size || iPosB < 0) return;
 
-	isort_t* aArrayState = Visualizer_aVArrayList[ArrayId].aArrayState;
+	isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
 
-	AvAttribute AttrOldA = Visualizer_aVArrayList[ArrayId].aAttribute[iPosA];
-	AvAttribute AttrOldB = Visualizer_aVArrayList[ArrayId].aAttribute[iPosB];
+	AvAttribute AttrOldA = Visualizer_aArrayProp[ArrayId].aAttribute[iPosA];
+	AvAttribute AttrOldB = Visualizer_aArrayProp[ArrayId].aAttribute[iPosB];
 
 	// Swap the values
-	RendererWcc_DrawItem(ArrayId, iPosA, aArrayState[iPosA], AvAttribute_Write);
-	RendererWcc_DrawItem(ArrayId, iPosB, aArrayState[iPosB], AvAttribute_Write);
+	RendererWcc_UpdateItem(ArrayId, iPosA, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Write);
+	RendererWcc_UpdateItem(ArrayId, iPosB, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Write);
 	Visualizer_Sleep(fSleepMultiplier);
-	RendererWcc_DrawItem(ArrayId, iPosA, aArrayState[iPosB], AttrOldA);
-	RendererWcc_DrawItem(ArrayId, iPosB, aArrayState[iPosA], AttrOldB);
+	RendererWcc_UpdateItem(ArrayId, iPosA, AV_RENDERER_UPDATEATTR | AV_RENDERER_UPDATEVALUE, aArrayState[iPosB], AttrOldA);
+	RendererWcc_UpdateItem(ArrayId, iPosB, AV_RENDERER_UPDATEATTR | AV_RENDERER_UPDATEVALUE, aArrayState[iPosA], AttrOldB);
 
 	ISORT_SWAP(aArrayState[iPosA], aArrayState[iPosB]);
 
@@ -235,7 +293,6 @@ typedef struct {
 	intptr_t iPos; // The array index that it's pointing to.
 } AV_POINTERID;
 
-
 int VpidCompare(void* pA, void* pB) {
 
 	intptr_t PointerIdA = ((AV_POINTERID*)pA)->PointerId;
@@ -244,17 +301,18 @@ int VpidCompare(void* pA, void* pB) {
 	return (PointerIdA > PointerIdB) - (PointerIdA < PointerIdB);
 
 };
+
 void Visualizer_UpdatePointer(intptr_t ArrayId, intptr_t PointerId, intptr_t iNewPos, double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
 
-	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
-	isort_t* aArrayState = Visualizer_aVArrayList[ArrayId].aArrayState;
+	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
+	//isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
 
 	if (iNewPos >= Size || iNewPos < 0) return;
 
-	tree234* ptreePointerId = Visualizer_aVArrayList[ArrayId].ptreePointerId;
-	intptr_t* aPointerCount = Visualizer_aVArrayList[ArrayId].aPointerCount;
+	tree234* ptreePointerId = Visualizer_aArrayProp[ArrayId].ptreePointerId;
+	intptr_t* aPointerCount = Visualizer_aArrayProp[ArrayId].aPointerCount;
 
 	// Check if pointer is already exist.
 
@@ -271,9 +329,9 @@ void Visualizer_UpdatePointer(intptr_t ArrayId, intptr_t PointerId, intptr_t iNe
 
 			// Reset old pointer to normal.
 
-			Visualizer_aVArrayList[ArrayId].aAttribute[iOldPos] = AvAttribute_Normal;
+			Visualizer_aArrayProp[ArrayId].aAttribute[iOldPos] = AvAttribute_Normal;
 
-			RendererWcc_DrawItem(ArrayId, iOldPos, aArrayState[iOldPos], AvAttribute_Normal);
+			RendererWcc_UpdateItem(ArrayId, iOldPos, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Normal);
 
 		}
 
@@ -285,9 +343,7 @@ void Visualizer_UpdatePointer(intptr_t ArrayId, intptr_t PointerId, intptr_t iNe
 
 		// Add new pointer
 
-		pvpid = malloc(sizeof(AV_POINTERID)); // TODO: Guarded malloc macro
-		if (!pvpid)
-			abort();
+		pvpid = malloc_guarded(sizeof(AV_POINTERID));
 
 		pvpid->PointerId = PointerId;
 		pvpid->iPos = iNewPos;
@@ -297,8 +353,8 @@ void Visualizer_UpdatePointer(intptr_t ArrayId, intptr_t PointerId, intptr_t iNe
 
 	// Draw item with Pointer attribute.
 
-	Visualizer_aVArrayList[ArrayId].aAttribute[iNewPos] = AvAttribute_Pointer;
-	RendererWcc_DrawItem(ArrayId, iNewPos, aArrayState[iNewPos], AvAttribute_Pointer);
+	Visualizer_aArrayProp[ArrayId].aAttribute[iNewPos] = AvAttribute_Pointer;
+	RendererWcc_UpdateItem(ArrayId, iNewPos, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Pointer);
 
 	Visualizer_Sleep(fSleepMultiplier);
 
@@ -315,11 +371,11 @@ void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId) {
 
 	if (!Visualizer_bInitialized) return;
 
-	intptr_t Size = Visualizer_aVArrayList[ArrayId].Size;
-	isort_t* aArrayState = Visualizer_aVArrayList[ArrayId].aArrayState;
+	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
+	//isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
 
-	tree234* ptreePointerId = Visualizer_aVArrayList[ArrayId].ptreePointerId;
-	intptr_t* aPointerCount = Visualizer_aVArrayList[ArrayId].aPointerCount;
+	tree234* ptreePointerId = Visualizer_aArrayProp[ArrayId].ptreePointerId;
+	intptr_t* aPointerCount = Visualizer_aArrayProp[ArrayId].aPointerCount;
 
 	// Check if pointer is already exist.
 
@@ -335,9 +391,9 @@ void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId) {
 
 			// Reset pointer to normal.
 
-			Visualizer_aVArrayList[ArrayId].aAttribute[iPos] = AvAttribute_Normal;
+			Visualizer_aArrayProp[ArrayId].aAttribute[iPos] = AvAttribute_Normal;
 
-			RendererWcc_DrawItem(ArrayId, iPos, aArrayState[iPos], AvAttribute_Normal);
+			RendererWcc_UpdateItem(ArrayId, iPos, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Normal);
 
 			// Update position
 
@@ -355,3 +411,5 @@ void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId) {
 	return;
 
 }
+
+#endif

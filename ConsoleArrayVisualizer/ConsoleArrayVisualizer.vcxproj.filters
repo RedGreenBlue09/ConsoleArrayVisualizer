@@ -95,5 +95,8 @@
     <ClInclude Include="Include\DynamicArray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Include\GuardedMalloc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

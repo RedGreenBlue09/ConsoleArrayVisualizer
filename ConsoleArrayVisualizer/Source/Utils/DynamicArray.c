@@ -16,7 +16,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
+#include "GuardedMalloc.h"
 #include "DynamicArray.h"
 
 #define DA_INTIAL_SIZE 4
@@ -25,7 +25,7 @@ void DaCreate(DYNAMIC_ARRAY* pDa, size_t itemSize) {
 
 	if (!pDa) abort();
 
-	pDa->array     = malloc(DA_INTIAL_SIZE * itemSize);
+	pDa->array     = malloc_guarded(DA_INTIAL_SIZE * itemSize);
 	pDa->itemSize  = itemSize;
 	pDa->memSize   = DA_INTIAL_SIZE;
 	pDa->start     = 0;
@@ -83,7 +83,7 @@ void DaResize(DYNAMIC_ARRAY* pDa, size_t newMemSize) {
 	size_t start     = pDa->start;
 	size_t size      = pDa->size;
 
-	void* newArray = malloc(newMemSize * itemSize);
+	void* newArray = malloc_guarded(newMemSize * itemSize);
 
 	if (!newArray) abort();
 

@@ -22,17 +22,17 @@ begin:
 
 	while (left <= right) {
 		while (array[left] < pivot) {
-			Visualizer_UpdateRead2(0, left, right, 62.5);
+			Visualizer_UpdateRead2(0, left, right, 0.625);
 			++left;
 
 		}
 		while (array[right] > pivot) {
-			Visualizer_UpdateRead2(0, left, right, 62.5);
+			Visualizer_UpdateRead2(0, left, right, 0.625);
 			--right;
 		}
 
 		if (left <= right) {
-			Visualizer_UpdateSwap(0, left, right, 62.5);
+			Visualizer_UpdateSwap(0, left, right, 0.625);
 			ISORT_SWAP(array[left], array[right]);
 			++left;
 			--right;

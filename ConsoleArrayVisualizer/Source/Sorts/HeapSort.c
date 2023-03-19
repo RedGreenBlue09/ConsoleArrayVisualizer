@@ -2,13 +2,13 @@
 #include "Sorts.h"
 #include "Visualizer.h"
 
-#include "malloc.h"
+#include "GuardedMalloc.h"
 
 void WHS_weakHeapSort(isort_t* array, intptr_t n) {
 
 	intptr_t i, j, x, y, Gparent;
 	intptr_t bitsLength = (n + 7) / 8;
-	isort_t* bits = malloc(bitsLength * sizeof(isort_t));
+	isort_t* bits = malloc_guarded(bitsLength * sizeof(isort_t));
 
 	for (i = 0; i < n / 8; ++i)
 		bits[i] = 0;
@@ -68,43 +68,35 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 
 	intptr_t left = 2 * j + 1;
 	intptr_t right = 2 * j + 2;
-	//arAddPointer(array, globalN, j, 0, 0.0);
-	//arAddPointer(array, globalN, left, 1, 0.0);
-	//arAddPointer(array, globalN, right, 2, 0.0);
 
 	while (left < end) {
 
 		if (right < end) {
 
-			Visualizer_UpdateRead2(0, right, left, 32.0);
+			Visualizer_UpdateRead2(0, right, left, 0.25);
 			if ((array[right] > array[left])) {
 				j = right;
 			} else {
 				j = left;
 			}
-			Visualizer_UpdatePointer(0, 0, j, 0.0);
 
 		} else {
 			j = left;
-			Visualizer_UpdatePointer(0, 0, j, 0.0);
 		}
 		left = 2 * j + 1;
 		right = 2 * j + 2;
 	}
 
 	while (array[i] > array[j]) {
-		Visualizer_UpdatePointer(0, 0, j, 0.0);
-		Visualizer_UpdateRead2(0, i, j, 32.0);
+		Visualizer_UpdateRead2(0, i, j, 0.25);
 		j = (j - 1) / 2;
 	}
 
 	while (j > i) {
-		Visualizer_UpdatePointer(0, 0, j, 0.0);
-		Visualizer_UpdateSwap(0, i, j, 32.0);
+		Visualizer_UpdateSwap(0, i, j, 0.25);
 		ISORT_SWAP(array[i], array[j]);
 		j = (j - 1) / 2;
 	}
-	Visualizer_RemovePointer(0, 0);
 }
 
 // Exports:
@@ -125,7 +117,7 @@ void BottomUpHeapSort(isort_t* array, intptr_t n) {
 		BUHS_SiftDown(array, i, length);
 
 	for (intptr_t i = length - 1; i > 0; --i) {
-		Visualizer_UpdateSwap(0, 0, i, 32.0);
+		Visualizer_UpdateSwap(0, 0, i, 0.25);
 		ISORT_SWAP(array[0], array[i]);
 		BUHS_SiftDown(array, 0, i);
 	}
