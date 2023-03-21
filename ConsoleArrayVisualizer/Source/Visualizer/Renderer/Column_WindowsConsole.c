@@ -132,27 +132,34 @@ void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 
 	if ((NewSize > 0) && (NewSize != RendererWcc_aRwccArrayProp[ArrayId].vapr.Size)) {
 
-		// Realloc state array
+		// Realloc arrays
 
-		isort_t* aResizedArrayState = realloc_guarded(RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState, NewSize);
+		isort_t* aResizedArrayState = realloc_guarded(
+			RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState,
+			NewSize * sizeof(isort_t)
+		);
 
-
-		// Realloc attribute array
-
-		isort_t* aResizedAttribute = realloc_guarded(RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute, NewSize);
+		isort_t* aResizedAttribute = realloc_guarded(
+			RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute,
+			NewSize * sizeof(AvAttribute)
+		);
 
 
 		intptr_t OldSize = RendererWcc_aRwccArrayProp[ArrayId].vapr.Size;
 		intptr_t NewPartSize = NewSize - OldSize;
 
-		// Fill the new part with 0
+		// Initialize the new part
 
 		for (intptr_t i = 0; i < NewPartSize; ++i)
 			aResizedArrayState[OldSize + i] = 0;
 
-		RendererWcc_aRwccArrayProp[ArrayId].vapr.Size = NewSize;
-		RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState = aResizedArrayState;
+		for (intptr_t i = 0; i < NewPartSize; ++i)
+			aResizedAttribute[OldSize + i] = AvAttribute_Normal;
 
+		RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState = aResizedArrayState;
+		RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute = aResizedAttribute;
+
+		RendererWcc_aRwccArrayProp[ArrayId].vapr.Size = NewSize;
 
 	}
 
@@ -167,7 +174,6 @@ void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 
 	// Re-render with new props
 
-	/*
 	// Clear screen
 	// TODO: Fast clear screen
 	for (intptr_t i = 0; i < Size; ++i) {
@@ -179,7 +185,7 @@ void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 			0
 		);
 	}
-	*/
+
 	// Re-render using the same attribute
 	for (intptr_t i = 0; i < Size; ++i) {
 		RendererWcc_UpdateItem(
@@ -196,13 +202,13 @@ void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 }
 
 static const USHORT RendererWcc_WinConAttrTable[256] = {
-	ATTR_WINCON_BACKGROUND,
-	ATTR_WINCON_NORMAL,
-	ATTR_WINCON_READ,
-	ATTR_WINCON_WRITE,
-	ATTR_WINCON_POINTER,
-	ATTR_WINCON_CORRECT,
-	ATTR_WINCON_INCORRECT,
+	ATTR_WINCON_BACKGROUND, //AvAttribute_Background
+	ATTR_WINCON_NORMAL,     //AvAttribute_Normal
+	ATTR_WINCON_READ,       //AvAttribute_Read
+	ATTR_WINCON_WRITE,      //AvAttribute_Write
+	ATTR_WINCON_POINTER,    //AvAttribute_Pointer
+	ATTR_WINCON_CORRECT,    //AvAttribute_Correct
+	ATTR_WINCON_INCORRECT,  //AvAttribute_Incorrect
 }; // 0: black background and black text.
 
 static USHORT RendererWcc_AttrToConAttr(AvAttribute Attr) {

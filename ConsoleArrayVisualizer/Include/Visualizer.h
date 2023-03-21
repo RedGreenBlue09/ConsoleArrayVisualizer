@@ -41,15 +41,14 @@ typedef struct {
 	// Tree
 	// Used to generate new id for unique markers.
 	// Contains the starting positions of empty chunk of ids.
-	tree234*        daUniqueMarkerIdHoles;
+	tree234*        ptreeUniqueMarkerEmptyId;
 	// Array of trees (used as max heaps)
 	// Used to deal with overlapping unique markers.
 	// The i'th position contains a list of markers
 	// pointing to i at the same time.
 	tree234**       aptreeUniqueMarkerMap;
 
-	tree234*        ptreePointerId;
-	intptr_t*       aPointerCount;
+	tree234*        ptreePointer;
 
 } AV_ARRAYPROP;
 

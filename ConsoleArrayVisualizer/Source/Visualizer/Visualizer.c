@@ -8,8 +8,7 @@
 
 #ifndef VISUALIZER_DISABLED
 
-// TODO: Overlapped marker system with priority queue
-//       Write & swap functions will change the value before sleep
+// TODO: More argument checks
 
 static const uint64_t Visualizer_TimeDefaultDelay = 10000; // microseconds
 static uint8_t Visualizer_bInitialized = FALSE;
@@ -55,7 +54,11 @@ void Visualizer_Sleep(double fSleepMultiplier) {
 
 // Array
 
-int VpidCompare(void* pA, void* pB);
+int Visualizer_PointerCmp(void* pA, void* pB);
+
+int Visualizer_UniqueMarkerCmp(void* pA, void* pB);
+int Visualizer_UniqueMarkerIdCmp(void* pA, void* pB);
+int Visualizer_UniqueMarkerPriorityCmp(void* pA, void* pB);
 
 void Visualizer_AddArray(intptr_t ArrayId, intptr_t Size) {
 
@@ -65,14 +68,17 @@ void Visualizer_AddArray(intptr_t ArrayId, intptr_t Size) {
 
 	Visualizer_aArrayProp[ArrayId].bActive = TRUE;
 	Visualizer_aArrayProp[ArrayId].Size = Size;
-	Visualizer_aArrayProp[ArrayId].aPointerCount = malloc_guarded(Size * sizeof(intptr_t));
+
+	Visualizer_aArrayProp[ArrayId].ptreeUniqueMarker = newtree234(Visualizer_UniqueMarkerCmp);
+	Visualizer_aArrayProp[ArrayId].ptreeUniqueMarkerEmptyId = newtree234(Visualizer_UniqueMarkerIdCmp);
+	Visualizer_aArrayProp[ArrayId].aptreeUniqueMarkerMap = malloc_guarded(Size * sizeof(tree234*));
+
+	Visualizer_aArrayProp[ArrayId].ptreePointer = newtree234(Visualizer_PointerCmp);
 
 	// Initialize arrays
 
 	for (intptr_t i = 0; i < Size; ++i)
-		Visualizer_aArrayProp[ArrayId].aPointerCount[i] = 0;
-
-	Visualizer_aArrayProp[ArrayId].ptreePointerId = newtree234(VpidCompare);
+		Visualizer_aArrayProp[ArrayId].aptreeUniqueMarkerMap[i] = newtree234(Visualizer_UniqueMarkerPriorityCmp);
 
 	// Call visualizer
 
@@ -87,8 +93,16 @@ void Visualizer_RemoveArray(intptr_t ArrayId) {
 	if (!Visualizer_bInitialized) return;
 	if (!Visualizer_aArrayProp[ArrayId].bActive) return;
 
-	free(Visualizer_aArrayProp[ArrayId].aPointerCount);
-	freetree234(Visualizer_aArrayProp[ArrayId].ptreePointerId);
+	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
+
+	freetree234(Visualizer_aArrayProp[ArrayId].ptreeUniqueMarker);
+	freetree234(Visualizer_aArrayProp[ArrayId].ptreeUniqueMarkerEmptyId);
+
+	for (intptr_t i = 0; i < Size; ++i)
+		freetree234(Visualizer_aArrayProp[ArrayId].aptreeUniqueMarkerMap[i]);
+	free(Visualizer_aArrayProp[ArrayId].aptreeUniqueMarkerMap);
+
+	freetree234(Visualizer_aArrayProp[ArrayId].ptreePointer);
 
 	memset(&Visualizer_aArrayProp[ArrayId], 0, sizeof(Visualizer_aArrayProp[ArrayId]));
 
@@ -105,32 +119,25 @@ void Visualizer_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArra
 	// Handle array resize
 
 	if ((NewSize > 0) && (NewSize != Visualizer_aArrayProp[ArrayId].Size)) {
-		// TODO: Resize pointer count array
 
-		isort_t* aResizedArrayState = realloc_guarded(Visualizer_aArrayProp[ArrayId].aArrayState, NewSize);
+		// Resize the marker map
+
+		tree234** aptreeResizedUmMap = realloc_guarded(Visualizer_aArrayProp[ArrayId].aptreeUniqueMarkerMap, NewSize);
 
 		intptr_t OldSize = Visualizer_aArrayProp[ArrayId].Size;
 		intptr_t NewPartSize = NewSize - OldSize;
 
-		// Fill the new part with 0
+		// Initialize the new part
 
 		for (intptr_t i = 0; i < NewPartSize; ++i)
-			aResizedArrayState[OldSize + i] = 0;
+			aptreeResizedUmMap[OldSize + i] = newtree234(Visualizer_UniqueMarkerPriorityCmp);
+
+		Visualizer_aArrayProp[ArrayId].aptreeUniqueMarkerMap = aptreeResizedUmMap;
+
 
 		Visualizer_aArrayProp[ArrayId].Size = NewSize;
-		Visualizer_aArrayProp[ArrayId].aArrayState = aResizedArrayState;
-
 
 	}
-
-	isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
-	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
-
-	// Handle new array state
-
-	if (aNewArrayState)
-		for (intptr_t i = 0; i < Size; ++i)
-			aArrayState[i] = aNewArrayState[i];
 
 	// Call renderer
 
@@ -150,6 +157,36 @@ typedef struct {
 	AvAttribute Attribute;
 } AV_UNIQUEMARKER;
 
+static int Visualizer_UniqueMarkerCmp(void* pA, void* pB) {
+	// Compare by id
+	AV_UNIQUEMARKER* pvumA = pA;
+	AV_UNIQUEMARKER* pvumB = pB;
+	return (pvumA->UniqueId > pvumB->UniqueId) - (pvumA->UniqueId < pvumB->UniqueId);
+}
+
+static int Visualizer_UniqueMarkerIdCmp(void* pA, void* pB) {
+	return (*(intptr_t*)pA > *(intptr_t*)pB) - (*(intptr_t*)pA < *(intptr_t*)pB);
+}
+
+static const int Visualizer_UniqueMarkerAttrPriority[] = {
+	0, //AvAttribute_Background
+	1, //AvAttribute_Normal
+	3, //AvAttribute_Read
+	4, //AvAttribute_Write
+	2, //AvAttribute_Pointer
+	5, //AvAttribute_Correct
+	6, //AvAttribute_Incorrect
+};
+
+static int Visualizer_UniqueMarkerPriorityCmp(void* pA, void* pB) {
+	// Compare by attribute
+	AV_UNIQUEMARKER* pvumA = pA;
+	AV_UNIQUEMARKER* pvumB = pB;
+	int PrioA = Visualizer_UniqueMarkerAttrPriority[pvumA->Attribute];
+	int PrioB = Visualizer_UniqueMarkerAttrPriority[pvumB->Attribute];
+	return (PrioA > PrioB) - (PrioA < PrioB);
+}
+
 intptr_t Visualizer_NewUniqueMarker(
 	intptr_t ArrayId,
 	intptr_t iPos,
@@ -159,27 +196,27 @@ intptr_t Visualizer_NewUniqueMarker(
 ) {
 
 	tree234* ptreeUniqueMarker = Visualizer_aArrayProp[ArrayId].ptreeUniqueMarker;
-	tree234* pdaUniqueMarkerIdHoles = &Visualizer_aArrayProp[ArrayId].daUniqueMarkerIdHoles;
+	tree234* ptreeUniqueMarkerEmptyId = Visualizer_aArrayProp[ArrayId].ptreeUniqueMarkerEmptyId;
 	tree234** aptreeUniqueMarkerMap = Visualizer_aArrayProp[ArrayId].aptreeUniqueMarkerMap;
 
 	// Acquire new ID (unique)
 
-	if (count234(pdaUniqueMarkerIdHoles)) // Out of ids
+	if (count234(ptreeUniqueMarkerEmptyId)) // Out of ids
 		return AV_UNIQUEMARKER_INVALID_ID; // INTPTR_MIN is reserved for error handling
-	intptr_t* pBlankId = index234(pdaUniqueMarkerIdHoles, 0);
-	intptr_t MarkerId = *pBlankId;
+	intptr_t* pEmptyId = index234(ptreeUniqueMarkerEmptyId, 0);
+	intptr_t MarkerId = *pEmptyId;
 
 	// Update the empty chunk
 
 	// Check if the next id is already used
-	AV_UNIQUEMARKER vumSearch = (AV_UNIQUEMARKER){ (*pBlankId) + 1, 0, 0 };
+	AV_UNIQUEMARKER vumSearch = (AV_UNIQUEMARKER){ (*pEmptyId) + 1, 0, 0 };
 	if (find234(ptreeUniqueMarker, &vumSearch, NULL) != NULL) {
-		// If yes, this empty chunk is filled
-		del234(pdaUniqueMarkerIdHoles, pBlankId);
-		free(pBlankId);
+		// If yes, this empty chunk is filled -> no longer empty
+		del234(ptreeUniqueMarkerEmptyId, pEmptyId);
+		free(pEmptyId);
 	} else {
 		// This empty chunk is not filled
-		(*pBlankId) += 1;
+		(*pEmptyId) += 1;
 	}
 
 	// Add the new marker to the marker list
@@ -191,8 +228,10 @@ intptr_t Visualizer_NewUniqueMarker(
 	add234(ptreeUniqueMarker, pvumNewUniqueMarker);
 
 	// Add the new marker to the map
-
+	
 	add234(aptreeUniqueMarkerMap[iPos], pvumNewUniqueMarker);
+	// pvumNewUniqueMarker is shared between
+	// ptreeUniqueMarker and aptreeUniqueMarkerMap[iPos]
 
 	// Update visually (call renderer)
 	
@@ -216,13 +255,13 @@ intptr_t Visualizer_NewUniqueMarker(
 }
 
 //TODO: RemoveUniqueMarker
-intptr_t Visualizer_NewUniqueMarker(
+intptr_t Visualizer_RemoveUniqueMarker(
 	intptr_t ArrayId,
 	intptr_t MarkerId
 ) {
 
 	tree234* ptreeUniqueMarker = Visualizer_aArrayProp[ArrayId].ptreeUniqueMarker;
-	tree234* pdaUniqueMarkerIdHoles = &Visualizer_aArrayProp[ArrayId].daUniqueMarkerIdHoles;
+	tree234* ptreeUniqueMarkerEmptyId = Visualizer_aArrayProp[ArrayId].ptreeUniqueMarkerEmptyId;
 	tree234** aptreeUniqueMarkerMap = Visualizer_aArrayProp[ArrayId].aptreeUniqueMarkerMap;
 
 	// Delete from the marker list & acquire iPos 
@@ -231,8 +270,11 @@ intptr_t Visualizer_NewUniqueMarker(
 	AV_UNIQUEMARKER* pvumUniqueMarker = del234(ptreeUniqueMarker, &vumSearch);
 
 	intptr_t iPos = pvumUniqueMarker->iPos;
-	// Don't free the memory yet cause it's still in
-	// aptreeUniqueMarkerMap
+
+	// Delete from the map & free memory
+
+	del234(aptreeUniqueMarkerMap[iPos], pvumUniqueMarker);
+	free(pvumUniqueMarker);
 
 	// Free the id & update the empty chunk
 
@@ -246,7 +288,7 @@ intptr_t Visualizer_NewUniqueMarker(
 
 		// The next id is not used -> an empty chunk is there
 		// Decrement that empty chunk to this marker id
-		intptr_t* pVumNext = find234(pdaUniqueMarkerIdHoles, &NextId, NULL);
+		intptr_t* pVumNext = find234(ptreeUniqueMarkerEmptyId, &NextId, NULL);
 		(*pVumNext) -= 1;
 
 		// Check if the previous id is already used
@@ -266,7 +308,7 @@ intptr_t Visualizer_NewUniqueMarker(
 			// A new empty chunk have just formed.
 			intptr_t* pNewHoleId = malloc_guarded(sizeof(intptr_t));
 			*pNewHoleId = MarkerId;
-			add234(pdaUniqueMarkerIdHoles, pNewHoleId);
+			add234(ptreeUniqueMarkerEmptyId, pNewHoleId);
 
 		} else {
 
@@ -281,18 +323,13 @@ intptr_t Visualizer_NewUniqueMarker(
 				// A new empty chunk have just formed.
 				intptr_t* pNewHoleId = malloc_guarded(sizeof(intptr_t));
 				*pNewHoleId = MarkerId;
-				add234(pdaUniqueMarkerIdHoles, pNewHoleId);
+				add234(ptreeUniqueMarkerEmptyId, pNewHoleId);
 
 			}
 
 		}
 
 	}
-
-	// Delete from the map & free memory
-
-	del234(aptreeUniqueMarkerMap[iPos], pvumUniqueMarker);
-	free(pvumUniqueMarker);
 
 	// Update visually (call renderer)
 
@@ -319,14 +356,18 @@ void Visualizer_UpdateRead(intptr_t ArrayId, intptr_t iPos, double fSleepMultipl
 	if (!Visualizer_aArrayProp[ArrayId].bActive) return;
 	if (iPos >= Visualizer_aArrayProp[ArrayId].Size || iPos < 0) return;
 
-	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
-	isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
+	intptr_t MarkerId = Visualizer_NewUniqueMarker(
+		ArrayId,
+		iPos,
+		FALSE,
+		0,
+		AvAttribute_Read
+	);
 
-	AvAttribute AttrOld = Visualizer_aArrayProp[ArrayId].aAttribute[iPos];
-
-	RendererWcc_UpdateItem(ArrayId, iPos, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Read);
+	//
 	Visualizer_Sleep(fSleepMultiplier);
-	RendererWcc_UpdateItem(ArrayId, iPos, AV_RENDERER_UPDATEATTR, 0, AttrOld);
+
+	Visualizer_RemoveUniqueMarker(ArrayId, MarkerId);
 
 	return;
 
@@ -341,16 +382,27 @@ void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, do
 	if (iPosB >= Visualizer_aArrayProp[ArrayId].Size || iPosB < 0) return;
 
 	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
-	isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
 
-	AvAttribute AttrOldA = Visualizer_aArrayProp[ArrayId].aAttribute[iPosA];
-	AvAttribute AttrOldB = Visualizer_aArrayProp[ArrayId].aAttribute[iPosB];
+	intptr_t MarkerIdA = Visualizer_NewUniqueMarker(
+		ArrayId,
+		iPosA,
+		FALSE,
+		0,
+		AvAttribute_Read
+	);
+	intptr_t MarkerIdB = Visualizer_NewUniqueMarker(
+		ArrayId,
+		iPosB,
+		FALSE,
+		0,
+		AvAttribute_Read
+	);
 
-	RendererWcc_UpdateItem(ArrayId, iPosA, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Read);
-	RendererWcc_UpdateItem(ArrayId, iPosB, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Read);
+	//
 	Visualizer_Sleep(fSleepMultiplier);
-	RendererWcc_UpdateItem(ArrayId, iPosA, AV_RENDERER_UPDATEATTR, 0, AttrOldA);
-	RendererWcc_UpdateItem(ArrayId, iPosB, AV_RENDERER_UPDATEATTR, 0, AttrOldB);
+
+	Visualizer_RemoveUniqueMarker(ArrayId, MarkerIdA);
+	Visualizer_RemoveUniqueMarker(ArrayId, MarkerIdB);
 
 	return;
 
@@ -363,16 +415,18 @@ void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t NewValue, d
 	if (!Visualizer_aArrayProp[ArrayId].bActive) return;
 	if (iPos >= Visualizer_aArrayProp[ArrayId].Size || iPos < 0) return;
 
-	isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
-	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
+	intptr_t MarkerId = Visualizer_NewUniqueMarker(
+		ArrayId,
+		iPos,
+		TRUE,
+		NewValue,
+		AvAttribute_Write
+	);
 
-	uint8_t AttrOld = Visualizer_aArrayProp[ArrayId].aAttribute[iPos];
-
-	RendererWcc_UpdateItem(ArrayId, iPos, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Write);
+	//
 	Visualizer_Sleep(fSleepMultiplier);
-	RendererWcc_UpdateItem(ArrayId, iPos, AV_RENDERER_UPDATEATTR | AV_RENDERER_UPDATEVALUE, NewValue, AttrOld);
 
-	aArrayState[iPos] = NewValue;
+	Visualizer_RemoveUniqueMarker(ArrayId, MarkerId);
 
 	return;
 
@@ -385,19 +439,27 @@ void Visualizer_UpdateSwap(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, dou
 	if (iPosA >= Visualizer_aArrayProp[ArrayId].Size || iPosA < 0) return;
 	if (iPosB >= Visualizer_aArrayProp[ArrayId].Size || iPosB < 0) return;
 
-	isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
 
-	AvAttribute AttrOldA = Visualizer_aArrayProp[ArrayId].aAttribute[iPosA];
-	AvAttribute AttrOldB = Visualizer_aArrayProp[ArrayId].aAttribute[iPosB];
+	intptr_t MarkerIdA = Visualizer_NewUniqueMarker(
+		ArrayId,
+		iPosA,
+		TRUE,
+		0, // TODO
+		AvAttribute_Write
+	);
+	intptr_t MarkerIdB = Visualizer_NewUniqueMarker(
+		ArrayId,
+		iPosB,
+		TRUE,
+		0, // TODO
+		AvAttribute_Write
+	);
 
-	// Swap the values
-	RendererWcc_UpdateItem(ArrayId, iPosA, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Write);
-	RendererWcc_UpdateItem(ArrayId, iPosB, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Write);
+	//
 	Visualizer_Sleep(fSleepMultiplier);
-	RendererWcc_UpdateItem(ArrayId, iPosA, AV_RENDERER_UPDATEATTR | AV_RENDERER_UPDATEVALUE, aArrayState[iPosB], AttrOldA);
-	RendererWcc_UpdateItem(ArrayId, iPosB, AV_RENDERER_UPDATEATTR | AV_RENDERER_UPDATEVALUE, aArrayState[iPosA], AttrOldB);
 
-	ISORT_SWAP(aArrayState[iPosA], aArrayState[iPosB]);
+	Visualizer_RemoveUniqueMarker(ArrayId, MarkerIdA);
+	Visualizer_RemoveUniqueMarker(ArrayId, MarkerIdB);
 
 	return;
 
@@ -408,13 +470,13 @@ void Visualizer_UpdateSwap(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, dou
 
 typedef struct {
 	intptr_t PointerId;
-	intptr_t iPos; // The array index that it's pointing to.
-} AV_POINTERID;
+	intptr_t MarkerId; // The array index that it's pointing to.
+} AV_POINTER;
 
-int VpidCompare(void* pA, void* pB) {
+static int Visualizer_PointerCmp(void* pA, void* pB) {
 
-	intptr_t PointerIdA = ((AV_POINTERID*)pA)->PointerId;
-	intptr_t PointerIdB = ((AV_POINTERID*)pB)->PointerId;
+	intptr_t PointerIdA = ((AV_POINTER*)pA)->PointerId;
+	intptr_t PointerIdB = ((AV_POINTER*)pB)->PointerId;
 
 	return (PointerIdA > PointerIdB) - (PointerIdA < PointerIdB);
 
@@ -423,63 +485,30 @@ int VpidCompare(void* pA, void* pB) {
 void Visualizer_UpdatePointer(intptr_t ArrayId, intptr_t PointerId, intptr_t iNewPos, double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
+	if (iNewPos >= Visualizer_aArrayProp[ArrayId].Size || iNewPos < 0) return;
 
 	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
-	//isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
 
-	if (iNewPos >= Size || iNewPos < 0) return;
-
-	tree234* ptreePointerId = Visualizer_aArrayProp[ArrayId].ptreePointerId;
-	intptr_t* aPointerCount = Visualizer_aArrayProp[ArrayId].aPointerCount;
+	tree234* ptreePointer = Visualizer_aArrayProp[ArrayId].ptreePointer;
 
 	// Check if pointer is already exist.
 
-	AV_POINTERID vpidCompare = { PointerId, 0 };
-	AV_POINTERID* pvpid = find234(ptreePointerId, &vpidCompare, NULL);
+	AV_POINTER vpCompare = { PointerId, 0 };
+	AV_POINTER* pvpPointer = find234(ptreePointer, &vpCompare, NULL);
 
-	// NULL means isn't exist
-	if (pvpid) {
-
-		intptr_t iOldPos = pvpid->iPos;
-
-		// If old pointer don't overlap
-		if (aPointerCount[iOldPos] <= 1) {
-
-			// Reset old pointer to normal.
-
-			Visualizer_aArrayProp[ArrayId].aAttribute[iOldPos] = AvAttribute_Normal;
-
-			RendererWcc_UpdateItem(ArrayId, iOldPos, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Normal);
-
-		}
-
-		// Update position
-
-		aPointerCount[iOldPos] -= 1;
-
-	} else {
-
-		// Add new pointer
-
-		pvpid = malloc_guarded(sizeof(AV_POINTERID));
-
-		pvpid->PointerId = PointerId;
-		pvpid->iPos = iNewPos;
-		add234(ptreePointerId, pvpid);
-
+	// NULL means doesn't exist
+	if (pvpPointer) {
+		// Remove old marker
+		Visualizer_RemoveUniqueMarker(ArrayId, pvpPointer->MarkerId);
 	}
 
-	// Draw item with Pointer attribute.
-
-	Visualizer_aArrayProp[ArrayId].aAttribute[iNewPos] = AvAttribute_Pointer;
-	RendererWcc_UpdateItem(ArrayId, iNewPos, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Pointer);
-
-	Visualizer_Sleep(fSleepMultiplier);
-
-	// Update position.
-
-	aPointerCount[iNewPos] += 1;
-	pvpid->iPos = iNewPos;
+	pvpPointer->MarkerId = Visualizer_NewUniqueMarker(
+		ArrayId,
+		iNewPos,
+		FALSE,
+		0,
+		AvAttribute_Pointer
+	);
 
 	return;
 
@@ -492,37 +521,19 @@ void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId) {
 	intptr_t Size = Visualizer_aArrayProp[ArrayId].Size;
 	//isort_t* aArrayState = Visualizer_aArrayProp[ArrayId].aArrayState;
 
-	tree234* ptreePointerId = Visualizer_aArrayProp[ArrayId].ptreePointerId;
-	intptr_t* aPointerCount = Visualizer_aArrayProp[ArrayId].aPointerCount;
+	tree234* ptreePointer = Visualizer_aArrayProp[ArrayId].ptreePointer;
 
 	// Check if pointer is already exist.
 
-	AV_POINTERID vpidCompare = { PointerId, 0 };
-	AV_POINTERID* pvpid = find234(ptreePointerId, &vpidCompare, NULL);
+	AV_POINTER vpCompare = { PointerId, 0 };
+	AV_POINTER* pvpPointer = find234(ptreePointer, &vpCompare, NULL);
 
-	if (pvpid) {
+	if (pvpPointer) {
 
-		intptr_t iPos = pvpid->iPos;
+		Visualizer_RemoveUniqueMarker(ArrayId, pvpPointer->MarkerId);
 
-		// If pointer don't overlap
-		if (aPointerCount[iPos] <= 1) {
-
-			// Reset pointer to normal.
-
-			Visualizer_aArrayProp[ArrayId].aAttribute[iPos] = AvAttribute_Normal;
-
-			RendererWcc_UpdateItem(ArrayId, iPos, AV_RENDERER_UPDATEATTR, 0, AvAttribute_Normal);
-
-			// Update position
-
-			aPointerCount[iPos] -= 1;
-
-		}
-
-		// Delete the pointer from memory
-
-		del234(ptreePointerId, pvpid);
-		free(pvpid);
+		del234(ptreePointer, pvpPointer);
+		free(pvpPointer);
 
 	}
 
