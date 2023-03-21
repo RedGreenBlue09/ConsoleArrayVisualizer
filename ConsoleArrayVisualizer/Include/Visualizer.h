@@ -90,7 +90,14 @@ void Visualizer_UpdateArray(
 void Visualizer_UpdateRead(intptr_t ArrayId, intptr_t iPos, double fSleepMultiplier);
 void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier);
 void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t NewValue, double fSleepMultiplier);
-void Visualizer_UpdateSwap(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier);
+void Visualizer_UpdateWrite2(
+	intptr_t ArrayId,
+	intptr_t iPosA,
+	intptr_t iPosB,
+	isort_t NewValueA,
+	isort_t NewValueB,
+	double fSleepMultiplier
+);
 
 void Visualizer_UpdatePointer(intptr_t ArrayId, intptr_t PointerId, intptr_t iNewPos, double fSleepMultiplier);
 void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId);

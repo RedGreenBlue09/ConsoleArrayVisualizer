@@ -93,7 +93,7 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 	}
 
 	while (j > i) {
-		Visualizer_UpdateSwap(0, i, j, 0.25);
+		Visualizer_UpdateWrite2(0, i, j, array[j], array[i], 0.25);
 		ISORT_SWAP(array[i], array[j]);
 		j = (j - 1) / 2;
 	}
@@ -117,7 +117,7 @@ void BottomUpHeapSort(isort_t* array, intptr_t n) {
 		BUHS_SiftDown(array, i, length);
 
 	for (intptr_t i = length - 1; i > 0; --i) {
-		Visualizer_UpdateSwap(0, 0, i, 0.25);
+		Visualizer_UpdateWrite2(0, 0, i, array[i], array[0], 0.25);
 		ISORT_SWAP(array[0], array[i]);
 		BUHS_SiftDown(array, 0, i);
 	}

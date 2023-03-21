@@ -139,7 +139,7 @@ void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 			NewSize * sizeof(isort_t)
 		);
 
-		isort_t* aResizedAttribute = realloc_guarded(
+		AvAttribute* aResizedAttribute = realloc_guarded(
 			RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute,
 			NewSize * sizeof(AvAttribute)
 		);

@@ -66,12 +66,12 @@ int intcmp(void* a, void* b) {
 
 int main() {
 
-	/*
 	utilInitTime();
 
-	intptr_t N = 512;
+	//intptr_t N = 512;
+	intptr_t N = 64;
 	isort_t* aArray = malloc_guarded(N * sizeof(isort_t));
-	Sleep(5000);
+	//Sleep(5000);
 
 	Visualizer_Initialize();
 	Visualizer_AddArray(0, N);
@@ -103,24 +103,6 @@ int main() {
 	Visualizer_Uninitialize();
 
 	free(aArray);
-	*/
-
-	int a[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-
-	tree234* ptree = newtree234(intcmp);
-
-
-	add234(ptree, a + 9);
-	add234(ptree, a + 1);
-	add234(ptree, a + 6);
-	add234(ptree, a + 4);
-
-	for (int i = 0; i < 4; ++i) {
-		int* px = index234(ptree, i);
-		printf("%i\r\n", *px);
-	}
-
-	freetree234(ptree);
 
 	return 0;
 

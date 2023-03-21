@@ -32,7 +32,7 @@ begin:
 		}
 
 		if (left <= right) {
-			Visualizer_UpdateSwap(0, left, right, 0.625);
+			Visualizer_UpdateWrite2(0, left, right, array[right], array[left], 0.625);
 			ISORT_SWAP(array[left], array[right]);
 			++left;
 			--right;
