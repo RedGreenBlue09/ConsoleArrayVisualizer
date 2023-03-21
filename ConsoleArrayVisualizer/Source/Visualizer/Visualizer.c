@@ -303,9 +303,11 @@ intptr_t Visualizer_RemoveUniqueMarker(
 		vumSearch = (AV_UNIQUEMARKER){ PrevId, 0, 0 };
 		AV_UNIQUEMARKER* pVumPrev = find234(ptreeUniqueMarker, &vumSearch, NULL);
 		if (pVumPrev == NULL) {
-			// The previous id is not used
-			// Decrement the same empty chunk once more
-			(*pVumNext) -= 1;
+			
+			// Empty chunks (before & after) is merged
+			del234(ptreeUniqueMarkerEmptyId, pVumNext);
+			free(pVumNext);
+
 		}
 
 	} else {
@@ -520,8 +522,13 @@ void Visualizer_UpdatePointer(intptr_t ArrayId, intptr_t PointerId, intptr_t iNe
 	if (pvpPointer) {
 		// Remove old marker
 		Visualizer_RemoveUniqueMarker(ArrayId, pvpPointer->MarkerId);
+	} else {
+		// Make new pointer
+		pvpPointer = malloc_guarded(sizeof(AV_POINTER));
+		*pvpPointer = (AV_POINTER){ PointerId, 0 };
 	}
 
+	// Create new marker
 	pvpPointer->MarkerId = Visualizer_NewUniqueMarker(
 		ArrayId,
 		iNewPos,
