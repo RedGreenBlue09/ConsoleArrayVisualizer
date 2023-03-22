@@ -175,8 +175,8 @@ void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 	// Re-render with new props
 
 	// Clear screen
-	// TODO: Fast clear screen
 	for (intptr_t i = 0; i < Size; ++i) {
+
 		RendererWcc_UpdateItem(
 			ArrayId,
 			i,
@@ -184,17 +184,34 @@ void RendererWcc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 			0,
 			0
 		);
+
 	}
 
 	// Re-render using the same attribute
-	for (intptr_t i = 0; i < Size; ++i) {
-		RendererWcc_UpdateItem(
-			ArrayId,
-			i,
-			AV_RENDERER_UPDATEVALUE,
-			aArrayState[i],
-			0
-		);
+	if (aNewArrayState) {
+
+		for (intptr_t i = 0; i < Size; ++i) {
+			RendererWcc_UpdateItem(
+				ArrayId,
+				i,
+				AV_RENDERER_UPDATEVALUE,
+				aNewArrayState[i],
+				0
+			);
+		}
+
+	} else {
+
+		for (intptr_t i = 0; i < Size; ++i) {
+			RendererWcc_UpdateItem(
+				ArrayId,
+				i,
+				AV_RENDERER_UPDATEVALUE,
+				aArrayState[i],
+				0
+			);
+		}
+
 	}
 
 	return;
@@ -231,7 +248,7 @@ void RendererWcc_UpdateItem(
 
 	AvAttribute TargetAttr = RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute[iPos];
 	if (UpdateRequest & AV_RENDERER_UPDATEATTR)
-		TargetValue = NewAttr;
+		TargetAttr = NewAttr;
 
 	RendererWcc_aRwccArrayProp[ArrayId].vapr.aArrayState[iPos] = TargetValue;
 	RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute[iPos] = TargetAttr;

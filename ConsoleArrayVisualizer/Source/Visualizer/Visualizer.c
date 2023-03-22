@@ -133,6 +133,8 @@ void Visualizer_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArra
 
 	if (!Visualizer_bInitialized) return;
 	if (!Visualizer_aArrayProp[ArrayId].bActive) return;
+	if (ValueMax < ValueMin) return;
+
 	// Handle array resize
 
 	if ((NewSize > 0) && (NewSize != Visualizer_aArrayProp[ArrayId].Size)) {
@@ -284,7 +286,7 @@ intptr_t Visualizer_RemoveUniqueMarker(
 	del234(aptreeUniqueMarkerMap[iPos], pvumUniqueMarker);
 	free(pvumUniqueMarker);
 
-	// Free the id & update the empty chunk
+	// Free the id & update empty chunks
 
 	intptr_t PrevId = MarkerId - 1;
 	intptr_t NextId = MarkerId + 1;
@@ -526,6 +528,7 @@ void Visualizer_UpdatePointer(intptr_t ArrayId, intptr_t PointerId, intptr_t iNe
 		// Make new pointer
 		pvpPointer = malloc_guarded(sizeof(AV_POINTER));
 		*pvpPointer = (AV_POINTER){ PointerId, 0 };
+		add234(ptreePointer, pvpPointer);
 	}
 
 	// Create new marker
