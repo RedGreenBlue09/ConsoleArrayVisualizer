@@ -264,7 +264,6 @@ intptr_t Visualizer_NewUniqueMarker(
 
 }
 
-//TODO: RemoveUniqueMarker
 intptr_t Visualizer_RemoveUniqueMarker(
 	intptr_t ArrayId,
 	intptr_t MarkerId
@@ -301,14 +300,26 @@ intptr_t Visualizer_RemoveUniqueMarker(
 		intptr_t* pVumNext = find234(ptreeUniqueMarkerEmptyId, &NextId, NULL);
 		(*pVumNext) -= 1;
 
-		// Check if the previous id is already used
-		vumSearch = (AV_UNIQUEMARKER){ PrevId, 0, 0 };
-		AV_UNIQUEMARKER* pVumPrev = find234(ptreeUniqueMarker, &vumSearch, NULL);
-		if (pVumPrev == NULL) {
-			
-			// Empty chunks (before & after) is merged
-			del234(ptreeUniqueMarkerEmptyId, pVumNext);
-			free(pVumNext);
+
+		if (MarkerId == AV_UNIQUEMARKER_FIRST_ID) {
+
+			// It's already the first id so no previous id
+			// TODO: Add AV_UNIQUEMARKER_FIRST_ID - 1
+			//       to ptreeUniqueMarker to eliminate the need
+			//       to handle such case. It is a hack though.
+
+		} else {
+
+			// Check if the previous id is already used
+			vumSearch = (AV_UNIQUEMARKER){ PrevId, 0, 0 };
+			AV_UNIQUEMARKER* pVumPrev = find234(ptreeUniqueMarker, &vumSearch, NULL);
+			if (pVumPrev == NULL) {
+
+				// Empty chunks (before & after) is merged
+				del234(ptreeUniqueMarkerEmptyId, pVumNext);
+				free(pVumNext);
+
+			}
 
 		}
 

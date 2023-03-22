@@ -9,7 +9,7 @@
 * and implements more functions.
 */
 
-// TODO: Change code style
+// TODO: Change code style & remove unused functions
 
 /*
 * 

@@ -69,7 +69,7 @@ int main() {
 	utilInitTime();
 
 	//intptr_t N = 512;
-	intptr_t N = 96;
+	intptr_t N = 512;
 	isort_t* aArray = malloc_guarded(N * sizeof(isort_t));
 	//Sleep(5000);
 

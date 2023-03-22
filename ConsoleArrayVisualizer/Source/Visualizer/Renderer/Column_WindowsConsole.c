@@ -109,8 +109,6 @@ void RendererWcc_AddArray(intptr_t ArrayId, intptr_t Size) {
 	for (intptr_t i = 0; i < Size; ++i)
 		RendererWcc_aRwccArrayProp[ArrayId].vapr.aAttribute[i] = AvAttribute_Normal;
 
-	// TODO: scaling
-
 	return;
 }
 
