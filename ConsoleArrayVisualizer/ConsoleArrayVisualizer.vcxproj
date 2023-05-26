@@ -29,16 +29,22 @@
     <ClCompile Include="Source\Utils\Random.c" />
     <ClCompile Include="Source\Utils\Tree234.c" />
     <ClCompile Include="Source\Visualizer\API\WindowsConsole.c" />
-    <ClCompile Include="Source\Visualizer\Renderer\Column_WindowsConsole.c" />
+    <ClCompile Include="Source\Visualizer\Renderer\ColumnVirtualTerminal.c" />
+    <ClCompile Include="Source\Visualizer\Renderer\ColumnWindowsConsole.c" />
     <ClCompile Include="Source\Visualizer\Visualizer.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Include\DynamicArray.h" />
-    <ClInclude Include="Include\GuardedMalloc.h" />
-    <ClInclude Include="Include\Tree234.h" />
-    <ClInclude Include="Include\Visualizer.h" />
+    <ClInclude Include="Include\Utils\DynamicArray.h" />
+    <ClInclude Include="Include\Utils\GuardedMalloc.h" />
+    <ClInclude Include="Include\Utils\Random.h" />
+    <ClInclude Include="Include\Utils\Time.h" />
+    <ClInclude Include="Include\Utils\Tree234.h" />
+    <ClInclude Include="Include\Utils\Utils.h" />
     <ClInclude Include="Include\Sorts.h" />
-    <ClInclude Include="Include\Utils.h" />
+    <ClInclude Include="Include\Visualizer\API\WindowsConsole.h" />
+    <ClInclude Include="Include\Visualizer\Renderer\ColumnVirtualTerminal.h" />
+    <ClInclude Include="Include\Visualizer\Renderer\ColumnWindowsConsole.h" />
+    <ClInclude Include="Include\Visualizer\Visualizer.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

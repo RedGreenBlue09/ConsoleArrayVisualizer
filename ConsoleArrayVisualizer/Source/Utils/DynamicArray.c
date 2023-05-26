@@ -16,8 +16,8 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "GuardedMalloc.h"
-#include "DynamicArray.h"
+#include "Utils/GuardedMalloc.h"
+#include "Utils/DynamicArray.h"
 
 #define DA_INTIAL_SIZE 4
 

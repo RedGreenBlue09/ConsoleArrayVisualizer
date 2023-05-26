@@ -1,8 +1,8 @@
 
 #include "Sorts.h"
-#include "Visualizer.h"
+#include "Visualizer/Visualizer.h"
 
-#include "GuardedMalloc.h"
+#include "Utils\GuardedMalloc.h"
 
 void FS_flashSort(usort_t* array, intptr_t n) {
 

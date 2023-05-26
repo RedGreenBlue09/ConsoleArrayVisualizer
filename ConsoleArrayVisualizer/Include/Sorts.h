@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Visualizer.h"
+#include "Visualizer/Visualizer.h"
 
 // Sorts.h
 

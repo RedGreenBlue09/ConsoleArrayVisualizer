@@ -34,8 +34,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "tree234.h"
-#include "GuardedMalloc.h"
+#include "Utils/Tree234.h"
+#include "Utils/GuardedMalloc.h"
 
 #define smalloc malloc_guarded
 #define sfree free

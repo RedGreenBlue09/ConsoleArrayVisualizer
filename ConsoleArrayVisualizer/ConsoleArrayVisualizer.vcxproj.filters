@@ -28,6 +28,18 @@
     <Filter Include="Source Files\Visualizer\Renderer">
       <UniqueIdentifier>{13af90f8-d724-414b-9663-07c4376f1916}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Visualizer">
+      <UniqueIdentifier>{b5343a28-b11b-48dd-8b27-7a35473e0801}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Visualizer\API">
+      <UniqueIdentifier>{bbb5bad4-c9a1-4a08-af56-0d84c7605368}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Visualizer\Renderer">
+      <UniqueIdentifier>{be43e98e-511f-4b7a-8532-d77383af2884}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Utils">
+      <UniqueIdentifier>{190aae32-827c-48ef-a0d8-d43ea430028e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Main.c">
@@ -69,7 +81,7 @@
     <ClCompile Include="Source\Visualizer\API\WindowsConsole.c">
       <Filter>Source Files\Visualizer\API</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Visualizer\Renderer\Column_WindowsConsole.c">
+    <ClCompile Include="Source\Visualizer\Renderer\ColumnWindowsConsole.c">
       <Filter>Source Files\Visualizer\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Utils\Tree234.c">
@@ -78,25 +90,43 @@
     <ClCompile Include="Source\Utils\DynamicArray.c">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Visualizer\Renderer\ColumnVirtualTerminal.c">
+      <Filter>Source Files\Visualizer\Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Sorts.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Include\Utils.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Include\Visualizer\Renderer\ColumnWindowsConsole.h">
+      <Filter>Header Files\Visualizer\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Include\Visualizer.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Include\Visualizer\Renderer\ColumnVirtualTerminal.h">
+      <Filter>Header Files\Visualizer\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Include\Tree234.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Include\Visualizer\API\WindowsConsole.h">
+      <Filter>Header Files\Visualizer\API</Filter>
     </ClInclude>
-    <ClInclude Include="Include\DynamicArray.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Include\Utils\Tree234.h">
+      <Filter>Header Files\Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Include\GuardedMalloc.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Include\Utils\Utils.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Utils\DynamicArray.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Utils\GuardedMalloc.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Utils\Random.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Utils\Time.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Visualizer\Visualizer.h">
+      <Filter>Header Files\Visualizer</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

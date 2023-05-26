@@ -1,6 +1,6 @@
 
 #include "Sorts.h"
-#include "Visualizer.h"
+#include "Visualizer/Visualizer.h"
 
 intptr_t GlobalPrimaryArrayId;
 

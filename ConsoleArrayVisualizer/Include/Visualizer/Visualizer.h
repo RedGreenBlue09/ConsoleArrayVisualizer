@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Windows.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdbool.h>
-#include "Tree234.h"
-#include "DynamicArray.h"
+
+#include "Utils/Tree234.h"
+#include "Utils/DynamicArray.h"
 
 typedef int32_t isort_t;
 typedef uint32_t usort_t;
@@ -48,6 +48,8 @@ typedef struct {
 	// pointing to i at the same time.
 	tree234**       aptreeUniqueMarkerMap;
 
+	// Tree
+	// List of existing pointers.
 	tree234*        ptreePointer;
 
 } AV_ARRAYPROP;
@@ -58,11 +60,37 @@ typedef struct {
 	isort_t*     aArrayState;
 	AvAttribute* aAttribute;
 
-	int32_t      bVisible;
+	bool         bVisible;
 	isort_t      ValueMin;
 	isort_t      ValueMax;
 
 } AV_ARRAYPROP_RENDERER;
+
+typedef struct {
+
+	void (*Initialize)();
+	void (*Uninitialize)();
+
+	void (*AddArray)(intptr_t ArrayId, intptr_t Size);
+	void (*RemoveArray)(intptr_t ArrayId);
+	void (*UpdateArray)(
+		intptr_t ArrayId,
+		isort_t NewSize,
+		isort_t* aNewArrayState,
+		bool bVisible,
+		isort_t ValueMin,
+		isort_t ValueMax
+	);
+
+	void (*UpdateItem)(
+		intptr_t ArrayId,
+		uintptr_t iPos,
+		uint32_t UpdateRequest,
+		isort_t NewValue,
+		AvAttribute NewAttr
+	);
+
+} AV_RENDERER_ENTRY;
 
 // Visualizer.c
 
@@ -74,7 +102,7 @@ typedef struct {
 void Visualizer_Initialize();
 void Visualizer_Uninitialize();
 
-void Visualizer_Sleep(double fSleepMultiplier);
+//void Visualizer_Sleep(double fSleepMultiplier);
 
 void Visualizer_AddArray(intptr_t ArrayId, intptr_t Size);
 void Visualizer_RemoveArray(intptr_t ArrayId);
@@ -120,52 +148,9 @@ void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId);
 
 #endif
 
-// Column_WindowsConsole.c
-
-void RendererWcc_Initialize();
-void RendererWcc_Uninitialize();
-
-void RendererWcc_AddArray(intptr_t ArrayId, intptr_t Size);
-void RendererWcc_RemoveArray(intptr_t ArrayId);
-void RendererWcc_UpdateArray(
-	intptr_t ArrayId,
-	isort_t NewSize,
-	isort_t* aNewArrayState,
-	int32_t bVisible,
-	isort_t ValueMin,
-	isort_t ValueMax
-);
-
-
-
 /*
  * UpdateRequest:
  *   AV_RENDERER_UPDATEVALUE
  *   AV_RENDERER_UPDATEATTR
  *
  */
-
-void RendererWcc_UpdateItem(
-	intptr_t ArrayId,
-	uintptr_t iPos,
-	uint32_t UpdateRequest,
-	isort_t NewValue,
-	AvAttribute NewAttr
-);
-
-// WindowsConsole.c
-
-void WinConsole_FillStr(HANDLE hBuffer, CHAR* str, SHORT wX, SHORT wY, COORD coordLocation);
-void WinConsole_FillChar(HANDLE hBuffer, CHAR ch, SHORT wX, SHORT wY, COORD coordLocation);
-void WinConsole_FillAttr(HANDLE hBuffer, CONSOLE_SCREEN_BUFFER_INFOEX* pCSBI, WORD Attr, SHORT wX, SHORT wY, COORD coordLocation);
-void WinConsole_FillAttrs(HANDLE hBuffer, WORD* attrs, SHORT wX, SHORT wY, COORD coordLocation);
-
-void WinConsole_WriteStr(HANDLE hBuffer, CHAR* str, COORD coordLocation, ULONG ulLen);
-void WinConsole_WriteChar(HANDLE hBuffer, CHAR ch, COORD coordLocation, ULONG ulLen);
-void WinConsole_WriteAttr(HANDLE hBuffer, USHORT Attr, COORD coordLocation, ULONG ulLen);
-
-void WinConsole_Clear(HANDLE hBuffer);
-void WinConsole_Pause();
-
-HANDLE* WinConsole_CreateBuffer();
-void WinConsole_FreeBuffer(HANDLE hBuffer);

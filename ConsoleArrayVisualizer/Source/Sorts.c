@@ -1,8 +1,6 @@
 
 #include "Sorts.h"
 
-#include "Utils.h"
-
 uintptr_t Sorts_nSort = sizeof(Sorts_aSortList) / sizeof(*Sorts_aSortList);
 
 SORT_INFO Sorts_aSortList[128] = {

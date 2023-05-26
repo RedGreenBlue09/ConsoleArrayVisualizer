@@ -1,13 +1,14 @@
 
 #include "Sorts.h"
-#include "Visualizer.h"
+#include "Visualizer/Visualizer.h"
 
 #define _USE_MATH_DEFINES
 
 #include <stdio.h>
 #include <math.h>
-#include "Utils.h"
-#include "GuardedMalloc.h"
+#include "Utils/Time.h"
+#include "Utils/Random.h"
+#include "Utils/GuardedMalloc.h"
 
 double myKahanSum(double* ax, size_t n) {
 
@@ -78,21 +79,21 @@ int main() {
 
 	//
 	mainShuffle(aArray, N);
-	Visualizer_UpdateArray(0, 0, aArray, TRUE, 0, (isort_t)(N - 1));
+	Visualizer_UpdateArray(0, 0, aArray, true, 0, (isort_t)(N - 1));
 
 	//
 	BottomUpHeapSort(aArray, N);
 
 	//
 	mainShuffle(aArray, N);
-	Visualizer_UpdateArray(0, 0, aArray, TRUE, 0, (isort_t)(N - 1));
+	Visualizer_UpdateArray(0, 0, aArray, true, 0, (isort_t)(N - 1));
 
 	//
 	LeftRightQuickSort(aArray, N);
 
 	//
 	mainShuffle(aArray, N);
-	Visualizer_UpdateArray(0, 0, aArray, TRUE, 0, (isort_t)(N - 1));
+	Visualizer_UpdateArray(0, 0, aArray, true, 0, (isort_t)(N - 1));
 
 	//
 	ShellSortCiura(aArray, N);
