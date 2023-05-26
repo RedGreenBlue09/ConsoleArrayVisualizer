@@ -31,9 +31,6 @@
     <Filter Include="Header Files\Visualizer">
       <UniqueIdentifier>{b5343a28-b11b-48dd-8b27-7a35473e0801}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Visualizer\API">
-      <UniqueIdentifier>{bbb5bad4-c9a1-4a08-af56-0d84c7605368}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\Visualizer\Renderer">
       <UniqueIdentifier>{be43e98e-511f-4b7a-8532-d77383af2884}</UniqueIdentifier>
     </Filter>
@@ -103,9 +100,6 @@
     </ClInclude>
     <ClInclude Include="Include\Visualizer\Renderer\ColumnVirtualTerminal.h">
       <Filter>Header Files\Visualizer\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\Visualizer\API\WindowsConsole.h">
-      <Filter>Header Files\Visualizer\API</Filter>
     </ClInclude>
     <ClInclude Include="Include\Utils\Tree234.h">
       <Filter>Header Files\Utils</Filter>

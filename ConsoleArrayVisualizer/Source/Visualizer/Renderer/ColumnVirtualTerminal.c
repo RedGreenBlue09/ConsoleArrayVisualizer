@@ -319,12 +319,14 @@ void RendererCvt_UpdateItem(
 	// Scale the value to the corresponding screen height
 
 	double dfHeight = (double)TargetValue * (double)RendererCvt_BufferSize.Y / (double)ValueMax;
-	int FloorHeight = (int)dfHeight;
+	int16_t FloorHeight = (int)dfHeight;
 
 	// Generate VT sequence
 
 	char* sBuffer = malloc_guarded((8 + 8 + 14 + 1 + (1)) * RendererCvt_BufferSize.Y * sizeof(char));
 	char* pBufferCurrent = sBuffer;
+
+	// Fill unused cells
 
 	int32_t VtColor = RendererCvt_AttrToVtSgr(AvAttribute_Background);
 	for (intptr_t i = 0; i < (intptr_t)(RendererCvt_BufferSize.Y - FloorHeight); ++i) {
@@ -367,8 +369,10 @@ void RendererCvt_UpdateItem(
 		*pBufferCurrent++ = ' ';
 	}
 
+	// Fill used cells
+
 	VtColor = RendererCvt_AttrToVtSgr(TargetAttr);
-	for (intptr_t i = 0; i < (intptr_t)FloorHeight; ++i) {
+	for (intptr_t i = (intptr_t)(RendererCvt_BufferSize.Y - FloorHeight); i < RendererCvt_BufferSize.Y; ++i) {
 
 		// Change horizontal pos
 
@@ -385,7 +389,7 @@ void RendererCvt_UpdateItem(
 		*pBufferCurrent++ = '\x1B';
 		*pBufferCurrent++ = '[';
 
-		RendererCvt_i16toa((int16_t)(i + RendererCvt_BufferSize.Y - FloorHeight + 1), pBufferCurrent);
+		RendererCvt_i16toa((int16_t)i + 1, pBufferCurrent);
 		pBufferCurrent += strlen(pBufferCurrent);
 
 		*pBufferCurrent++ = 'd';

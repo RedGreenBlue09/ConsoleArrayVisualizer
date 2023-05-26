@@ -8,6 +8,7 @@
 #include "Visualizer/Renderer/ColumnVirtualTerminal.h"
 
 #include "Utils/GuardedMalloc.h"
+#include "Utils/Time.h"
 
 AV_RENDERER_ENTRY Visualizer_AvRendererEntry;
 
@@ -38,14 +39,14 @@ void Visualizer_Initialize() {
 
 	// Only for now
 	
-	Visualizer_AvRendererEntry.Initialize   = RendererCvt_Initialize,
-	Visualizer_AvRendererEntry.Uninitialize = RendererCvt_Uninitialize,
+	Visualizer_AvRendererEntry.Initialize   = RendererCwc_Initialize,
+	Visualizer_AvRendererEntry.Uninitialize = RendererCwc_Uninitialize,
 
-	Visualizer_AvRendererEntry.AddArray    = RendererCvt_AddArray,
-	Visualizer_AvRendererEntry.RemoveArray = RendererCvt_RemoveArray,
-	Visualizer_AvRendererEntry.UpdateArray = RendererCvt_UpdateArray,
+	Visualizer_AvRendererEntry.AddArray    = RendererCwc_AddArray,
+	Visualizer_AvRendererEntry.RemoveArray = RendererCwc_RemoveArray,
+	Visualizer_AvRendererEntry.UpdateArray = RendererCwc_UpdateArray,
 
-	Visualizer_AvRendererEntry.UpdateItem  = RendererCvt_UpdateItem,
+	Visualizer_AvRendererEntry.UpdateItem  = RendererCwc_UpdateItem,
 
 	// Call renderer
 
@@ -67,9 +68,13 @@ void Visualizer_Uninitialize() {
 	return;
 }
 
+#define VISUALIZER_DISABLE_SLEEP
+
+#ifdef VISUALIZER_DISABLE_SLEEP
+
 #define Visualizer_Sleep(X) 
 
-/*
+#else
 void Visualizer_Sleep(double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
@@ -78,7 +83,8 @@ void Visualizer_Sleep(double fSleepMultiplier) {
 	return;
 
 }
-*/
+
+#endif
 // Array
 
 int Visualizer_PointerCmp(void* pA, void* pB);

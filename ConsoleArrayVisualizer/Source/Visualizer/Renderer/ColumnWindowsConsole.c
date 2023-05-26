@@ -2,12 +2,15 @@
 #include "Visualizer/Visualizer.h"
 #include "Utils/GuardedMalloc.h"
 
-#include "Visualizer/API/WindowsConsole.h"
+#include <Windows.h>
 #include "Visualizer/Renderer/ColumnWindowsConsole.h"
 
+//
+#include <stdio.h>
+
 // Buffer stuff
-static HANDLE hRendererAltBuffer = NULL;
-static CONSOLE_SCREEN_BUFFER_INFOEX csbiRenderer = { 0 };
+static HANDLE hAltBuffer = NULL;
+static CONSOLE_SCREEN_BUFFER_INFOEX csbiBufferCache = { 0 };
 
 // Console Attr
 // cmd "color /?" explains this very well.
@@ -35,6 +38,8 @@ typedef struct {
 static RCWC_ARRAYPROP RendererCwc_aRcwcArrayProp[AV_MAX_ARRAY_COUNT];
 // TODO: Linked list to keep track of active (added) items.
 
+CHAR_INFO* aciBufferCache;
+
 void RendererCwc_Initialize() {
 
 	// New window style
@@ -58,23 +63,50 @@ void RendererCwc_Initialize() {
 
 	// New buffer
 
-	hRendererAltBuffer = WinConsole_CreateBuffer();
+	hAltBuffer = CreateConsoleScreenBuffer(
+		GENERIC_READ | GENERIC_WRITE,
+		FILE_SHARE_READ | FILE_SHARE_WRITE,
+		NULL,
+		CONSOLE_TEXTMODE_BUFFER,
+		NULL
+	);
 	hOldBuffer = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleActiveScreenBuffer(hRendererAltBuffer);
+	SetConsoleActiveScreenBuffer(hAltBuffer);
 
 	// Set cursor to top left
 
-	csbiRenderer.cbSize = sizeof(csbiRenderer);
-	GetConsoleScreenBufferInfoEx(hRendererAltBuffer, &csbiRenderer);
-	csbiRenderer.dwCursorPosition = (COORD){ 0, 0 };
-	csbiRenderer.wAttributes = ATTR_WINCON_BACKGROUND;
-	SetConsoleScreenBufferInfoEx(hRendererAltBuffer, &csbiRenderer);
+	csbiBufferCache.cbSize = sizeof(csbiBufferCache);
+	GetConsoleScreenBufferInfoEx(hAltBuffer, &csbiBufferCache);
+	csbiBufferCache.dwCursorPosition = (COORD){ 0, 0 };
+	csbiBufferCache.wAttributes = ATTR_WINCON_BACKGROUND;
+	SetConsoleScreenBufferInfoEx(hAltBuffer, &csbiBufferCache);
 
-	GetConsoleScreenBufferInfoEx(hRendererAltBuffer, &csbiRenderer);
+	GetConsoleScreenBufferInfoEx(hAltBuffer, &csbiBufferCache);
 
-	//
+	// Initialize buffer cache
 
-	WinConsole_Clear(hRendererAltBuffer);
+	LONG BufferSize = csbiBufferCache.dwSize.X * csbiBufferCache.dwSize.Y;
+	aciBufferCache = malloc_guarded(BufferSize * sizeof(CHAR_INFO));
+	for (intptr_t i = 0; i < BufferSize; ++i) {
+		aciBufferCache[i].Char.UnicodeChar = ' ';
+		aciBufferCache[i].Attributes = ATTR_WINCON_BACKGROUND;
+	}
+
+	// Clear screen
+
+	SMALL_RECT Rect = {
+		0,
+		0,
+		csbiBufferCache.dwSize.X - 1,
+		csbiBufferCache.dwSize.Y - 1,
+	};
+	WriteConsoleOutputW(
+		hAltBuffer,
+		aciBufferCache,
+		csbiBufferCache.dwSize,
+		(COORD){ 0, 0 },
+		&Rect
+	);
 
 	return;
 }
@@ -84,7 +116,7 @@ void RendererCwc_Uninitialize() {
 	// Free alternate buffer
 
 	SetConsoleActiveScreenBuffer(hOldBuffer);
-	WinConsole_FreeBuffer(hRendererAltBuffer);
+	CloseHandle(hAltBuffer);
 
 	// Restore window mode
 
@@ -95,9 +127,6 @@ void RendererCwc_Uninitialize() {
 	return;
 
 }
-
-
-
 
 void RendererCwc_AddArray(intptr_t ArrayId, intptr_t Size) {
 
@@ -272,32 +301,69 @@ void RendererCwc_UpdateItem(
 
 	// Scale the value to the corresponding screen height
 
-	double dfHeight = (double)TargetValue * (double)csbiRenderer.dwSize.Y / (double)ValueMax;
+	double dfHeight = (double)TargetValue * (double)csbiBufferCache.dwSize.Y / (double)ValueMax;
 	SHORT FloorHeight = (SHORT)dfHeight;
 
 	// Convert AvAttribute to windows console attribute
-	USHORT WinConAttr = RendererCwc_AttrToConAttr(TargetAttr);
+	USHORT TargetWinConAttr = RendererCwc_AttrToConAttr(TargetAttr);
 
+	/*
 	// Fill the unused cells with background.
 
 	WinConsole_FillAttr(
-		hRendererAltBuffer,
-		&csbiRenderer,
+		hAltBuffer,
+		&csbiBufferCache,
 		ATTR_WINCON_BACKGROUND,
 		1,
-		csbiRenderer.dwSize.Y - FloorHeight,
+		csbiBufferCache.dwSize.Y - FloorHeight,
 		(COORD){ (SHORT)iPos, 0 }
 	);
 
 	// Fill the used cells with WinConAttr.
 
 	WinConsole_FillAttr(
-		hRendererAltBuffer,
-		&csbiRenderer,
+		hAltBuffer,
+		&csbiBufferCache,
 		WinConAttr,
 		1,
 		FloorHeight,
-		(COORD){ (SHORT)iPos, csbiRenderer.dwSize.Y - FloorHeight }
+		(COORD){ (SHORT)iPos, csbiBufferCache.dwSize.Y - FloorHeight }
+	);
+	*/
+
+	// Initialize aciNewCharCells & update buffer cache
+
+	SHORT TargetConsoleCol = (SHORT)iPos;
+	if (TargetConsoleCol >= csbiBufferCache.dwSize.X)
+		TargetConsoleCol = csbiBufferCache.dwSize.X - 1;
+
+	{
+		intptr_t i = 0;
+		for (i; i < (intptr_t)(csbiBufferCache.dwSize.Y - FloorHeight); ++i) {
+			// aciBufferCache[csbiBufferCache.dwSize.X * Y + X]
+			aciBufferCache[csbiBufferCache.dwSize.X * i + TargetConsoleCol].Attributes = ATTR_WINCON_BACKGROUND;
+		}
+		for (i; i < csbiBufferCache.dwSize.Y; ++i) {
+			aciBufferCache[csbiBufferCache.dwSize.X * i + TargetConsoleCol].Attributes = TargetWinConAttr;
+
+		}
+	}
+
+	// Write to console
+
+	SMALL_RECT Rect = (SMALL_RECT){
+		TargetConsoleCol,
+		0,
+		TargetConsoleCol,
+		csbiBufferCache.dwSize.Y - 1,
+	};
+
+	WriteConsoleOutputW(
+		hAltBuffer,
+		aciBufferCache,
+		csbiBufferCache.dwSize,
+		(COORD){ TargetConsoleCol, 0 },
+		&Rect
 	);
 
 	return;
