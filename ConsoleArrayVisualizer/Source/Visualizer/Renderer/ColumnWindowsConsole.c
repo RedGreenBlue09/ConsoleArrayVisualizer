@@ -20,7 +20,6 @@ static CONSOLE_SCREEN_BUFFER_INFOEX csbiRenderer = { 0 };
 #define ATTR_WINCON_INCORRECT  0x2EU
 
 // For uninitialization
-static ULONG OldInputMode = 0;
 static HANDLE hOldBuffer = NULL;
 static LONG_PTR OldWindowStyle = 0;
 
@@ -63,18 +62,6 @@ void RendererCwc_Initialize() {
 	hOldBuffer = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleActiveScreenBuffer(hRendererAltBuffer);
 
-	// Enable virtual terminal on Windows.
-
-	GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &OldInputMode);
-	SetConsoleMode(
-		GetStdHandle(STD_INPUT_HANDLE),
-		ENABLE_PROCESSED_INPUT | ENABLE_VIRTUAL_TERMINAL_INPUT
-	);
-	SetConsoleMode(
-		hRendererAltBuffer,
-		ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING
-	);
-
 	// Set cursor to top left
 
 	csbiRenderer.cbSize = sizeof(csbiRenderer);
@@ -93,10 +80,6 @@ void RendererCwc_Initialize() {
 }
 
 void RendererCwc_Uninitialize() {
-
-	// Restore old console input mode
-
-	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), OldInputMode);
 
 	// Free alternate buffer
 
