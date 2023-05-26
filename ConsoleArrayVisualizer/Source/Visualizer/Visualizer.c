@@ -10,6 +10,8 @@
 #include "Utils/GuardedMalloc.h"
 #include "Utils/Time.h"
 
+#ifndef VISUALIZER_DISABLED
+
 AV_RENDERER_ENTRY Visualizer_AvRendererEntry;
 
 // TODO: More argument checks
@@ -68,13 +70,8 @@ void Visualizer_Uninitialize() {
 	return;
 }
 
-#define VISUALIZER_DISABLE_SLEEP
+#ifndef VISUALIZER_DISABLE_SLEEP
 
-#ifdef VISUALIZER_DISABLE_SLEEP
-
-#define Visualizer_Sleep(X) 
-
-#else
 void Visualizer_Sleep(double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
@@ -85,13 +82,14 @@ void Visualizer_Sleep(double fSleepMultiplier) {
 }
 
 #endif
+
 // Array
 
-int Visualizer_PointerCmp(void* pA, void* pB);
+static int Visualizer_PointerCmp(void* pA, void* pB);
 
-int Visualizer_UniqueMarkerCmp(void* pA, void* pB);
-int Visualizer_UniqueMarkerIdCmp(void* pA, void* pB);
-int Visualizer_UniqueMarkerPriorityCmp(void* pA, void* pB);
+static int Visualizer_UniqueMarkerCmp(void* pA, void* pB);
+static int Visualizer_UniqueMarkerIdCmp(void* pA, void* pB);
+static int Visualizer_UniqueMarkerPriorityCmp(void* pA, void* pB);
 
 void Visualizer_AddArray(intptr_t ArrayId, intptr_t Size) {
 
@@ -611,3 +609,5 @@ void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId) {
 	return;
 
 }
+
+#endif

@@ -102,10 +102,24 @@ typedef struct {
 void Visualizer_Initialize();
 void Visualizer_Uninitialize();
 
-//void Visualizer_Sleep(double fSleepMultiplier);
+#define VISUALIZER_DISABLE_SLEEP
+#ifdef VISUALIZER_DISABLE_SLEEP
 
-void Visualizer_AddArray(intptr_t ArrayId, intptr_t Size);
-void Visualizer_RemoveArray(intptr_t ArrayId);
+#define Visualizer_Sleep(X) 
+
+#else
+
+void Visualizer_Sleep(double fSleepMultiplier);
+
+#endif
+
+void Visualizer_AddArray(
+	intptr_t ArrayId,
+	intptr_t Size
+);
+void Visualizer_RemoveArray(
+	intptr_t ArrayId
+);
 void Visualizer_UpdateArray(
 	intptr_t ArrayId,
 	isort_t NewSize,
@@ -115,9 +129,23 @@ void Visualizer_UpdateArray(
 	isort_t ValueMax
 );
 
-void Visualizer_UpdateRead(intptr_t ArrayId, intptr_t iPos, double fSleepMultiplier);
-void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, double fSleepMultiplier);
-void Visualizer_UpdateWrite(intptr_t ArrayId, intptr_t iPos, isort_t NewValue, double fSleepMultiplier);
+void Visualizer_UpdateRead(
+	intptr_t ArrayId,
+	intptr_t iPos,
+	double fSleepMultiplier
+);
+void Visualizer_UpdateRead2(
+	intptr_t ArrayId,
+	intptr_t iPosA,
+	intptr_t iPosB,
+	double fSleepMultiplier
+);
+void Visualizer_UpdateWrite(
+	intptr_t ArrayId,
+	intptr_t iPos,
+	isort_t NewValue,
+	double fSleepMultiplier
+);
 void Visualizer_UpdateWrite2(
 	intptr_t ArrayId,
 	intptr_t iPosA,
@@ -127,8 +155,16 @@ void Visualizer_UpdateWrite2(
 	double fSleepMultiplier
 );
 
-void Visualizer_UpdatePointer(intptr_t ArrayId, intptr_t PointerId, intptr_t iNewPos, double fSleepMultiplier);
-void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId);
+void Visualizer_UpdatePointer(
+	intptr_t ArrayId,
+	intptr_t PointerId,
+	intptr_t iNewPos,
+	double fSleepMultiplier
+);
+void Visualizer_RemovePointer(
+	intptr_t ArrayId,
+	intptr_t PointerId
+);
 
 #else
 
@@ -142,6 +178,7 @@ void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId);
 #define Visualizer_UpdateRead(A, B, C)
 #define Visualizer_UpdateRead2(A, B, C, D)
 #define Visualizer_UpdateWrite(A, B, C, D)
+#define Visualizer_UpdateWrite2(A, B, C, D, E, F)
 #define Visualizer_UpdateSwap(A, B, C, D)
 #define Visualizer_UpdatePointer(A, B, C, D)
 #define Visualizer_RemovePointer(A, B)

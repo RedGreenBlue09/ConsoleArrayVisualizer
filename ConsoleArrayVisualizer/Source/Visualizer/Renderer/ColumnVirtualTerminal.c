@@ -188,7 +188,14 @@ void RendererCvt_RemoveArray(intptr_t ArrayId) {
 
 }
 
-void RendererCvt_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArrayState, bool bVisible, isort_t ValueMin, isort_t ValueMax) {
+void RendererCvt_UpdateArray(
+	intptr_t ArrayId,
+	isort_t NewSize,
+	isort_t* aNewArrayState,
+	bool bVisible,
+	isort_t ValueMin,
+	isort_t ValueMax
+) {
 
 	// Clear screen
 

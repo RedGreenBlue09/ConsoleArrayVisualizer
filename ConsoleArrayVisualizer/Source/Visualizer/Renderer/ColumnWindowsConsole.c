@@ -11,6 +11,7 @@
 // Buffer stuff
 static HANDLE hAltBuffer = NULL;
 static CONSOLE_SCREEN_BUFFER_INFOEX csbiBufferCache = { 0 };
+static CHAR_INFO* aciBufferCache;
 
 // Console Attr
 // cmd "color /?" explains this very well.
@@ -37,8 +38,6 @@ typedef struct {
 
 static RCWC_ARRAYPROP RendererCwc_aRcwcArrayProp[AV_MAX_ARRAY_COUNT];
 // TODO: Linked list to keep track of active (added) items.
-
-CHAR_INFO* aciBufferCache;
 
 void RendererCwc_Initialize() {
 
