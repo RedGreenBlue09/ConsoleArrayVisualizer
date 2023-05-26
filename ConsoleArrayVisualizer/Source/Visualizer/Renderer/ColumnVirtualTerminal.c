@@ -29,7 +29,7 @@ typedef struct {
 
 #ifdef _WIN32
 // To restore later
-ULONG OldInputMode, OldOutputMode;
+static ULONG OldInputMode = 0, OldOutputMode = 0;
 #endif
 
 static RCVT_BUFFER_SIZE RendererCvt_BufferSize;
@@ -418,4 +418,5 @@ void RendererCvt_UpdateItem(
 
 	free(sBuffer);
 	return;
+
 }

@@ -6,7 +6,7 @@
 #include "Visualizer/Renderer/ColumnWindowsConsole.h"
 
 // Buffer stuff
-static HANDLE hRendererStdOut = NULL;
+static HANDLE hRendererAltBuffer = NULL;
 static CONSOLE_SCREEN_BUFFER_INFOEX csbiRenderer = { 0 };
 
 // Console Attr
@@ -37,55 +37,79 @@ static RCWC_ARRAYPROP RendererCwc_aRcwcArrayProp[AV_MAX_ARRAY_COUNT];
 // TODO: Linked list to keep track of active (added) items.
 
 void RendererCwc_Initialize() {
-	//
+
+	// New window style
 
 	HWND hWindow = GetConsoleWindow();
 	OldWindowStyle = GetWindowLongPtrW(hWindow, GWL_STYLE);
-	SetWindowLongPtrW(hWindow, GWL_STYLE, OldWindowStyle & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
-	SetWindowPos(hWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE);
+	SetWindowLongPtrW(
+		hWindow,
+		GWL_STYLE,
+		OldWindowStyle & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX
+	);
+	SetWindowPos(
+		hWindow,
+		NULL,
+		0,
+		0,
+		0,
+		0,
+		SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE
+	);
 
-	//
+	// New buffer
 
-	hRendererStdOut = WinConsole_CreateBuffer();
-
-	//
-
+	hRendererAltBuffer = WinConsole_CreateBuffer();
 	hOldBuffer = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleActiveScreenBuffer(hRendererStdOut);
+	SetConsoleActiveScreenBuffer(hRendererAltBuffer);
 
-	// Set console IO mode to RAW.
+	// Enable virtual terminal on Windows.
 
 	GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &OldInputMode);
-	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), ENABLE_PROCESSED_INPUT | ENABLE_VIRTUAL_TERMINAL_INPUT);
-	SetConsoleMode(hRendererStdOut, ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+	SetConsoleMode(
+		GetStdHandle(STD_INPUT_HANDLE),
+		ENABLE_PROCESSED_INPUT | ENABLE_VIRTUAL_TERMINAL_INPUT
+	);
+	SetConsoleMode(
+		hRendererAltBuffer,
+		ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING
+	);
 
 	// Set cursor to top left
 
 	csbiRenderer.cbSize = sizeof(csbiRenderer);
-	GetConsoleScreenBufferInfoEx(hRendererStdOut, &csbiRenderer);
+	GetConsoleScreenBufferInfoEx(hRendererAltBuffer, &csbiRenderer);
 	csbiRenderer.dwCursorPosition = (COORD){ 0, 0 };
 	csbiRenderer.wAttributes = ATTR_WINCON_BACKGROUND;
-	SetConsoleScreenBufferInfoEx(hRendererStdOut, &csbiRenderer);
+	SetConsoleScreenBufferInfoEx(hRendererAltBuffer, &csbiRenderer);
 
-	GetConsoleScreenBufferInfoEx(hRendererStdOut, &csbiRenderer);
+	GetConsoleScreenBufferInfoEx(hRendererAltBuffer, &csbiRenderer);
 
 	//
 
-	WinConsole_Clear(hRendererStdOut);
+	WinConsole_Clear(hRendererAltBuffer);
 
 	return;
 }
 
 void RendererCwc_Uninitialize() {
 
-	SetConsoleActiveScreenBuffer(hOldBuffer);
-	WinConsole_FreeBuffer(hRendererStdOut);
+	// Restore old console input mode
 
-	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), 0);
+	SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), OldInputMode);
+
+	// Free alternate buffer
+
+	SetConsoleActiveScreenBuffer(hOldBuffer);
+	WinConsole_FreeBuffer(hRendererAltBuffer);
+
+	// Restore window mode
 
 	HWND hWindow = GetConsoleWindow();
 	SetWindowLongPtrW(hWindow, GWL_STYLE, OldWindowStyle);
 	SetWindowPos(hWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE);
+
+	return;
 
 }
 
@@ -111,6 +135,7 @@ void RendererCwc_AddArray(intptr_t ArrayId, intptr_t Size) {
 		RendererCwc_aRcwcArrayProp[ArrayId].vapr.aAttribute[i] = AvAttribute_Normal;
 
 	return;
+
 }
 
 void RendererCwc_RemoveArray(intptr_t ArrayId) {
@@ -273,7 +298,7 @@ void RendererCwc_UpdateItem(
 	// Fill the unused cells with background.
 
 	WinConsole_FillAttr(
-		hRendererStdOut,
+		hRendererAltBuffer,
 		&csbiRenderer,
 		ATTR_WINCON_BACKGROUND,
 		1,
@@ -284,7 +309,7 @@ void RendererCwc_UpdateItem(
 	// Fill the used cells with WinConAttr.
 
 	WinConsole_FillAttr(
-		hRendererStdOut,
+		hRendererAltBuffer,
 		&csbiRenderer,
 		WinConAttr,
 		1,
@@ -293,4 +318,5 @@ void RendererCwc_UpdateItem(
 	);
 
 	return;
+
 }
