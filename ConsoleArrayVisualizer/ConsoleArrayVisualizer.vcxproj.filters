@@ -22,9 +22,6 @@
     <Filter Include="Source Files\Visualizer">
       <UniqueIdentifier>{ee5d0646-00cb-423d-97c8-b9b8ccdbc5c0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Visualizer\API">
-      <UniqueIdentifier>{4799e254-0c0d-473e-a867-2160f9bd1466}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Visualizer\Renderer">
       <UniqueIdentifier>{13af90f8-d724-414b-9663-07c4376f1916}</UniqueIdentifier>
     </Filter>
@@ -74,9 +71,6 @@
     </ClCompile>
     <ClCompile Include="Source\Sorts.c">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Visualizer\API\WindowsConsole.c">
-      <Filter>Source Files\Visualizer\API</Filter>
     </ClCompile>
     <ClCompile Include="Source\Visualizer\Renderer\ColumnWindowsConsole.c">
       <Filter>Source Files\Visualizer\Renderer</Filter>

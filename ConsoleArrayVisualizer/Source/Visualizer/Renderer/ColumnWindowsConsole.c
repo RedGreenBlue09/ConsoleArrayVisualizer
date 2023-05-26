@@ -345,7 +345,6 @@ void RendererCwc_UpdateItem(
 		}
 		for (i; i < csbiBufferCache.dwSize.Y; ++i) {
 			aciBufferCache[csbiBufferCache.dwSize.X * i + TargetConsoleCol].Attributes = TargetWinConAttr;
-
 		}
 	}
 

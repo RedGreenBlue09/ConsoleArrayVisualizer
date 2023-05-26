@@ -2,7 +2,7 @@
 #include "Sorts.h"
 #include "Visualizer/Visualizer.h"
 
-#include "Utils\GuardedMalloc.h"
+#include "Utils/GuardedMalloc.h"
 
 void BIS_BinaryInsertion(isort_t* array, intptr_t start, intptr_t end);
 

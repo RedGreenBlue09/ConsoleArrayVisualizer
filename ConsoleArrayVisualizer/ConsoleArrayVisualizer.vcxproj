@@ -28,7 +28,6 @@
     <ClCompile Include="Source\Utils\Time.c" />
     <ClCompile Include="Source\Utils\Random.c" />
     <ClCompile Include="Source\Utils\Tree234.c" />
-    <ClCompile Include="Source\Visualizer\API\WindowsConsole.c" />
     <ClCompile Include="Source\Visualizer\Renderer\ColumnVirtualTerminal.c" />
     <ClCompile Include="Source\Visualizer\Renderer\ColumnWindowsConsole.c" />
     <ClCompile Include="Source\Visualizer\Visualizer.c" />

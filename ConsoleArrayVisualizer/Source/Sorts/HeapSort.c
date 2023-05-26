@@ -2,7 +2,7 @@
 #include "Sorts.h"
 #include "Visualizer/Visualizer.h"
 
-#include "Utils\GuardedMalloc.h"
+#include "Utils/GuardedMalloc.h"
 
 void WHS_weakHeapSort(isort_t* array, intptr_t n) {
 
