@@ -102,7 +102,7 @@ typedef struct {
 void Visualizer_Initialize();
 void Visualizer_Uninitialize();
 
-#define VISUALIZER_DISABLE_SLEEP
+//#define VISUALIZER_DISABLE_SLEEP
 #ifdef VISUALIZER_DISABLE_SLEEP
 
 #define Visualizer_Sleep(X) 

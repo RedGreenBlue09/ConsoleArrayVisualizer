@@ -67,12 +67,10 @@ int intcmp(void* a, void* b) {
 
 int main() {
 
-	utilInitTime();
-
 	//intptr_t N = 512;
 	intptr_t N = 512;
 	isort_t* aArray = malloc_guarded(N * sizeof(isort_t));
-	//Sleep(5000);
+	//sleep64(5000000);
 
 	Visualizer_Initialize();
 	Visualizer_AddArray(0, N);

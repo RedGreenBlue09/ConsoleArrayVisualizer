@@ -11,7 +11,7 @@
 // Buffer stuff
 static HANDLE hAltBuffer = NULL;
 static CONSOLE_SCREEN_BUFFER_INFOEX csbiBufferCache = { 0 };
-static CHAR_INFO* aciBufferCache;
+static CHAR_INFO* aciBufferCache; // TODO: multi-byte (4+) text
 
 // Console Attr
 // cmd "color /?" explains this very well.
@@ -122,6 +122,8 @@ void RendererCwc_Uninitialize() {
 	HWND hWindow = GetConsoleWindow();
 	SetWindowLongPtrW(hWindow, GWL_STYLE, OldWindowStyle);
 	SetWindowPos(hWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE);
+
+	free(aciBufferCache);
 
 	return;
 
@@ -254,18 +256,16 @@ void RendererCwc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 
 }
 
-static const USHORT RendererCwc_WinConAttrTable[256] = {
-	ATTR_WINCON_BACKGROUND, //AvAttribute_Background
-	ATTR_WINCON_NORMAL,     //AvAttribute_Normal
-	ATTR_WINCON_READ,       //AvAttribute_Read
-	ATTR_WINCON_WRITE,      //AvAttribute_Write
-	ATTR_WINCON_POINTER,    //AvAttribute_Pointer
-	ATTR_WINCON_CORRECT,    //AvAttribute_Correct
-	ATTR_WINCON_INCORRECT,  //AvAttribute_Incorrect
-}; // 0: black background and black text.
-
-static USHORT RendererCwc_AttrToConAttr(AvAttribute Attr) {
-	return RendererCwc_WinConAttrTable[Attr]; // return 0 on unknown Attr.
+static USHORT RendererCwc_AttrToConAttr(AvAttribute Attribute) {
+	USHORT WinConAttrTable[32] = { 0 };
+	WinConAttrTable[AvAttribute_Background] = ATTR_WINCON_BACKGROUND;
+	WinConAttrTable[AvAttribute_Normal] = ATTR_WINCON_NORMAL;
+	WinConAttrTable[AvAttribute_Read] = ATTR_WINCON_READ;
+	WinConAttrTable[AvAttribute_Write] = ATTR_WINCON_WRITE;
+	WinConAttrTable[AvAttribute_Pointer] = ATTR_WINCON_POINTER;
+	WinConAttrTable[AvAttribute_Correct] = ATTR_WINCON_CORRECT;
+	WinConAttrTable[AvAttribute_Incorrect] = ATTR_WINCON_INCORRECT;
+	return WinConAttrTable[Attribute]; // return 0 on unknown Attr.
 }
 
 void RendererCwc_UpdateItem(

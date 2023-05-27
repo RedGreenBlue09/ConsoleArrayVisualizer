@@ -98,7 +98,7 @@
     <ClInclude Include="Include\Utils\Tree234.h">
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Include\Utils\Utils.h">
+    <ClInclude Include="Include\Utils\PointerSize.h">
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
     <ClInclude Include="Include\Utils\DynamicArray.h">
