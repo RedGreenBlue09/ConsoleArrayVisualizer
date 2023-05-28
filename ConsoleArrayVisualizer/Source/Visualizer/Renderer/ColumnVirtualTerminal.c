@@ -34,8 +34,8 @@ typedef struct {
 
 typedef struct {
 
-	int8_t sgrForeground : 8; // SGR
-	int8_t sgrBackground : 8; // SGR
+	uint8_t sgrForeground : 8; // SGR
+	uint8_t sgrBackground : 8; // SGR
 	bool bBold         : 4; // ON / OFF
 	bool bUnderline    : 4; // ON / OFF
 	bool bNegative     : 4; // ON / OFF
@@ -99,11 +99,13 @@ static char* RendererCvt_i16toa(int16_t X, char* s) {
 
 // Per cell
 // Assume sBuffer is large enough (27 chars)
-static void RendererCvt_GenerateVtSequence(
+static char* RendererCvt_GenerateVtSequence(
 	char* sBuffer,
 	RCVT_VTFORMAT_UPDATEREQUEST vtfurRequest,
 	RCVT_BUFFER_CELL* pbcCell
 ) {
+
+	char* s2 = sBuffer;
 
 	// This function is designed to reduce the number of VT sequences.
 
@@ -126,8 +128,7 @@ static void RendererCvt_GenerateVtSequence(
 		if (bNeedSemicolon) *sBuffer++ = ';'; // +1
 		if (pbcCell->vtfFormat.bBold) {
 			*sBuffer++ = '1';
-		}
-		else {
+		} else {
 			*sBuffer++ = '2'; // +1
 			*sBuffer++ = '2'; // +1
 		}
@@ -156,15 +157,14 @@ static void RendererCvt_GenerateVtSequence(
 		bNeedSemicolon = true;
 	}
 
+	*sBuffer++ = 'm'; // +1
+
 	if (vtfurRequest.bText) {
 		// TODO: Multi-byte unicode text
 		*sBuffer++ = (char)pbcCell->Char; // +1
 	}
 
-	*sBuffer++ = 'm'; // +1
-	*sBuffer++ = '\0'; // +1
-
-	return;
+	return sBuffer;
 
 }
 
@@ -179,19 +179,19 @@ static void RendererCvt_UpdateCellCache(
 	if (coordCell.Y >= RendererCvt_coordBufferSize.Y || coordCell.X >= RendererCvt_coordBufferSize.X)
 		abort();
 
-	int32_t iIndex1D = coordCell.Y * RendererCvt_coordBufferSize.X + coordCell.X;
+	int32_t iIndex1D = RendererCvt_coordBufferSize.X * coordCell.Y + coordCell.X;
 
 	if (vtfurRequest.bForeground)
 		RendererCvt_abcBufferCellCache[iIndex1D].vtfFormat.sgrForeground = vtfFormat.sgrForeground;
 	if (vtfurRequest.bBackground)
-		RendererCvt_abcBufferCellCache[iIndex1D].vtfFormat.sgrForeground = vtfFormat.sgrBackground;
+		RendererCvt_abcBufferCellCache[iIndex1D].vtfFormat.sgrBackground = vtfFormat.sgrBackground;
 
 	if (vtfurRequest.bBold)
-		RendererCvt_abcBufferCellCache[iIndex1D].vtfFormat.sgrForeground = vtfFormat.bBold;
+		RendererCvt_abcBufferCellCache[iIndex1D].vtfFormat.bBold = vtfFormat.bBold;
 	if (vtfurRequest.bUnderline)
-		RendererCvt_abcBufferCellCache[iIndex1D].vtfFormat.sgrForeground = vtfFormat.bUnderline;
+		RendererCvt_abcBufferCellCache[iIndex1D].vtfFormat.bUnderline = vtfFormat.bUnderline;
 	if (vtfurRequest.bNegative)
-		RendererCvt_abcBufferCellCache[iIndex1D].vtfFormat.sgrForeground = vtfFormat.bNegative;
+		RendererCvt_abcBufferCellCache[iIndex1D].vtfFormat.bNegative = vtfFormat.bNegative;
 
 	if (vtfurRequest.bText) {
 		// TODO: Multi-byte unicode text
@@ -289,17 +289,15 @@ void RendererCvt_Initialize() {
 		*pBufferCurrent++ = 'K';
 		*pBufferCurrent = '\0';
 
+		fwrite(sBuffer, sizeof(char), strlen(pBufferCurrent), stdout);
+
 		// Update cell cache
 
 		for (intptr_t i = 0; i < BufferSize1D; ++i) {
 			RendererCvt_abcBufferCellCache[i].Char = (uint32_t)' ';
 			RendererCvt_abcBufferCellCache[i].vtfFormat = RendererCvt_AvAttrToVtFormat(AvAttribute_Background);
 		}
-
-		fwrite(sBuffer, sizeof(char), strlen(pBufferCurrent), stdout);
 	}
-
-	fprintf(stderr, "%i%i\r\n", RendererCvt_coordBufferSize.X, RendererCvt_coordBufferSize.Y);
 
 	return;
 }
@@ -494,7 +492,7 @@ void RendererCvt_UpdateItem(
 	// Generate VT sequence
 
 	// 36 bytes for each cell is enough
-	char* sBuffer = malloc_guarded(128 * RendererCvt_coordBufferSize.Y * sizeof(char));
+	char* sBuffer = malloc_guarded((size_t)256 * RendererCvt_coordBufferSize.Y * sizeof(char));
 	char* pBufferCurrent = sBuffer;
 
 	// Fill unused cells
@@ -511,9 +509,8 @@ void RendererCvt_UpdateItem(
 		*pBufferCurrent++ = '\x1B';
 		*pBufferCurrent++ = '[';
 
-		// Max length of each number is 6 because "32767\0"
-		RendererCvt_i16toa((int16_t)TargetConsoleCol + 1, pBufferCurrent);
-		pBufferCurrent += strlen(pBufferCurrent);
+		// Max length of each number is 6 because -32768
+		pBufferCurrent = RendererCvt_i16toa((int16_t)TargetConsoleCol + 1, pBufferCurrent);
 
 		*pBufferCurrent++ = 'G';
 
@@ -522,8 +519,7 @@ void RendererCvt_UpdateItem(
 		*pBufferCurrent++ = '\x1B';
 		*pBufferCurrent++ = '[';
 
-		RendererCvt_i16toa((int16_t)i + 1, pBufferCurrent);
-		pBufferCurrent += strlen(pBufferCurrent);
+		pBufferCurrent = RendererCvt_i16toa((int16_t)i + 1, pBufferCurrent);
 
 		*pBufferCurrent++ = 'd';
 
@@ -546,12 +542,13 @@ void RendererCvt_UpdateItem(
 			NULL,
 			0
 		);
-		RendererCvt_GenerateVtSequence(
+
+		vtfurRequest.bText = true;
+		pBufferCurrent = RendererCvt_GenerateVtSequence(
 			pBufferCurrent,
 			vtfurRequest,
-			&RendererCvt_abcBufferCellCache[TargetConsoleCol * RendererCvt_coordBufferSize.X + i]
+			&RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol]
 		);
-		pBufferCurrent += strlen(pBufferCurrent);
 
 	}
 
@@ -565,8 +562,7 @@ void RendererCvt_UpdateItem(
 		*pBufferCurrent++ = '[';
 
 		// Max length of each number is 6 because "32767\0"
-		RendererCvt_i16toa((int16_t)TargetConsoleCol + 1, pBufferCurrent);
-		pBufferCurrent += strlen(pBufferCurrent);
+		pBufferCurrent = RendererCvt_i16toa((int16_t)TargetConsoleCol + 1, pBufferCurrent);
 
 		*pBufferCurrent++ = 'G';
 
@@ -575,8 +571,7 @@ void RendererCvt_UpdateItem(
 		*pBufferCurrent++ = '\x1B';
 		*pBufferCurrent++ = '[';
 
-		RendererCvt_i16toa((int16_t)i + 1, pBufferCurrent);
-		pBufferCurrent += strlen(pBufferCurrent);
+		pBufferCurrent = RendererCvt_i16toa((int16_t)i + 1, pBufferCurrent);
 
 		*pBufferCurrent++ = 'd';
 
@@ -599,12 +594,13 @@ void RendererCvt_UpdateItem(
 			NULL,
 			0
 		);
-		RendererCvt_GenerateVtSequence(
+
+		vtfurRequest.bText = true;
+		pBufferCurrent = RendererCvt_GenerateVtSequence(
 			pBufferCurrent,
 			vtfurRequest,
-			&RendererCvt_abcBufferCellCache[TargetConsoleCol * RendererCvt_coordBufferSize.X + i]
+			&RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol]
 		);
-		pBufferCurrent += strlen(pBufferCurrent);
 
 	}
 
