@@ -82,89 +82,113 @@ typedef struct {
 
 } RCVT_VTFORMAT_UPDATEREQUEST;
 
+#define RendererCvt_GenerateVtSequence_WriteGuard(bWrite, s, c) { \
+	if (bWrite) *(s) = (c); \
+	++(s); \
+}
+
 // Returns the position after the last digit
-static char* RendererCvt_i16toa(int16_t X, char* s) {
+static intptr_t RendererCvt_i16toa(bool bWrite, int16_t X, char* s) {
 
-	if (X < 0) *s++ = '-'; // +1
+	char* sCurrent = s;
+
+	if (X < 0)
+		RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '-'); // +1
+
 	if (X > 0) X = -X;
-	if (X <= -10000) *s++ = -(X / 10000 % 10) + '0'; // +1
-	if (X <= -1000) *s++ = -(X / 1000 % 10) + '0'; // +1
-	if (X <= -100) *s++ = -(X / 100 % 10) + '0'; // +1
-	if (X <= -10) *s++ = -(X / 10 % 10) + '0'; // +1
-	if (X <= 0) *s++ = -(X % 10) + '0'; // +1
+	if (X <= -10000)
+		RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, -(X / 10000 % 10) + '0'); // +1
+	if (X <= -1000)
+		RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, -(X / 1000 % 10) + '0'); // +1
+	if (X <= -100)
+		RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, -(X / 100 % 10) + '0'); // +1
+	if (X <= -10)
+		RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, -(X / 10 % 10) + '0'); // +1
+	if (X <= 0)
+		RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, -(X % 10) + '0'); // +1
 
-	return s;
+	return sCurrent - s;
 
 }
 
 // Per cell
 // Assume sBuffer is large enough (27 chars)
-static char* RendererCvt_GenerateVtSequence(
+static intptr_t RendererCvt_GenerateVtSequence(
+	bool bWrite,
 	char* sBuffer,
 	RCVT_VTFORMAT_UPDATEREQUEST vtfurRequest,
 	RCVT_BUFFER_CELL* pbcCell
 ) {
 
-	char* s2 = sBuffer;
+	char* sBegin = sBuffer;
+	char* sCurrent = sBuffer;
 
 	// This function is designed to reduce the number of VT sequences.
 
-	*sBuffer++ = '\x1B'; // +1
-	*sBuffer++ = '['; // +1
+	RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '\x1B'); // +1
+	RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '['); // +1
 
 	bool bNeedSemicolon = false;
 	if (vtfurRequest.bForeground) {
-		sBuffer = RendererCvt_i16toa((int16_t)pbcCell->vtfFormat.sgrForeground, sBuffer); // +6
+		sCurrent += RendererCvt_i16toa(bWrite, (int16_t)pbcCell->vtfFormat.sgrForeground, sCurrent); // +6
 		bNeedSemicolon = true;
 	}
 
 	if (vtfurRequest.bBackground) {
-		if (bNeedSemicolon) *sBuffer++ = ';'; // +1
-		sBuffer = RendererCvt_i16toa((int16_t)pbcCell->vtfFormat.sgrBackground, sBuffer); // +6
+		if (bNeedSemicolon) {
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, ';'); // +1
+		}
+		sCurrent += RendererCvt_i16toa(bWrite, (int16_t)pbcCell->vtfFormat.sgrBackground, sCurrent); // +6
 		bNeedSemicolon = true;
 	}
 
 	if (vtfurRequest.bBold) {
-		if (bNeedSemicolon) *sBuffer++ = ';'; // +1
+		if (bNeedSemicolon) {
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, ';'); // +1
+		}
 		if (pbcCell->vtfFormat.bBold) {
-			*sBuffer++ = '1';
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '1'); // +1
 		} else {
-			*sBuffer++ = '2'; // +1
-			*sBuffer++ = '2'; // +1
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '2'); // +1
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '2'); // +1
 		}
 		bNeedSemicolon = true;
 	}
 
 	if (vtfurRequest.bUnderline) {
-		if (bNeedSemicolon) *sBuffer++ = ';'; // +1
+		if (bNeedSemicolon) {
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, ';'); // +1
+		}
 		if (pbcCell->vtfFormat.bUnderline) {
-			*sBuffer++ = '4';
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '4'); // +1
 		} else {
-			*sBuffer++ = '2'; // +1
-			*sBuffer++ = '4'; // +1
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '2'); // +1
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '4'); // +1
 		}
 		bNeedSemicolon = true;
 	}
 
 	if (vtfurRequest.bNegative) {
-		if (bNeedSemicolon) *sBuffer++ = ';'; // +1
+		if (bNeedSemicolon) {
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, ';'); // +1
+		}
 		if (pbcCell->vtfFormat.bNegative) {
-			*sBuffer++ = '7';
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '7'); // +1
 		} else {
-			*sBuffer++ = '2'; // +1
-			*sBuffer++ = '7'; // +1
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '2'); // +1
+			RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, '7'); // +1
 		}
 		bNeedSemicolon = true;
 	}
 
-	*sBuffer++ = 'm'; // +1
+	RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, 'm'); // +1
 
 	if (vtfurRequest.bText) {
+		RendererCvt_GenerateVtSequence_WriteGuard(bWrite, sCurrent, (char)pbcCell->Char); // +1
 		// TODO: Multi-byte unicode text
-		*sBuffer++ = (char)pbcCell->Char; // +1
 	}
 
-	return sBuffer;
+	return sCurrent - sBegin;
 
 }
 
@@ -258,9 +282,6 @@ void RendererCvt_Initialize() {
 	{
 		// Change color
 
-		char sBuffer[48];
-		char* pBufferCurrent = sBuffer;
-
 		RCVT_BUFFER_CELL bcCell = {
 			' ',
 			RendererCvt_AvAttrToVtFormat(AvAttribute_Background)
@@ -273,23 +294,35 @@ void RendererCvt_Initialize() {
 			.bNegative   = true, // OFF by default
 			.bText       = false // VT100 haves a sequence for this
 		};
+		
+		// Count
+		intptr_t Length = RendererCvt_GenerateVtSequence(
+			false,
+			NULL,
+			vtfurRequest,
+			&bcCell
+		);
+		
+		// Allocate
+		char* sBuffer = malloc_guarded((Length + 4) * sizeof(char));
+		char* pBufferCurrent = sBuffer;
 
-		RendererCvt_GenerateVtSequence(
+		pBufferCurrent += RendererCvt_GenerateVtSequence(
+			false,
 			pBufferCurrent,
 			vtfurRequest,
 			&bcCell
 		);
-		pBufferCurrent += strlen(pBufferCurrent);
 
 		// Clear screen sequence
 
-		*pBufferCurrent++ = '\x1B';
-		*pBufferCurrent++ = '[';
-		*pBufferCurrent++ = '2';
-		*pBufferCurrent++ = 'K';
-		*pBufferCurrent = '\0';
+		*pBufferCurrent++ = '\x1B'; // +1
+		*pBufferCurrent++ = '['; // +1
+		*pBufferCurrent++ = '2'; // +1
+		*pBufferCurrent++ = 'K'; // +1
 
-		fwrite(sBuffer, sizeof(char), strlen(pBufferCurrent), stdout);
+		fwrite(sBuffer, sizeof(char), pBufferCurrent - sBuffer, stdout);
+		
 
 		// Update cell cache
 
@@ -491,41 +524,107 @@ void RendererCvt_UpdateItem(
 
 	// Generate VT sequence
 
-	// 36 bytes for each cell is enough
-	char* sBuffer = malloc_guarded((size_t)256 * RendererCvt_coordBufferSize.Y * sizeof(char));
-	char* pBufferCurrent = sBuffer;
-
 	// Fill unused cells
 
 	int16_t TargetConsoleCol = (int16_t)iPos;
 	if (TargetConsoleCol >= RendererCvt_coordBufferSize.X)
 		TargetConsoleCol = RendererCvt_coordBufferSize.X - 1;
 
+	// Count (copy & patse code) & update cache at the same time
+	intptr_t Length = 0;
+	{
+		intptr_t i = 0;
+		for (i; i < (intptr_t)(RendererCvt_coordBufferSize.Y - FloorHeight); ++i) {
+
+			Length += RendererCvt_i16toa(false, (int16_t)TargetConsoleCol + 1, NULL);
+			Length += RendererCvt_i16toa(false, (int16_t)i + 1, NULL);
+
+			RCVT_VTFORMAT vtfFormat = RendererCvt_AvAttrToVtFormat(AvAttribute_Background);
+			RCVT_VTFORMAT_UPDATEREQUEST vtfurRequest = {
+				.bForeground = true,
+				.bBackground = true,
+				.bBold       = false,
+				.bUnderline  = false,
+				.bNegative   = false,
+				.bText       = false
+			};
+
+			RendererCvt_UpdateCellCache(
+				(RCVT_COORD){ TargetConsoleCol, (int16_t)i },
+				vtfurRequest,
+				vtfFormat,
+				NULL,
+				0
+			);
+
+			vtfurRequest.bText = true;
+			Length += RendererCvt_GenerateVtSequence(
+				false,
+				NULL,
+				vtfurRequest,
+				&RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol]
+			);
+
+		}
+
+		for (i; i < RendererCvt_coordBufferSize.Y; ++i) {
+
+			Length += RendererCvt_i16toa(false, (int16_t)TargetConsoleCol + 1, NULL);
+			Length += RendererCvt_i16toa(false, (int16_t)i + 1, NULL);
+
+			RCVT_VTFORMAT vtfFormat = RendererCvt_AvAttrToVtFormat(TargetAttr);
+			RCVT_VTFORMAT_UPDATEREQUEST vtfurRequest = {
+				.bForeground = true,
+				.bBackground = true,
+				.bBold       = false,
+				.bUnderline  = false,
+				.bNegative   = false,
+				.bText       = false
+			};
+		
+			RendererCvt_UpdateCellCache(
+				(RCVT_COORD){ TargetConsoleCol, (int16_t)i },
+				vtfurRequest,
+				vtfFormat,
+				NULL,
+				0
+			);
+
+			vtfurRequest.bText = true;
+			Length += RendererCvt_GenerateVtSequence(
+				false,
+				NULL,
+				vtfurRequest,
+				&RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol]
+			);
+
+		}
+	}
+
+	// Generate VT sequence
+
+	char* sBuffer = malloc_guarded((Length + ((size_t)6 * RendererCvt_coordBufferSize.Y)) * sizeof(char));
+	char* pBufferCurrent = sBuffer;
+
 	intptr_t i = 0;
 	for (i; i < (intptr_t)(RendererCvt_coordBufferSize.Y - FloorHeight); ++i) {
 
 		// Change horizontal pos
 
-		*pBufferCurrent++ = '\x1B';
-		*pBufferCurrent++ = '[';
-
-		// Max length of each number is 6 because -32768
-		pBufferCurrent = RendererCvt_i16toa((int16_t)TargetConsoleCol + 1, pBufferCurrent);
-
-		*pBufferCurrent++ = 'G';
+		*pBufferCurrent++ = '\x1B'; // +1
+		*pBufferCurrent++ = '['; // +1
+		pBufferCurrent += RendererCvt_i16toa(true, (int16_t)TargetConsoleCol + 1, pBufferCurrent);
+		*pBufferCurrent++ = 'G'; // +1
 
 		// Change vertical pos
 
-		*pBufferCurrent++ = '\x1B';
-		*pBufferCurrent++ = '[';
-
-		pBufferCurrent = RendererCvt_i16toa((int16_t)i + 1, pBufferCurrent);
-
-		*pBufferCurrent++ = 'd';
+		*pBufferCurrent++ = '\x1B'; // +1
+		*pBufferCurrent++ = '['; // +1
+		pBufferCurrent += RendererCvt_i16toa(true, (int16_t)i + 1, pBufferCurrent);
+		*pBufferCurrent++ = 'd'; // +1
 
 		// Change text color
 
-		RCVT_VTFORMAT vtfFormat = RendererCvt_AvAttrToVtFormat(AvAttribute_Background);
 		RCVT_VTFORMAT_UPDATEREQUEST vtfurRequest = {
 			.bForeground = true,
 			.bBackground = true,
@@ -535,49 +634,35 @@ void RendererCvt_UpdateItem(
 			.bText       = false
 		};
 
-		RendererCvt_UpdateCellCache(
-			(RCVT_COORD){ TargetConsoleCol, (int16_t)i },
-			vtfurRequest,
-			vtfFormat,
-			NULL,
-			0
-		);
-
 		vtfurRequest.bText = true;
-		pBufferCurrent = RendererCvt_GenerateVtSequence(
+		pBufferCurrent += RendererCvt_GenerateVtSequence(
+			true,
 			pBufferCurrent,
 			vtfurRequest,
 			&RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol]
+			// Cache is already updated so vtfFormat is.
 		);
 
 	}
-
-	// Fill used cells
 
 	for (i; i < RendererCvt_coordBufferSize.Y; ++i) {
 
 		// Change horizontal pos
 
-		*pBufferCurrent++ = '\x1B';
-		*pBufferCurrent++ = '[';
-
-		// Max length of each number is 6 because "32767\0"
-		pBufferCurrent = RendererCvt_i16toa((int16_t)TargetConsoleCol + 1, pBufferCurrent);
-
-		*pBufferCurrent++ = 'G';
+		*pBufferCurrent++ = '\x1B'; // +1
+		*pBufferCurrent++ = '['; // +1
+		pBufferCurrent += RendererCvt_i16toa(true, (int16_t)TargetConsoleCol + 1, pBufferCurrent);
+		*pBufferCurrent++ = 'G'; // +1
 
 		// Change vertical pos
 
-		*pBufferCurrent++ = '\x1B';
-		*pBufferCurrent++ = '[';
-
-		pBufferCurrent = RendererCvt_i16toa((int16_t)i + 1, pBufferCurrent);
-
-		*pBufferCurrent++ = 'd';
+		*pBufferCurrent++ = '\x1B'; // +1
+		*pBufferCurrent++ = '['; // +1
+		pBufferCurrent += RendererCvt_i16toa(true, (int16_t)i + 1, pBufferCurrent);
+		*pBufferCurrent++ = 'd'; // +1
 
 		// Change text color
 
-		RCVT_VTFORMAT vtfFormat = RendererCvt_AvAttrToVtFormat(TargetAttr);
 		RCVT_VTFORMAT_UPDATEREQUEST vtfurRequest = {
 			.bForeground = true,
 			.bBackground = true,
@@ -586,20 +671,14 @@ void RendererCvt_UpdateItem(
 			.bNegative   = false,
 			.bText       = false
 		};
-		
-		RendererCvt_UpdateCellCache(
-			(RCVT_COORD){ TargetConsoleCol, (int16_t)i },
-			vtfurRequest,
-			vtfFormat,
-			NULL,
-			0
-		);
 
 		vtfurRequest.bText = true;
-		pBufferCurrent = RendererCvt_GenerateVtSequence(
+		pBufferCurrent += RendererCvt_GenerateVtSequence(
+			true,
 			pBufferCurrent,
 			vtfurRequest,
 			&RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol]
+			// Cache is already updated so vtfFormat is.
 		);
 
 	}
