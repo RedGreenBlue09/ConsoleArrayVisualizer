@@ -9,9 +9,6 @@
 typedef int32_t isort_t;
 typedef uint32_t usort_t;
 
-#define AV_MAX_ARRAY_COUNT   (16)
-#define AV_MAX_POINTER_COUNT (256)
-
 #define AV_RENDERER_UPDATEVALUE (0x01)
 #define AV_RENDERER_UPDATEATTR  (0x02)
 
@@ -29,26 +26,25 @@ typedef enum {
 
 typedef struct {
 
-	// Is the array ready for use
-	int32_t         bActive;
+	intptr_t        ArrayId;
 
-	// Size of arrays in term of elements
+	// Size of arrays in elements
 	intptr_t        Size;
 
-	// Tree
+	// Tree of AV_UNIQUEMARKER
 	// List of existing unique markers.
 	tree234*        ptreeUniqueMarker;
-	// Tree
+	// Tree of intptr_t
 	// Used to generate new id for unique markers.
 	// Contains the starting positions of empty chunk of ids.
 	tree234*        ptreeUniqueMarkerEmptyId;
-	// Array of trees (used as max heaps)
+	// Array of trees of AV_UNIQUEMARKER (used as max heaps)
 	// Used to deal with overlapping unique markers.
 	// The i'th position contains a list of markers
 	// pointing to i at the same time.
 	tree234**       aptreeUniqueMarkerMap;
 
-	// Tree
+	// Tree of AV_POINTER
 	// List of existing pointers.
 	tree234*        ptreePointer;
 
@@ -56,6 +52,7 @@ typedef struct {
 
 typedef struct {
 
+	intptr_t     ArrayId;
 	intptr_t     Size;
 	isort_t*     aArrayState;
 	AvAttribute* aAttribute;

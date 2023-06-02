@@ -11,7 +11,12 @@
 // Buffer stuff
 static HANDLE hAltBuffer = NULL;
 static CONSOLE_SCREEN_BUFFER_INFOEX csbiBufferCache = { 0 };
-static CHAR_INFO* aciBufferCache; // TODO: multi-byte (4+) text
+static CHAR_INFO* aciBufferCache;
+// Unicode support is not going to be added
+// as it's too slow with current limitations.
+// https://github.com/microsoft/terminal/discussions/13339
+// https://github.com/microsoft/terminal/issues/10810#issuecomment-897800855
+//
 
 // Console Attr
 // cmd "color /?" explains this very well.
@@ -36,10 +41,19 @@ typedef struct {
 
 } RCWC_ARRAYPROP;
 
-static RCWC_ARRAYPROP RendererCwc_aRcwcArrayProp[AV_MAX_ARRAY_COUNT];
-// TODO: Linked list to keep track of active (added) items.
+static tree234* RendererCwc_ptreeGlobalArrayProp; // tree of RCWC_ARRAYPROP_RENDERER
+
+static int RendererCwc_ArrayPropIdCmp(void* pA, void* pB) {
+	RCWC_ARRAYPROP* pvapA = pA;
+	RCWC_ARRAYPROP* pvapB = pB;
+	return (pvapA->vapr.ArrayId > pvapB->vapr.ArrayId) - (pvapA->vapr.ArrayId < pvapB->vapr.ArrayId);
+}
 
 void RendererCwc_Initialize() {
+
+	// Initialize RendererCwc_ptreeGlobalArrayProp
+
+	RendererCwc_ptreeGlobalArrayProp = newtree234(RendererCwc_ArrayPropIdCmp);
 
 	// New window style
 
@@ -112,6 +126,17 @@ void RendererCwc_Initialize() {
 
 void RendererCwc_Uninitialize() {
 
+	// Uninitialize RendererCwc_ptreeGlobalArrayProp
+
+	for (
+		RCWC_ARRAYPROP* prap = delpos234(RendererCwc_ptreeGlobalArrayProp, 0);
+		prap != NULL;
+		prap = delpos234(RendererCwc_ptreeGlobalArrayProp, 0)
+	) {
+		free(prap);
+	}
+	freetree234(RendererCwc_ptreeGlobalArrayProp);
+
 	// Free alternate buffer
 
 	SetConsoleActiveScreenBuffer(hOldBuffer);
@@ -131,21 +156,26 @@ void RendererCwc_Uninitialize() {
 
 void RendererCwc_AddArray(intptr_t ArrayId, intptr_t Size) {
 
-	RendererCwc_aRcwcArrayProp[ArrayId].vapr.Size = Size;
-	RendererCwc_aRcwcArrayProp[ArrayId].vapr.aArrayState = malloc_guarded(Size * sizeof(isort_t));
-	RendererCwc_aRcwcArrayProp[ArrayId].vapr.aAttribute = malloc_guarded(Size * sizeof(AvAttribute));
+	RCWC_ARRAYPROP* prapArrayProp = malloc_guarded(sizeof(RCWC_ARRAYPROP));
 
-	RendererCwc_aRcwcArrayProp[ArrayId].vapr.bVisible = FALSE;
-	RendererCwc_aRcwcArrayProp[ArrayId].vapr.ValueMin = 0;
-	RendererCwc_aRcwcArrayProp[ArrayId].vapr.ValueMax = 1;
+	prapArrayProp->vapr.ArrayId = ArrayId;
+	prapArrayProp->vapr.Size = Size;
 
-	// Initialize arrays
-
+	prapArrayProp->vapr.aArrayState = malloc_guarded(Size * sizeof(isort_t));
 	for (intptr_t i = 0; i < Size; ++i)
-		RendererCwc_aRcwcArrayProp[ArrayId].vapr.aArrayState[i] = 0;
+		prapArrayProp->vapr.aArrayState[i] = 0;
 
+	prapArrayProp->vapr.aAttribute = malloc_guarded(Size * sizeof(AvAttribute));
 	for (intptr_t i = 0; i < Size; ++i)
-		RendererCwc_aRcwcArrayProp[ArrayId].vapr.aAttribute[i] = AvAttribute_Normal;
+		prapArrayProp->vapr.aAttribute[i] = AvAttribute_Normal;
+
+	prapArrayProp->vapr.bVisible = false;
+	prapArrayProp->vapr.ValueMin = 0;
+	prapArrayProp->vapr.ValueMax = 1;
+
+	// Add to tree
+
+	add234(RendererCwc_ptreeGlobalArrayProp, prapArrayProp);
 
 	return;
 
@@ -153,17 +183,29 @@ void RendererCwc_AddArray(intptr_t ArrayId, intptr_t Size) {
 
 void RendererCwc_RemoveArray(intptr_t ArrayId) {
 
-	free(RendererCwc_aRcwcArrayProp[ArrayId].vapr.aAttribute);
-	free(RendererCwc_aRcwcArrayProp[ArrayId].vapr.aArrayState);
+	RCWC_ARRAYPROP rapFind = { .vapr.ArrayId = ArrayId };
+	RCWC_ARRAYPROP* prapArrayProp = find234(RendererCwc_ptreeGlobalArrayProp, &rapFind, NULL);
+
+	free(prapArrayProp->vapr.aAttribute);
+	free(prapArrayProp->vapr.aArrayState);
+
+	// Remove from tree
+
+	delpos234(RendererCwc_ptreeGlobalArrayProp, ArrayId);
+	free(prapArrayProp);
+
 	return;
 
 }
 
 void RendererCwc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArrayState, bool bVisible, isort_t ValueMin, isort_t ValueMax) {
-		
+
+	RCWC_ARRAYPROP rapFind = { .vapr.ArrayId = ArrayId };
+	RCWC_ARRAYPROP* prapArrayProp = find234(RendererCwc_ptreeGlobalArrayProp, &rapFind, NULL);
+
 	// Clear screen
 	
-	for (intptr_t i = 0; i < RendererCwc_aRcwcArrayProp[ArrayId].vapr.Size; ++i) {
+	for (intptr_t i = 0; i < prapArrayProp->vapr.Size; ++i) {
 
 		RendererCwc_UpdateItem(
 			ArrayId,
@@ -175,28 +217,28 @@ void RendererCwc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 
 	}
 
-	RendererCwc_aRcwcArrayProp[ArrayId].vapr.bVisible = bVisible;
-	RendererCwc_aRcwcArrayProp[ArrayId].vapr.ValueMin = ValueMin;
-	RendererCwc_aRcwcArrayProp[ArrayId].vapr.ValueMax = ValueMax;
+	prapArrayProp->vapr.bVisible = bVisible;
+	prapArrayProp->vapr.ValueMin = ValueMin;
+	prapArrayProp->vapr.ValueMax = ValueMax;
 
 	// Handle array resize
 
-	if ((NewSize > 0) && (NewSize != RendererCwc_aRcwcArrayProp[ArrayId].vapr.Size)) {
+	if ((NewSize > 0) && (NewSize != prapArrayProp->vapr.Size)) {
 
 		// Realloc arrays
 
 		isort_t* aResizedArrayState = realloc_guarded(
-			RendererCwc_aRcwcArrayProp[ArrayId].vapr.aArrayState,
+			prapArrayProp->vapr.aArrayState,
 			NewSize * sizeof(isort_t)
 		);
 
 		AvAttribute* aResizedAttribute = realloc_guarded(
-			RendererCwc_aRcwcArrayProp[ArrayId].vapr.aAttribute,
+			prapArrayProp->vapr.aAttribute,
 			NewSize * sizeof(AvAttribute)
 		);
 
 
-		intptr_t OldSize = RendererCwc_aRcwcArrayProp[ArrayId].vapr.Size;
+		intptr_t OldSize = prapArrayProp->vapr.Size;
 		intptr_t NewPartSize = NewSize - OldSize;
 
 		// Initialize the new part
@@ -207,15 +249,15 @@ void RendererCwc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 		for (intptr_t i = 0; i < NewPartSize; ++i)
 			aResizedAttribute[OldSize + i] = AvAttribute_Normal;
 
-		RendererCwc_aRcwcArrayProp[ArrayId].vapr.aArrayState = aResizedArrayState;
-		RendererCwc_aRcwcArrayProp[ArrayId].vapr.aAttribute = aResizedAttribute;
+		prapArrayProp->vapr.aArrayState = aResizedArrayState;
+		prapArrayProp->vapr.aAttribute = aResizedAttribute;
 
-		RendererCwc_aRcwcArrayProp[ArrayId].vapr.Size = NewSize;
+		prapArrayProp->vapr.Size = NewSize;
 
 	}
 
-	isort_t* aArrayState = RendererCwc_aRcwcArrayProp[ArrayId].vapr.aArrayState;
-	intptr_t Size = RendererCwc_aRcwcArrayProp[ArrayId].vapr.Size;
+	isort_t* aArrayState = prapArrayProp->vapr.aArrayState;
+	intptr_t Size = prapArrayProp->vapr.Size;
 
 	// Handle new array state
 
@@ -276,21 +318,24 @@ void RendererCwc_UpdateItem(
 	AvAttribute NewAttr
 ) {
 
+	RCWC_ARRAYPROP rapFind = { .vapr.ArrayId = ArrayId };
+	RCWC_ARRAYPROP* prapArrayProp = find234(RendererCwc_ptreeGlobalArrayProp, &rapFind, NULL);
+
 	// Choose the correct value & attribute
 
-	isort_t TargetValue = RendererCwc_aRcwcArrayProp[ArrayId].vapr.aArrayState[iPos];
+	isort_t TargetValue = prapArrayProp->vapr.aArrayState[iPos];
 	if (UpdateRequest & AV_RENDERER_UPDATEVALUE)
 		TargetValue = NewValue;
 
-	AvAttribute TargetAttr = RendererCwc_aRcwcArrayProp[ArrayId].vapr.aAttribute[iPos];
+	AvAttribute TargetAttr = prapArrayProp->vapr.aAttribute[iPos];
 	if (UpdateRequest & AV_RENDERER_UPDATEATTR)
 		TargetAttr = NewAttr;
 
-	RendererCwc_aRcwcArrayProp[ArrayId].vapr.aArrayState[iPos] = TargetValue;
-	RendererCwc_aRcwcArrayProp[ArrayId].vapr.aAttribute[iPos] = TargetAttr;
+	prapArrayProp->vapr.aArrayState[iPos] = TargetValue;
+	prapArrayProp->vapr.aAttribute[iPos] = TargetAttr;
 
-	isort_t ValueMin = RendererCwc_aRcwcArrayProp[ArrayId].vapr.ValueMin;
-	isort_t ValueMax = RendererCwc_aRcwcArrayProp[ArrayId].vapr.ValueMax;
+	isort_t ValueMin = prapArrayProp->vapr.ValueMin;
+	isort_t ValueMax = prapArrayProp->vapr.ValueMax;
 
 	TargetValue -= ValueMin;
 	ValueMax -= ValueMin; // Warning: Overflow
@@ -305,30 +350,6 @@ void RendererCwc_UpdateItem(
 
 	// Convert AvAttribute to windows console attribute
 	USHORT TargetWinConAttr = RendererCwc_AttrToConAttr(TargetAttr);
-
-	/*
-	// Fill the unused cells with background.
-
-	WinConsole_FillAttr(
-		hAltBuffer,
-		&csbiBufferCache,
-		ATTR_WINCON_BACKGROUND,
-		1,
-		csbiBufferCache.dwSize.Y - FloorHeight,
-		(COORD){ (SHORT)iPos, 0 }
-	);
-
-	// Fill the used cells with WinConAttr.
-
-	WinConsole_FillAttr(
-		hAltBuffer,
-		&csbiBufferCache,
-		WinConAttr,
-		1,
-		FloorHeight,
-		(COORD){ (SHORT)iPos, csbiBufferCache.dwSize.Y - FloorHeight }
-	);
-	*/
 
 	// Initialize aciNewCharCells & update buffer cache
 

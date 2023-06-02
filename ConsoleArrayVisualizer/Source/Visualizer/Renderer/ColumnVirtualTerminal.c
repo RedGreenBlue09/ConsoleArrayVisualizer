@@ -19,8 +19,13 @@ typedef struct {
 
 } RCVT_ARRAYPROP;
 
-static RCVT_ARRAYPROP RendererCvt_aRcvtArrayProp[AV_MAX_ARRAY_COUNT];
-// TODO: Linked list to keep track of active (added) items.
+static tree234* RendererCvt_ptreeGlobalArrayProp; // tree of RCVT_ARRAYPROP_RENDERER
+
+static int RendererCvt_ArrayPropIdCmp(void* pA, void* pB) {
+	RCVT_ARRAYPROP* pvapA = pA;
+	RCVT_ARRAYPROP* pvapB = pB;
+	return (pvapA->vapr.ArrayId > pvapB->vapr.ArrayId) - (pvapA->vapr.ArrayId < pvapB->vapr.ArrayId);
+}
 
 #ifdef _WIN32
 // To restore later
@@ -228,6 +233,10 @@ static void RendererCvt_UpdateCellCache(
 
 void RendererCvt_Initialize() {
 
+	// Initialize RendererCvt_ptreeGlobalArrayProp
+
+	RendererCvt_ptreeGlobalArrayProp = newtree234(RendererCvt_ArrayPropIdCmp);
+
 #ifdef _WIN32
 	// Enable virtual terminal on Windows.
 
@@ -337,6 +346,17 @@ void RendererCvt_Initialize() {
 
 void RendererCvt_Uninitialize() {
 
+	// Uninitialize RendererCvt_ptreeGlobalArrayProp
+
+	for (
+		RCVT_ARRAYPROP* prap = delpos234(RendererCvt_ptreeGlobalArrayProp, 0);
+		prap != NULL;
+		prap = delpos234(RendererCvt_ptreeGlobalArrayProp, 0)
+	) {
+		free(prap);
+	}
+	freetree234(RendererCvt_ptreeGlobalArrayProp);
+
 	// Main buffer
 
 	fwrite("\x1B[?1049l", 1, sizeof("\x1B[?1049l"), stdout);
@@ -355,29 +375,43 @@ void RendererCvt_Uninitialize() {
 
 void RendererCvt_AddArray(intptr_t ArrayId, intptr_t Size) {
 
-	RendererCvt_aRcvtArrayProp[ArrayId].vapr.Size = Size;
-	RendererCvt_aRcvtArrayProp[ArrayId].vapr.aArrayState = malloc_guarded(Size * sizeof(isort_t));
-	RendererCvt_aRcvtArrayProp[ArrayId].vapr.aAttribute = malloc_guarded(Size * sizeof(AvAttribute));
+	RCVT_ARRAYPROP* prapArrayProp = malloc_guarded(sizeof(RCVT_ARRAYPROP));
 
-	RendererCvt_aRcvtArrayProp[ArrayId].vapr.bVisible = FALSE;
-	RendererCvt_aRcvtArrayProp[ArrayId].vapr.ValueMin = 0;
-	RendererCvt_aRcvtArrayProp[ArrayId].vapr.ValueMax = 1;
+	prapArrayProp->vapr.ArrayId = ArrayId;
+	prapArrayProp->vapr.Size = Size;
 
-	// Initialize arrays
-
+	prapArrayProp->vapr.aArrayState = malloc_guarded(Size * sizeof(isort_t));
 	for (intptr_t i = 0; i < Size; ++i)
-		RendererCvt_aRcvtArrayProp[ArrayId].vapr.aArrayState[i] = 0;
+		prapArrayProp->vapr.aArrayState[i] = 0;
 
+	prapArrayProp->vapr.aAttribute = malloc_guarded(Size * sizeof(AvAttribute));
 	for (intptr_t i = 0; i < Size; ++i)
-		RendererCvt_aRcvtArrayProp[ArrayId].vapr.aAttribute[i] = AvAttribute_Normal;
+		prapArrayProp->vapr.aAttribute[i] = AvAttribute_Normal;
+
+	prapArrayProp->vapr.bVisible = false;
+	prapArrayProp->vapr.ValueMin = 0;
+	prapArrayProp->vapr.ValueMax = 1;
+
+	// Add to tree
+
+	add234(RendererCvt_ptreeGlobalArrayProp, prapArrayProp);
 
 	return;
 }
 
 void RendererCvt_RemoveArray(intptr_t ArrayId) {
 
-	free(RendererCvt_aRcvtArrayProp[ArrayId].vapr.aAttribute);
-	free(RendererCvt_aRcvtArrayProp[ArrayId].vapr.aArrayState);
+	RCVT_ARRAYPROP rapFind = { .vapr.ArrayId = ArrayId };
+	RCVT_ARRAYPROP* prapArrayProp = find234(RendererCvt_ptreeGlobalArrayProp, &rapFind, NULL);
+
+	free(prapArrayProp->vapr.aAttribute);
+	free(prapArrayProp->vapr.aArrayState);
+
+	// Remove from tree
+
+	delpos234(RendererCvt_ptreeGlobalArrayProp, ArrayId);
+	free(prapArrayProp);
+
 	return;
 
 }
@@ -391,9 +425,12 @@ void RendererCvt_UpdateArray(
 	isort_t ValueMax
 ) {
 
+	RCVT_ARRAYPROP rapFind = { .vapr.ArrayId = ArrayId };
+	RCVT_ARRAYPROP* prapArrayProp = find234(RendererCvt_ptreeGlobalArrayProp, &rapFind, NULL);
+	
 	// Clear screen
-
-	for (intptr_t i = 0; i < RendererCvt_aRcvtArrayProp[ArrayId].vapr.Size; ++i) {
+	
+	for (intptr_t i = 0; i < prapArrayProp->vapr.Size; ++i) {
 
 		RendererCvt_UpdateItem(
 			ArrayId,
@@ -405,28 +442,28 @@ void RendererCvt_UpdateArray(
 
 	}
 
-	RendererCvt_aRcvtArrayProp[ArrayId].vapr.bVisible = bVisible;
-	RendererCvt_aRcvtArrayProp[ArrayId].vapr.ValueMin = ValueMin;
-	RendererCvt_aRcvtArrayProp[ArrayId].vapr.ValueMax = ValueMax;
+	prapArrayProp->vapr.bVisible = bVisible;
+	prapArrayProp->vapr.ValueMin = ValueMin;
+	prapArrayProp->vapr.ValueMax = ValueMax;
 
 	// Handle array resize
 
-	if ((NewSize > 0) && (NewSize != RendererCvt_aRcvtArrayProp[ArrayId].vapr.Size)) {
+	if ((NewSize > 0) && (NewSize != prapArrayProp->vapr.Size)) {
 
 		// Realloc arrays
 
 		isort_t* aResizedArrayState = realloc_guarded(
-			RendererCvt_aRcvtArrayProp[ArrayId].vapr.aArrayState,
+			prapArrayProp->vapr.aArrayState,
 			NewSize * sizeof(isort_t)
 		);
 
 		AvAttribute* aResizedAttribute = realloc_guarded(
-			RendererCvt_aRcvtArrayProp[ArrayId].vapr.aAttribute,
+			prapArrayProp->vapr.aAttribute,
 			NewSize * sizeof(AvAttribute)
 		);
 
 
-		intptr_t OldSize = RendererCvt_aRcvtArrayProp[ArrayId].vapr.Size;
+		intptr_t OldSize = prapArrayProp->vapr.Size;
 		intptr_t NewPartSize = NewSize - OldSize;
 
 		// Initialize the new part
@@ -437,15 +474,15 @@ void RendererCvt_UpdateArray(
 		for (intptr_t i = 0; i < NewPartSize; ++i)
 			aResizedAttribute[OldSize + i] = AvAttribute_Normal;
 
-		RendererCvt_aRcvtArrayProp[ArrayId].vapr.aArrayState = aResizedArrayState;
-		RendererCvt_aRcvtArrayProp[ArrayId].vapr.aAttribute = aResizedAttribute;
+		prapArrayProp->vapr.aArrayState = aResizedArrayState;
+		prapArrayProp->vapr.aAttribute = aResizedAttribute;
 
-		RendererCvt_aRcvtArrayProp[ArrayId].vapr.Size = NewSize;
+		prapArrayProp->vapr.Size = NewSize;
 
 	}
 
-	isort_t* aArrayState = RendererCvt_aRcvtArrayProp[ArrayId].vapr.aArrayState;
-	intptr_t Size = RendererCvt_aRcvtArrayProp[ArrayId].vapr.Size;
+	isort_t* aArrayState = prapArrayProp->vapr.aArrayState;
+	intptr_t Size = prapArrayProp->vapr.Size;
 
 	// Handle new array state
 
@@ -468,8 +505,7 @@ void RendererCvt_UpdateArray(
 			);
 		}
 
-	}
-	else {
+	} else {
 
 		for (intptr_t i = 0; i < Size; ++i) {
 			RendererCvt_UpdateItem(
@@ -495,21 +531,24 @@ void RendererCvt_UpdateItem(
 	AvAttribute NewAttr
 ) {
 
+	RCVT_ARRAYPROP rapFind = { .vapr.ArrayId = ArrayId };
+	RCVT_ARRAYPROP* prapArrayProp = find234(RendererCvt_ptreeGlobalArrayProp, &rapFind, NULL);
+
 	// Choose the correct value & attribute
 
-	isort_t TargetValue = RendererCvt_aRcvtArrayProp[ArrayId].vapr.aArrayState[iPos];
+	isort_t TargetValue = prapArrayProp->vapr.aArrayState[iPos];
 	if (UpdateRequest & AV_RENDERER_UPDATEVALUE)
 		TargetValue = NewValue;
 
-	AvAttribute TargetAttr = RendererCvt_aRcvtArrayProp[ArrayId].vapr.aAttribute[iPos];
+	AvAttribute TargetAttr = prapArrayProp->vapr.aAttribute[iPos];
 	if (UpdateRequest & AV_RENDERER_UPDATEATTR)
 		TargetAttr = NewAttr;
 
-	RendererCvt_aRcvtArrayProp[ArrayId].vapr.aArrayState[iPos] = TargetValue;
-	RendererCvt_aRcvtArrayProp[ArrayId].vapr.aAttribute[iPos] = TargetAttr;
+	prapArrayProp->vapr.aArrayState[iPos] = TargetValue;
+	prapArrayProp->vapr.aAttribute[iPos] = TargetAttr;
 
-	isort_t ValueMin = RendererCvt_aRcvtArrayProp[ArrayId].vapr.ValueMin;
-	isort_t ValueMax = RendererCvt_aRcvtArrayProp[ArrayId].vapr.ValueMax;
+	isort_t ValueMin = prapArrayProp->vapr.ValueMin;
+	isort_t ValueMax = prapArrayProp->vapr.ValueMax;
 
 	TargetValue -= ValueMin;
 	ValueMax -= ValueMin; // Warning: Overflow
