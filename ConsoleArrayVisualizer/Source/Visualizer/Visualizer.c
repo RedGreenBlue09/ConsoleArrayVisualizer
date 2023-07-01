@@ -63,6 +63,17 @@ void Visualizer_Initialize() {
 
 	Visualizer_vreRendererEntry.UpdateItem   = RendererCwc_UpdateItem;
 
+	/*
+	*/
+	Visualizer_vreRendererEntry.Initialize   = RendererCvt_Initialize;
+	Visualizer_vreRendererEntry.Uninitialize = RendererCvt_Uninitialize;
+
+	Visualizer_vreRendererEntry.AddArray     = RendererCvt_AddArray;
+	Visualizer_vreRendererEntry.RemoveArray  = RendererCvt_RemoveArray;
+	Visualizer_vreRendererEntry.UpdateArray  = RendererCvt_UpdateArray;
+
+	Visualizer_vreRendererEntry.UpdateItem   = RendererCvt_UpdateItem;
+
 	// Call renderer
 
 	Visualizer_vreRendererEntry.Initialize();
@@ -421,7 +432,6 @@ intptr_t Visualizer_RemoveUniqueMarker(
 		// Decrement that empty chunk to this marker id
 		intptr_t* pumNext = find234(ptreeUniqueMarkerEmptyId, &NextId, NULL);
 		(*pumNext) -= 1;
-
 
 		if (MarkerId == AV_UNIQUEMARKER_FIRST_ID) {
 

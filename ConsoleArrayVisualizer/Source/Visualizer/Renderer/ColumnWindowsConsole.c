@@ -35,7 +35,7 @@ static LONG_PTR OldWindowStyle = 0;
 // Array
 typedef struct {
 
-	AV_ARRAYPROP_RENDERER vapr;
+	AV_ARRAYPROP_RENDERER;
 
 	// TODO: Horizontal scaling
 
@@ -46,7 +46,7 @@ static tree234* RendererCwc_ptreeGlobalArrayProp; // tree of RCWC_ARRAYPROP_REND
 static int RendererCwc_ArrayPropIdCmp(void* pA, void* pB) {
 	RCWC_ARRAYPROP* pvapA = pA;
 	RCWC_ARRAYPROP* pvapB = pB;
-	return (pvapA->vapr.ArrayId > pvapB->vapr.ArrayId) - (pvapA->vapr.ArrayId < pvapB->vapr.ArrayId);
+	return (pvapA->ArrayId > pvapB->ArrayId) - (pvapA->ArrayId < pvapB->ArrayId);
 }
 
 void RendererCwc_Initialize() {
@@ -75,7 +75,6 @@ void RendererCwc_Initialize() {
 	);
 
 	// New buffer
-
 	hAltBuffer = CreateConsoleScreenBuffer(
 		GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -158,20 +157,20 @@ void RendererCwc_AddArray(intptr_t ArrayId, intptr_t Size) {
 
 	RCWC_ARRAYPROP* prapArrayProp = malloc_guarded(sizeof(RCWC_ARRAYPROP));
 
-	prapArrayProp->vapr.ArrayId = ArrayId;
-	prapArrayProp->vapr.Size = Size;
+	prapArrayProp->ArrayId = ArrayId;
+	prapArrayProp->Size = Size;
 
-	prapArrayProp->vapr.aArrayState = malloc_guarded(Size * sizeof(isort_t));
+	prapArrayProp->aArrayState = malloc_guarded(Size * sizeof(isort_t));
 	for (intptr_t i = 0; i < Size; ++i)
-		prapArrayProp->vapr.aArrayState[i] = 0;
+		prapArrayProp->aArrayState[i] = 0;
 
-	prapArrayProp->vapr.aAttribute = malloc_guarded(Size * sizeof(AvAttribute));
+	prapArrayProp->aAttribute = malloc_guarded(Size * sizeof(AvAttribute));
 	for (intptr_t i = 0; i < Size; ++i)
-		prapArrayProp->vapr.aAttribute[i] = AvAttribute_Normal;
+		prapArrayProp->aAttribute[i] = AvAttribute_Normal;
 
-	prapArrayProp->vapr.bVisible = false;
-	prapArrayProp->vapr.ValueMin = 0;
-	prapArrayProp->vapr.ValueMax = 1;
+	prapArrayProp->bVisible = false;
+	prapArrayProp->ValueMin = 0;
+	prapArrayProp->ValueMax = 1;
 
 	// Add to tree
 
@@ -183,11 +182,11 @@ void RendererCwc_AddArray(intptr_t ArrayId, intptr_t Size) {
 
 void RendererCwc_RemoveArray(intptr_t ArrayId) {
 
-	RCWC_ARRAYPROP rapFind = { .vapr.ArrayId = ArrayId };
+	RCWC_ARRAYPROP rapFind = { .ArrayId = ArrayId };
 	RCWC_ARRAYPROP* prapArrayProp = find234(RendererCwc_ptreeGlobalArrayProp, &rapFind, NULL);
 
-	free(prapArrayProp->vapr.aAttribute);
-	free(prapArrayProp->vapr.aArrayState);
+	free(prapArrayProp->aAttribute);
+	free(prapArrayProp->aArrayState);
 
 	// Remove from tree
 
@@ -200,12 +199,12 @@ void RendererCwc_RemoveArray(intptr_t ArrayId) {
 
 void RendererCwc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArrayState, bool bVisible, isort_t ValueMin, isort_t ValueMax) {
 
-	RCWC_ARRAYPROP rapFind = { .vapr.ArrayId = ArrayId };
+	RCWC_ARRAYPROP rapFind = { .ArrayId = ArrayId };
 	RCWC_ARRAYPROP* prapArrayProp = find234(RendererCwc_ptreeGlobalArrayProp, &rapFind, NULL);
 
 	// Clear screen
 	
-	for (intptr_t i = 0; i < prapArrayProp->vapr.Size; ++i) {
+	for (intptr_t i = 0; i < prapArrayProp->Size; ++i) {
 
 		RendererCwc_UpdateItem(
 			ArrayId,
@@ -217,28 +216,28 @@ void RendererCwc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 
 	}
 
-	prapArrayProp->vapr.bVisible = bVisible;
-	prapArrayProp->vapr.ValueMin = ValueMin;
-	prapArrayProp->vapr.ValueMax = ValueMax;
+	prapArrayProp->bVisible = bVisible;
+	prapArrayProp->ValueMin = ValueMin;
+	prapArrayProp->ValueMax = ValueMax;
 
 	// Handle array resize
 
-	if ((NewSize > 0) && (NewSize != prapArrayProp->vapr.Size)) {
+	if ((NewSize > 0) && (NewSize != prapArrayProp->Size)) {
 
 		// Realloc arrays
 
 		isort_t* aResizedArrayState = realloc_guarded(
-			prapArrayProp->vapr.aArrayState,
+			prapArrayProp->aArrayState,
 			NewSize * sizeof(isort_t)
 		);
 
 		AvAttribute* aResizedAttribute = realloc_guarded(
-			prapArrayProp->vapr.aAttribute,
+			prapArrayProp->aAttribute,
 			NewSize * sizeof(AvAttribute)
 		);
 
 
-		intptr_t OldSize = prapArrayProp->vapr.Size;
+		intptr_t OldSize = prapArrayProp->Size;
 		intptr_t NewPartSize = NewSize - OldSize;
 
 		// Initialize the new part
@@ -249,15 +248,15 @@ void RendererCwc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 		for (intptr_t i = 0; i < NewPartSize; ++i)
 			aResizedAttribute[OldSize + i] = AvAttribute_Normal;
 
-		prapArrayProp->vapr.aArrayState = aResizedArrayState;
-		prapArrayProp->vapr.aAttribute = aResizedAttribute;
+		prapArrayProp->aArrayState = aResizedArrayState;
+		prapArrayProp->aAttribute = aResizedAttribute;
 
-		prapArrayProp->vapr.Size = NewSize;
+		prapArrayProp->Size = NewSize;
 
 	}
 
-	isort_t* aArrayState = prapArrayProp->vapr.aArrayState;
-	intptr_t Size = prapArrayProp->vapr.Size;
+	isort_t* aArrayState = prapArrayProp->aArrayState;
+	intptr_t Size = prapArrayProp->Size;
 
 	// Handle new array state
 
@@ -318,24 +317,24 @@ void RendererCwc_UpdateItem(
 	AvAttribute NewAttr
 ) {
 
-	RCWC_ARRAYPROP rapFind = { .vapr.ArrayId = ArrayId };
+	RCWC_ARRAYPROP rapFind = { .ArrayId = ArrayId };
 	RCWC_ARRAYPROP* prapArrayProp = find234(RendererCwc_ptreeGlobalArrayProp, &rapFind, NULL);
 
 	// Choose the correct value & attribute
 
-	isort_t TargetValue = prapArrayProp->vapr.aArrayState[iPos];
+	isort_t TargetValue = prapArrayProp->aArrayState[iPos];
 	if (UpdateRequest & AV_RENDERER_UPDATEVALUE)
 		TargetValue = NewValue;
 
-	AvAttribute TargetAttr = prapArrayProp->vapr.aAttribute[iPos];
+	AvAttribute TargetAttr = prapArrayProp->aAttribute[iPos];
 	if (UpdateRequest & AV_RENDERER_UPDATEATTR)
 		TargetAttr = NewAttr;
 
-	prapArrayProp->vapr.aArrayState[iPos] = TargetValue;
-	prapArrayProp->vapr.aAttribute[iPos] = TargetAttr;
+	prapArrayProp->aArrayState[iPos] = TargetValue;
+	prapArrayProp->aAttribute[iPos] = TargetAttr;
 
-	isort_t ValueMin = prapArrayProp->vapr.ValueMin;
-	isort_t ValueMax = prapArrayProp->vapr.ValueMax;
+	isort_t ValueMin = prapArrayProp->ValueMin;
+	isort_t ValueMax = prapArrayProp->ValueMax;
 
 	TargetValue -= ValueMin;
 	ValueMax -= ValueMin; // Warning: Overflow
