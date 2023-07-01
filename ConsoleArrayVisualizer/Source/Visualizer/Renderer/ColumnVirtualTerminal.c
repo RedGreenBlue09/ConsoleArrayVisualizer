@@ -420,79 +420,42 @@ void RendererCvt_UpdateItem(
 	if (TargetConsoleCol >= RendererCvt_coordBufferSize.X)
 		TargetConsoleCol = RendererCvt_coordBufferSize.X - 1;
 
-	// Count (copy & patse code) & update cache at the same time
-
-	const char strFormat[] = "\x1b[%"PRIi16"G\x1b[%"PRIi16"d\x1b[%"PRIu8";%"PRIu8"m%s";
-	intptr_t Length = 0;
 	{
+		// Update cell cache
+
 		intptr_t i = 0;
 		for (i; i < (intptr_t)(RendererCvt_coordBufferSize.Y - FloorHeight); ++i) {
 
 			RCVT_VTFORMAT vtfFormat = RendererCvt_AvAttrToVtFormat(AvAttribute_Background);
-
-			// Update cell cache
-
 			RCVT_BUFFER_CELL* pbcCell = &RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol];
 			pbcCell->vtfFormat.sgrForeground = vtfFormat.sgrForeground;
 			pbcCell->vtfFormat.sgrBackground = vtfFormat.sgrBackground;
-
-			// Count
-
-			Length += (intptr_t)snprintf(
-				NULL,
-				0,
-				strFormat,
-				(int16_t)TargetConsoleCol + 1,
-				(int16_t)i + 1,
-				pbcCell->vtfFormat.sgrForeground,
-				pbcCell->vtfFormat.sgrBackground,
-				RendererCvt_GetCellCacheChar(pbcCell)
-			);
 
 		}
 
 		for (i; i < RendererCvt_coordBufferSize.Y; ++i) {
 
 			RCVT_VTFORMAT vtfFormat = RendererCvt_AvAttrToVtFormat(TargetAttr);
-
-			// Update cell cache
-
 			RCVT_BUFFER_CELL* pbcCell = &RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol];
 			pbcCell->vtfFormat.sgrForeground = vtfFormat.sgrForeground;
 			pbcCell->vtfFormat.sgrBackground = vtfFormat.sgrBackground;
 
-			// Count
-
-			Length += (intptr_t)snprintf(
-				NULL,
-				0,
-				strFormat,
-				(int16_t)TargetConsoleCol + 1,
-				(int16_t)i + 1,
-				pbcCell->vtfFormat.sgrForeground,
-				pbcCell->vtfFormat.sgrBackground,
-				RendererCvt_GetCellCacheChar(pbcCell)
-			);
-
 		}
+
 	}
-	Length += 1; // '\0'
 
-	// Write to buffer
+	// Count
 
-	char* strBuffer = malloc_guarded(Length * sizeof(char));
+	const char strFormat[] = "\x1b[%"PRIi16"G\x1b[%"PRIi16"d\x1b[%"PRIu8";%"PRIu8"m%s";
+	intptr_t Length = 0;
 
-	intptr_t LengthCurrent = Length;
-	char* strBufferCurrent = strBuffer;
+	for (intptr_t i = 0; i < RendererCvt_coordBufferSize.Y; ++i) {
 
-	intptr_t i = 0;
-	for (i; i < (intptr_t)(RendererCvt_coordBufferSize.Y - FloorHeight); ++i) {
-		
 		RCVT_BUFFER_CELL* pbcCell = &RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol];
-		char* pch = RendererCvt_GetCellCacheChar(pbcCell);
-		int Written = sprintf_s(
-			strBufferCurrent,
-			LengthCurrent,
+
+		Length += (intptr_t)snprintf(
+			NULL,
+			0,
 			strFormat,
 			(int16_t)TargetConsoleCol + 1,
 			(int16_t)i + 1,
@@ -500,14 +463,20 @@ void RendererCvt_UpdateItem(
 			pbcCell->vtfFormat.sgrBackground,
 			RendererCvt_GetCellCacheChar(pbcCell)
 		);
-		strBufferCurrent += Written;
-		LengthCurrent -= Written;
 
 	}
+	Length += 1; // '\0'
 
-	for (i; i < RendererCvt_coordBufferSize.Y; ++i) {
+	// Write to buffer
 
+	char* strBuffer = malloc_guarded(Length * sizeof(char));
+	char* strBufferCurrent = strBuffer;
+	intptr_t LengthCurrent = Length;
+
+	for (intptr_t i = 0; i < RendererCvt_coordBufferSize.Y; ++i) {
+		
 		RCVT_BUFFER_CELL* pbcCell = &RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol];
+
 		int Written = sprintf_s(
 			strBufferCurrent,
 			LengthCurrent,
