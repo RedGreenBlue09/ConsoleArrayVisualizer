@@ -41,10 +41,10 @@ typedef struct {
 
 	uint8_t sgrForeground : 8; // SGR
 	uint8_t sgrBackground : 8; // SGR
-	bool bBold         : 4; // ON / OFF
-	bool bUnderline    : 4; // ON / OFF
-	bool bNegative     : 4; // ON / OFF
-	bool bMbChar       : 4; // YES / NO
+	bool bBold         : 1; // ON / OFF
+	bool bUnderline    : 1; // ON / OFF
+	bool bNegative     : 1; // ON / OFF
+	bool bMbChar       : 1; // YES / NO
 
 	// MbText is only used when updating text and is handled by *CellCacheChar() functions.
 	// https://devblogs.microsoft.com/commandline/windows-command-line-unicode-and-utf-8-output-text-buffer/
@@ -131,8 +131,6 @@ void RendererCvt_Initialize() {
 	fwrite("\x1B[?1049h", 1, sizeof("\x1B[?1049h"), stdout);
 
 	// Get buffer size
-	RendererCvt_coordBufferSize.X = 120;
-	RendererCvt_coordBufferSize.Y = 30;
 	{
 
 		// Move to largest posible position
@@ -172,7 +170,7 @@ void RendererCvt_Initialize() {
 
 		RCVT_BUFFER_CELL bcCell = {
 			.strCharacter = { ' ', '\0', '\0', '\0' },
-			RendererCvt_AvAttrToVtFormat(AvAttribute_Background)
+			.vtfFormat = RendererCvt_AvAttrToVtFormat(AvAttribute_Background)
 		};
 
 		// Update cell cache
@@ -423,8 +421,8 @@ void RendererCvt_UpdateItem(
 	{
 		// Update cell cache
 
-		intptr_t i = 0;
-		for (i; i < (intptr_t)(RendererCvt_coordBufferSize.Y - FloorHeight); ++i) {
+		intptr_t i;
+		for (i = 0; i < (intptr_t)(RendererCvt_coordBufferSize.Y - FloorHeight); ++i) {
 
 			RCVT_VTFORMAT vtfFormat = RendererCvt_AvAttrToVtFormat(AvAttribute_Background);
 			RCVT_BUFFER_CELL* pbcCell = &RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol];

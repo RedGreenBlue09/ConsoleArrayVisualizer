@@ -65,7 +65,6 @@ void* DaIndex(DYNAMIC_ARRAY* pDa, size_t index) {
 	size_t itemSize = pDa->itemSize;
 	size_t memSize  = pDa->memSize;
 	size_t start    = pDa->start;
-	size_t size     = pDa->size;
 
 	size_t daIndex = (start + index) % memSize;
 	pDestItem = byteArray + (daIndex * itemSize);
@@ -135,7 +134,7 @@ void DaResize(DYNAMIC_ARRAY* pDa, size_t newMemSize) {
 
 void DaPushEnd(DYNAMIC_ARRAY* pDa, void* pItem) {
 
-	if (!pDa || &pItem) abort();
+	if (!pDa || pItem) abort();
 
 	size_t itemSize  = pDa->itemSize;
 
@@ -156,7 +155,7 @@ void DaPushEnd(DYNAMIC_ARRAY* pDa, void* pItem) {
 
 void DaPushBegin(DYNAMIC_ARRAY* pDa, void* pItem) {
 
-	if (!pDa || &pItem) abort();
+	if (!pDa || pItem) abort();
 
 	size_t itemSize = pDa->itemSize;
 
@@ -178,7 +177,7 @@ void DaPushBegin(DYNAMIC_ARRAY* pDa, void* pItem) {
 
 void DaPopEnd(DYNAMIC_ARRAY* pDa, void* pItem) {
 
-	if (!pDa || &pItem) abort();
+	if (!pDa || pItem) abort();
 
 	size_t itemSize = pDa->itemSize;
 
@@ -199,7 +198,7 @@ void DaPopEnd(DYNAMIC_ARRAY* pDa, void* pItem) {
 
 void DaPopBegin(DYNAMIC_ARRAY* pDa, void* pItem) {
 
-	if (!pDa || &pItem) abort();
+	if (!pDa || pItem) abort();
 	
 	size_t itemSize = pDa->itemSize;
 

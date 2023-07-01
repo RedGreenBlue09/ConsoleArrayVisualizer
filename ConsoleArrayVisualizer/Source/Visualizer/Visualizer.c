@@ -546,8 +546,6 @@ void Visualizer_UpdateRead2(intptr_t ArrayId, intptr_t iPosA, intptr_t iPosB, do
 	if (iPosA >= pvapArrayProp->Size || iPosA < 0) return;
 	if (iPosB >= pvapArrayProp->Size || iPosB < 0) return;
 
-	intptr_t Size = pvapArrayProp->Size;
-
 	intptr_t MarkerIdA = Visualizer_NewUniqueMarker(
 		ArrayId,
 		iPosA,
@@ -663,8 +661,6 @@ void Visualizer_UpdatePointer(intptr_t ArrayId, intptr_t PointerId, intptr_t iNe
 	AV_ARRAYPROP* pvapArrayProp = find234(Visualizer_ptreeGlobalArrayProp, &vapFind, NULL);
 	if (iNewPos >= pvapArrayProp->Size || iNewPos < 0) return;
 
-	intptr_t Size = pvapArrayProp->Size;
-
 	tree234* ptreePointer = pvapArrayProp->ptreePointer;
 
 	// Check if pointer is already exist.
@@ -702,9 +698,6 @@ void Visualizer_RemovePointer(intptr_t ArrayId, intptr_t PointerId) {
 
 	AV_ARRAYPROP vapFind = { .ArrayId = ArrayId };
 	AV_ARRAYPROP* pvapArrayProp = find234(Visualizer_ptreeGlobalArrayProp, &vapFind, NULL);
-
-	intptr_t Size = pvapArrayProp->Size;
-	//isort_t* aArrayState = pvapArrayProp->aArrayState;
 
 	tree234* ptreePointer = pvapArrayProp->ptreePointer;
 

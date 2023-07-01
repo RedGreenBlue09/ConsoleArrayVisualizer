@@ -54,5 +54,5 @@ void FlashSort          (isort_t* array, intptr_t n);
 
 // Sorts.c
 
-uintptr_t Sorts_nSort;
-SORT_INFO Sorts_aSortList[128];
+extern uintptr_t Sorts_nSort;
+extern SORT_INFO Sorts_aSortList[128];

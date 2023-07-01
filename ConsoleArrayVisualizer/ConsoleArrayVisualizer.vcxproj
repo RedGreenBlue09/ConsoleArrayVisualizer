@@ -192,6 +192,7 @@
       <EnableParallelCodeGeneration>
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -217,6 +218,7 @@
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -241,6 +243,7 @@
       <EnableParallelCodeGeneration>
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -266,6 +269,7 @@
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -291,6 +295,7 @@
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -317,6 +322,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
