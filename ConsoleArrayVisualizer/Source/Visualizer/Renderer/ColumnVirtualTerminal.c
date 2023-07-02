@@ -46,7 +46,7 @@ typedef struct {
 	bool bNegative     : 1; // ON / OFF
 	bool bMbChar       : 1; // YES / NO
 
-	// MbText is only used when updating text and is handled by *CellCacheChar() functions.
+	// MbText is used when updating text using *CellCacheChar() functions.
 	// https://devblogs.microsoft.com/commandline/windows-command-line-unicode-and-utf-8-output-text-buffer/
 
 } RCVT_VTFORMAT;

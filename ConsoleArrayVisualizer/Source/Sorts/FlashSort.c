@@ -105,7 +105,7 @@ void FS_flashSort(usort_t* array, intptr_t n) {
 			FS_flashSort(array + L[k], classSize);
 	}
 	free(L);
-	InsertionSort(array, n);
+	InsertionSort((isort_t*)array, n);
 
 }
 

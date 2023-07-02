@@ -64,7 +64,6 @@ void Visualizer_Initialize() {
 	Visualizer_vreRendererEntry.UpdateItem   = RendererCwc_UpdateItem;
 
 	/*
-	*/
 	Visualizer_vreRendererEntry.Initialize   = RendererCvt_Initialize;
 	Visualizer_vreRendererEntry.Uninitialize = RendererCvt_Uninitialize;
 
@@ -74,6 +73,7 @@ void Visualizer_Initialize() {
 
 	Visualizer_vreRendererEntry.UpdateItem   = RendererCvt_UpdateItem;
 
+	*/
 	// Call renderer
 
 	Visualizer_vreRendererEntry.Initialize();
