@@ -37,6 +37,7 @@
     <ClCompile Include="Source\Sorts\QuickSort.c" />
     <ClCompile Include="Source\Sorts\ShellSort.c" />
     <ClCompile Include="Source\Utils\DynamicArray.c" />
+    <ClCompile Include="Source\Utils\ResourceManager.c" />
     <ClCompile Include="Source\Utils\Time.c" />
     <ClCompile Include="Source\Utils\Random.c" />
     <ClCompile Include="Source\Utils\Tree234.c" />
@@ -48,6 +49,7 @@
     <ClInclude Include="Include\Utils\DynamicArray.h" />
     <ClInclude Include="Include\Utils\GuardedMalloc.h" />
     <ClInclude Include="Include\Utils\Random.h" />
+    <ClInclude Include="Include\Utils\ResourceManager.h" />
     <ClInclude Include="Include\Utils\Time.h" />
     <ClInclude Include="Include\Utils\Tree234.h" />
     <ClInclude Include="Include\Utils\PointerSize.h" />

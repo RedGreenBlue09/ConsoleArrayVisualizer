@@ -5,6 +5,7 @@
 
 #include "Utils/Tree234.h"
 #include "Utils/DynamicArray.h"
+#include "Utils/ResourceManager.h"
 
 typedef int32_t isort_t;
 typedef uint32_t usort_t;
@@ -26,33 +27,19 @@ typedef enum {
 
 typedef struct {
 
-	intptr_t        ArrayId;
-
-	// Size of arrays in elements
 	intptr_t        Size;
 
-	// Tree of AV_UNIQUEMARKER
-	// List of existing unique markers.
-	tree234*        ptreeUniqueMarker;
-	// Tree of intptr_t
-	// Used to generate new id for unique markers.
-	// Contains the starting positions of empty chunk of ids.
-	tree234*        ptreeUniqueMarkerEmptyId;
 	// Array of trees of AV_UNIQUEMARKER (used as max heaps)
 	// Used to deal with overlapping unique markers.
 	// The i'th position contains a list of markers
 	// pointing to i at the same time.
 	tree234**       aptreeUniqueMarkerMap;
 
-	// Tree of AV_POINTER
-	// List of existing pointers.
-	tree234*        ptreePointer;
-
 } AV_ARRAYPROP;
 
 typedef struct {
 
-	intptr_t     ArrayId;
+	handle_t     hHandle;
 	intptr_t     Size;
 	isort_t*     aArrayState;
 	AvAttribute* aAttribute;
@@ -155,10 +142,18 @@ void Visualizer_UpdateWrite2(
 void Visualizer_UpdatePointer(
 	intptr_t ArrayId,
 	intptr_t PointerId,
-	intptr_t iNewPos,
-	double fSleepMultiplier
+	intptr_t iNewPos
 );
 void Visualizer_RemovePointer(
+	intptr_t ArrayId,
+	intptr_t PointerId
+);
+intptr_t Visualizer_UpdatePointerAuto(
+	intptr_t ArrayId,
+	intptr_t PointerId,
+	intptr_t iNewPos
+);
+void Visualizer_RemovePointerAuto(
 	intptr_t ArrayId,
 	intptr_t PointerId
 );
@@ -177,8 +172,10 @@ void Visualizer_RemovePointer(
 #define Visualizer_UpdateWrite(A, B, C, D)
 #define Visualizer_UpdateWrite2(A, B, C, D, E, F)
 #define Visualizer_UpdateSwap(A, B, C, D)
-#define Visualizer_UpdatePointer(A, B, C, D)
+#define Visualizer_UpdatePointer(A, B, C)
 #define Visualizer_RemovePointer(A, B)
+#define Visualizer_UpdatePointerAuto(A, B, C)
+#define Visualizer_RemovePointerAuto(A, B)
 
 #endif
 

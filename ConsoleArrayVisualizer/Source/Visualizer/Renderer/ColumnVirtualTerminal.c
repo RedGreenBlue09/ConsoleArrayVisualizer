@@ -85,18 +85,24 @@ static void RendererCvt_UpdateCellCacheChar(
 	intptr_t nChars
 ) {
 	if (nChars > 3) {
+
 		if (pbcCell->vtfFormat.bMbChar)
 			pbcCell->strMbCharacter = realloc_guarded(pbcCell->strMbCharacter, (nChars + 1) * sizeof(char));
 		else
 			pbcCell->strMbCharacter = malloc_guarded((nChars + 1) * sizeof(char));
+
 		memcpy(pbcCell->strMbCharacter, strCharacter, nChars * sizeof(char));
 		pbcCell->strMbCharacter[nChars] = '\0';
+
 	} else {
+
 		if (pbcCell->vtfFormat.bMbChar)
 			free(pbcCell->strMbCharacter);
+
 		for (intptr_t i = 0; i < nChars; ++i)
 			pbcCell->strCharacter[i] = strCharacter[i];
 		strCharacter[nChars] = '\0';
+
 	}
 	return;
 }

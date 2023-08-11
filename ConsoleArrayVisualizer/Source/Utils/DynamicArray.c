@@ -19,15 +19,15 @@
 #include "Utils/GuardedMalloc.h"
 #include "Utils/DynamicArray.h"
 
-#define DA_INTIAL_SIZE 4
+#define DA_INITIAL_SIZE 16
 
 void DaCreate(DYNAMIC_ARRAY* pDa, size_t itemSize) {
 
 	if (!pDa) abort();
 
-	pDa->array     = malloc_guarded(DA_INTIAL_SIZE * itemSize);
+	pDa->array     = malloc_guarded(DA_INITIAL_SIZE * itemSize);
 	pDa->itemSize  = itemSize;
-	pDa->memSize   = DA_INTIAL_SIZE;
+	pDa->memSize   = DA_INITIAL_SIZE;
 	pDa->start     = 0;
 	pDa->size      = 0;
 
@@ -134,7 +134,7 @@ void DaResize(DYNAMIC_ARRAY* pDa, size_t newMemSize) {
 
 void DaPushEnd(DYNAMIC_ARRAY* pDa, void* pItem) {
 
-	if (!pDa || pItem) abort();
+	if (!pDa || !pItem) abort();
 
 	size_t itemSize  = pDa->itemSize;
 
@@ -155,7 +155,7 @@ void DaPushEnd(DYNAMIC_ARRAY* pDa, void* pItem) {
 
 void DaPushBegin(DYNAMIC_ARRAY* pDa, void* pItem) {
 
-	if (!pDa || pItem) abort();
+	if (!pDa || !pItem) abort();
 
 	size_t itemSize = pDa->itemSize;
 
@@ -177,7 +177,7 @@ void DaPushBegin(DYNAMIC_ARRAY* pDa, void* pItem) {
 
 void DaPopEnd(DYNAMIC_ARRAY* pDa, void* pItem) {
 
-	if (!pDa || pItem) abort();
+	if (!pDa || !pItem) abort();
 
 	size_t itemSize = pDa->itemSize;
 
@@ -190,7 +190,7 @@ void DaPopEnd(DYNAMIC_ARRAY* pDa, void* pItem) {
 
 	pDa->size -= 1;
 
-	if ((pDa->memSize >= DA_INTIAL_SIZE * 2) && (pDa->size < pDa->memSize / 4))
+	if ((pDa->memSize >= DA_INITIAL_SIZE * 2) && (pDa->size < pDa->memSize / 4))
 		DaResize(pDa, pDa->memSize / 2);
 
 	return;
@@ -198,7 +198,7 @@ void DaPopEnd(DYNAMIC_ARRAY* pDa, void* pItem) {
 
 void DaPopBegin(DYNAMIC_ARRAY* pDa, void* pItem) {
 
-	if (!pDa || pItem) abort();
+	if (!pDa || !pItem) abort();
 	
 	size_t itemSize = pDa->itemSize;
 
@@ -209,7 +209,7 @@ void DaPopBegin(DYNAMIC_ARRAY* pDa, void* pItem) {
 		itemSize
 	);
 
-	if ((pDa->memSize >= DA_INTIAL_SIZE * 2) && (pDa->size < pDa->memSize / 4))
+	if ((pDa->memSize >= DA_INITIAL_SIZE * 2) && (pDa->size < pDa->memSize / 4))
 		DaResize(pDa, pDa->memSize / 2);
 
 	pDa->start = popIndex;

@@ -18,7 +18,7 @@ begin:
 	pivot = array[low + (high - low + 1) / 2];
 	left = low;
 	right = high;
-	Visualizer_UpdatePointer(0, 0, low + (high - low + 1) / 2, 0.0);
+	Visualizer_UpdatePointer(0, 0, low + (high - low + 1) / 2);
 
 	while (left <= right) {
 		while (array[left] < pivot) {

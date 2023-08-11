@@ -84,6 +84,9 @@
     <ClCompile Include="Source\Visualizer\Renderer\ColumnVirtualTerminal.c">
       <Filter>Source Files\Visualizer\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Utils\ResourceManager.c">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Sorts.h">
@@ -115,6 +118,9 @@
     </ClInclude>
     <ClInclude Include="Include\Visualizer\Visualizer.h">
       <Filter>Header Files\Visualizer</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Utils\ResourceManager.h">
+      <Filter>Header Files\Utils</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
