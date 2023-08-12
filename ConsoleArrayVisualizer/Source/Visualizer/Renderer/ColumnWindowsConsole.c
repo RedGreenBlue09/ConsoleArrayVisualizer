@@ -35,25 +35,30 @@ static LONG_PTR OldWindowStyle = 0;
 // Array
 typedef struct {
 
-	AV_ARRAYPROP_RENDERER;
+	rm_handle_t     Handle;
+	intptr_t     Size;
+	isort_t* aState;
+	Visualizer_MarkerAttribute* aAttribute;
+
+	bool         bVisible;
+	isort_t      ValueMin;
+	isort_t      ValueMax;
 
 	// TODO: Horizontal scaling
 
-} RCWC_ARRAYPROP;
+} RendererCwc_ArrayProp;
 
-static tree234* RendererCwc_ptreeGlobalArrayProp; // tree of RCWC_ARRAYPROP_RENDERER
+static tree234* RendererCwc_ptreeArrayProp; // tree of RendererCwc_ArrayProp_RENDERER
 
-static int RendererCwc_ArrayPropIdCmp(void* pA, void* pB) {
-	RCWC_ARRAYPROP* pvapA = pA;
-	RCWC_ARRAYPROP* pvapB = pB;
-	return (pvapA->ArrayId > pvapB->ArrayId) - (pvapA->ArrayId < pvapB->ArrayId);
+static int RendererCwc_ArrayPropIdCmp(RendererCwc_ArrayProp* pA, RendererCwc_ArrayProp* pB) {
+	return (pA->Handle > pB->Handle) - (pA->Handle < pB->Handle);
 }
 
 void RendererCwc_Initialize() {
 
-	// Initialize RendererCwc_ptreeGlobalArrayProp
+	// Initialize RendererCwc_ptreeArrayProp
 
-	RendererCwc_ptreeGlobalArrayProp = newtree234(RendererCwc_ArrayPropIdCmp);
+	RendererCwc_ptreeArrayProp = newtree234(RendererCwc_ArrayPropIdCmp);
 
 	// New window style
 
@@ -125,16 +130,16 @@ void RendererCwc_Initialize() {
 
 void RendererCwc_Uninitialize() {
 
-	// Uninitialize RendererCwc_ptreeGlobalArrayProp
+	// Uninitialize RendererCwc_ptreeArrayProp
 
 	for (
-		RCWC_ARRAYPROP* prap = delpos234(RendererCwc_ptreeGlobalArrayProp, 0);
-		prap != NULL;
-		prap = delpos234(RendererCwc_ptreeGlobalArrayProp, 0)
+		RendererCwc_ArrayProp* p = delpos234(RendererCwc_ptreeArrayProp, 0);
+		p != NULL;
+		p = delpos234(RendererCwc_ptreeArrayProp, 0)
 	) {
-		free(prap);
+		free(p);
 	}
-	freetree234(RendererCwc_ptreeGlobalArrayProp);
+	freetree234(RendererCwc_ptreeArrayProp);
 
 	// Free alternate buffer
 
@@ -153,61 +158,68 @@ void RendererCwc_Uninitialize() {
 
 }
 
-void RendererCwc_AddArray(intptr_t ArrayId, intptr_t Size) {
+void RendererCwc_AddArray(rm_handle_t Handle, intptr_t Size) {
 
-	RCWC_ARRAYPROP* prapArrayProp = malloc_guarded(sizeof(RCWC_ARRAYPROP));
+	RendererCwc_ArrayProp* pArrayProp = malloc_guarded(sizeof(RendererCwc_ArrayProp));
 
-	prapArrayProp->ArrayId = ArrayId;
-	prapArrayProp->Size = Size;
+	pArrayProp->Handle = Handle;
+	pArrayProp->Size = Size;
 
-	prapArrayProp->aArrayState = malloc_guarded(Size * sizeof(isort_t));
+	pArrayProp->aState = malloc_guarded(Size * sizeof(isort_t));
 	for (intptr_t i = 0; i < Size; ++i)
-		prapArrayProp->aArrayState[i] = 0;
+		pArrayProp->aState[i] = 0;
 
-	prapArrayProp->aAttribute = malloc_guarded(Size * sizeof(AvAttribute));
+	pArrayProp->aAttribute = malloc_guarded(Size * sizeof(Visualizer_MarkerAttribute));
 	for (intptr_t i = 0; i < Size; ++i)
-		prapArrayProp->aAttribute[i] = AvAttribute_Normal;
+		pArrayProp->aAttribute[i] = Visualizer_MarkerAttribute_Normal;
 
-	prapArrayProp->bVisible = false;
-	prapArrayProp->ValueMin = 0;
-	prapArrayProp->ValueMax = 1;
+	pArrayProp->bVisible = false;
+	pArrayProp->ValueMin = 0;
+	pArrayProp->ValueMax = 1;
 
 	// Add to tree
 
-	add234(RendererCwc_ptreeGlobalArrayProp, prapArrayProp);
+	add234(RendererCwc_ptreeArrayProp, pArrayProp);
 
 	return;
 
 }
 
-void RendererCwc_RemoveArray(intptr_t ArrayId) {
+void RendererCwc_RemoveArray(rm_handle_t Handle) {
 
-	RCWC_ARRAYPROP rapFind = { .ArrayId = ArrayId };
-	RCWC_ARRAYPROP* prapArrayProp = find234(RendererCwc_ptreeGlobalArrayProp, &rapFind, NULL);
+	RendererCwc_ArrayProp Find = { .Handle = Handle };
+	RendererCwc_ArrayProp* pArrayProp = find234(RendererCwc_ptreeArrayProp, &Find, NULL);
 
-	free(prapArrayProp->aAttribute);
-	free(prapArrayProp->aArrayState);
+	free(pArrayProp->aAttribute);
+	free(pArrayProp->aState);
 
 	// Remove from tree
 
-	delpos234(RendererCwc_ptreeGlobalArrayProp, ArrayId);
-	free(prapArrayProp);
+	delpos234(RendererCwc_ptreeArrayProp, Handle);
+	free(pArrayProp);
 
 	return;
 
 }
 
-void RendererCwc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArrayState, bool bVisible, isort_t ValueMin, isort_t ValueMax) {
+void RendererCwc_UpdateArray(
+	rm_handle_t Handle,
+	intptr_t NewSize,
+	isort_t* aNewState,
+	bool bVisible,
+	isort_t ValueMin,
+	isort_t ValueMax
+) {
 
-	RCWC_ARRAYPROP rapFind = { .ArrayId = ArrayId };
-	RCWC_ARRAYPROP* prapArrayProp = find234(RendererCwc_ptreeGlobalArrayProp, &rapFind, NULL);
+	RendererCwc_ArrayProp Find = { .Handle = Handle };
+	RendererCwc_ArrayProp* pArrayProp = find234(RendererCwc_ptreeArrayProp, &Find, NULL);
 
 	// Clear screen
 	
-	for (intptr_t i = 0; i < prapArrayProp->Size; ++i) {
+	for (intptr_t i = 0; i < pArrayProp->Size; ++i) {
 
 		RendererCwc_UpdateItem(
-			ArrayId,
+			Handle,
 			i,
 			AV_RENDERER_UPDATEVALUE,
 			0,
@@ -216,65 +228,65 @@ void RendererCwc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 
 	}
 
-	prapArrayProp->bVisible = bVisible;
-	prapArrayProp->ValueMin = ValueMin;
-	prapArrayProp->ValueMax = ValueMax;
+	pArrayProp->bVisible = bVisible;
+	pArrayProp->ValueMin = ValueMin;
+	pArrayProp->ValueMax = ValueMax;
 
 	// Handle array resize
 
-	if ((NewSize > 0) && (NewSize != prapArrayProp->Size)) {
+	if ((NewSize > 0) && (NewSize != pArrayProp->Size)) {
 
 		// Realloc arrays
 
-		isort_t* aResizedArrayState = realloc_guarded(
-			prapArrayProp->aArrayState,
+		isort_t* aResizedState = realloc_guarded(
+			pArrayProp->aState,
 			NewSize * sizeof(isort_t)
 		);
 
-		AvAttribute* aResizedAttribute = realloc_guarded(
-			prapArrayProp->aAttribute,
-			NewSize * sizeof(AvAttribute)
+		Visualizer_MarkerAttribute* aResizedAttribute = realloc_guarded(
+			pArrayProp->aAttribute,
+			NewSize * sizeof(Visualizer_MarkerAttribute)
 		);
 
 
-		intptr_t OldSize = prapArrayProp->Size;
+		intptr_t OldSize = pArrayProp->Size;
 		intptr_t NewPartSize = NewSize - OldSize;
 
 		// Initialize the new part
 
 		for (intptr_t i = 0; i < NewPartSize; ++i)
-			aResizedArrayState[OldSize + i] = 0;
+			aResizedState[OldSize + i] = 0;
 
 		for (intptr_t i = 0; i < NewPartSize; ++i)
-			aResizedAttribute[OldSize + i] = AvAttribute_Normal;
+			aResizedAttribute[OldSize + i] = Visualizer_MarkerAttribute_Normal;
 
-		prapArrayProp->aArrayState = aResizedArrayState;
-		prapArrayProp->aAttribute = aResizedAttribute;
+		pArrayProp->aState = aResizedState;
+		pArrayProp->aAttribute = aResizedAttribute;
 
-		prapArrayProp->Size = NewSize;
+		pArrayProp->Size = NewSize;
 
 	}
 
-	isort_t* aArrayState = prapArrayProp->aArrayState;
-	intptr_t Size = prapArrayProp->Size;
+	isort_t* aState = pArrayProp->aState;
+	intptr_t Size = pArrayProp->Size;
 
 	// Handle new array state
 
-	if (aNewArrayState)
+	if (aNewState)
 		for (intptr_t i = 0; i < Size; ++i)
-			aArrayState[i] = aNewArrayState[i];
+			aState[i] = aNewState[i];
 
 	// Re-render with new props
 
 	// Same attribute
-	if (aNewArrayState) {
+	if (aNewState) {
 
 		for (intptr_t i = 0; i < Size; ++i) {
 			RendererCwc_UpdateItem(
-				ArrayId,
+				Handle,
 				i,
 				AV_RENDERER_UPDATEVALUE,
-				aNewArrayState[i],
+				aNewState[i],
 				0
 			);
 		}
@@ -283,10 +295,10 @@ void RendererCwc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 
 		for (intptr_t i = 0; i < Size; ++i) {
 			RendererCwc_UpdateItem(
-				ArrayId,
+				Handle,
 				i,
 				AV_RENDERER_UPDATEVALUE,
-				aArrayState[i],
+				aState[i],
 				0
 			);
 		}
@@ -297,44 +309,44 @@ void RendererCwc_UpdateArray(intptr_t ArrayId, isort_t NewSize, isort_t* aNewArr
 
 }
 
-static USHORT RendererCwc_AttrToConAttr(AvAttribute Attribute) {
+static USHORT RendererCwc_AttrToConAttr(Visualizer_MarkerAttribute Attribute) {
 	USHORT WinConAttrTable[32] = { 0 };
-	WinConAttrTable[AvAttribute_Background] = ATTR_WINCON_BACKGROUND;
-	WinConAttrTable[AvAttribute_Normal] = ATTR_WINCON_NORMAL;
-	WinConAttrTable[AvAttribute_Read] = ATTR_WINCON_READ;
-	WinConAttrTable[AvAttribute_Write] = ATTR_WINCON_WRITE;
-	WinConAttrTable[AvAttribute_Pointer] = ATTR_WINCON_POINTER;
-	WinConAttrTable[AvAttribute_Correct] = ATTR_WINCON_CORRECT;
-	WinConAttrTable[AvAttribute_Incorrect] = ATTR_WINCON_INCORRECT;
+	WinConAttrTable[Visualizer_MarkerAttribute_Background] = ATTR_WINCON_BACKGROUND;
+	WinConAttrTable[Visualizer_MarkerAttribute_Normal] = ATTR_WINCON_NORMAL;
+	WinConAttrTable[Visualizer_MarkerAttribute_Read] = ATTR_WINCON_READ;
+	WinConAttrTable[Visualizer_MarkerAttribute_Write] = ATTR_WINCON_WRITE;
+	WinConAttrTable[Visualizer_MarkerAttribute_Pointer] = ATTR_WINCON_POINTER;
+	WinConAttrTable[Visualizer_MarkerAttribute_Correct] = ATTR_WINCON_CORRECT;
+	WinConAttrTable[Visualizer_MarkerAttribute_Incorrect] = ATTR_WINCON_INCORRECT;
 	return WinConAttrTable[Attribute]; // return 0 on unknown Attr.
 }
 
 void RendererCwc_UpdateItem(
-	intptr_t ArrayId,
-	uintptr_t iPos,
+	rm_handle_t ArrayHandle,
+	intptr_t iPosition,
 	uint32_t UpdateRequest,
 	isort_t NewValue,
-	AvAttribute NewAttr
+	Visualizer_MarkerAttribute NewAttr
 ) {
 
-	RCWC_ARRAYPROP rapFind = { .ArrayId = ArrayId };
-	RCWC_ARRAYPROP* prapArrayProp = find234(RendererCwc_ptreeGlobalArrayProp, &rapFind, NULL);
+	RendererCwc_ArrayProp Find = { .Handle = ArrayHandle };
+	RendererCwc_ArrayProp* pArrayProp = find234(RendererCwc_ptreeArrayProp, &Find, NULL);
 
 	// Choose the correct value & attribute
 
-	isort_t TargetValue = prapArrayProp->aArrayState[iPos];
+	isort_t TargetValue = pArrayProp->aState[iPosition];
 	if (UpdateRequest & AV_RENDERER_UPDATEVALUE)
 		TargetValue = NewValue;
 
-	AvAttribute TargetAttr = prapArrayProp->aAttribute[iPos];
+	Visualizer_MarkerAttribute TargetAttr = pArrayProp->aAttribute[iPosition];
 	if (UpdateRequest & AV_RENDERER_UPDATEATTR)
 		TargetAttr = NewAttr;
 
-	prapArrayProp->aArrayState[iPos] = TargetValue;
-	prapArrayProp->aAttribute[iPos] = TargetAttr;
+	pArrayProp->aState[iPosition] = TargetValue;
+	pArrayProp->aAttribute[iPosition] = TargetAttr;
 
-	isort_t ValueMin = prapArrayProp->ValueMin;
-	isort_t ValueMax = prapArrayProp->ValueMax;
+	isort_t ValueMin = pArrayProp->ValueMin;
+	isort_t ValueMax = pArrayProp->ValueMax;
 
 	TargetValue -= ValueMin;
 	ValueMax -= ValueMin; // Warning: Overflow
@@ -344,22 +356,21 @@ void RendererCwc_UpdateItem(
 
 	// Scale the value to the corresponding screen height
 
-	double dfHeight = (double)TargetValue * (double)csbiBufferCache.dwSize.Y / (double)ValueMax;
-	SHORT FloorHeight = (SHORT)dfHeight;
+	double HeightFloat = (double)TargetValue * (double)csbiBufferCache.dwSize.Y / (double)ValueMax;
+	SHORT FloorHeight = (SHORT)HeightFloat;
 
-	// Convert AvAttribute to windows console attribute
+	// Convert Visualizer_MarkerAttribute to windows console attribute
 	USHORT TargetWinConAttr = RendererCwc_AttrToConAttr(TargetAttr);
 
 	// Initialize aciNewCharCells & update buffer cache
 
-	SHORT TargetConsoleCol = (SHORT)iPos;
+	SHORT TargetConsoleCol = (SHORT)iPosition;
 	if (TargetConsoleCol >= csbiBufferCache.dwSize.X)
 		TargetConsoleCol = csbiBufferCache.dwSize.X - 1;
 
 	{
 		intptr_t i = 0;
 		for (i; i < (intptr_t)(csbiBufferCache.dwSize.Y - FloorHeight); ++i) {
-			// aciBufferCache[csbiBufferCache.dwSize.X * Y + X]
 			aciBufferCache[csbiBufferCache.dwSize.X * i + TargetConsoleCol].Attributes = ATTR_WINCON_BACKGROUND;
 		}
 		for (i; i < csbiBufferCache.dwSize.Y; ++i) {

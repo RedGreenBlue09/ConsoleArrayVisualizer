@@ -14,14 +14,15 @@ typedef uint32_t usort_t;
 #define AV_RENDERER_UPDATEATTR  (0x02)
 
 typedef enum {
-	AvAttribute_Background,
-	AvAttribute_Normal,
-	AvAttribute_Read,
-	AvAttribute_Write,
-	AvAttribute_Pointer,
-	AvAttribute_Correct,
-	AvAttribute_Incorrect
-} AvAttribute;
+	Visualizer_MarkerAttribute_Background,
+	Visualizer_MarkerAttribute_Normal,
+	Visualizer_MarkerAttribute_Read,
+	Visualizer_MarkerAttribute_Write,
+	Visualizer_MarkerAttribute_Pointer,
+	Visualizer_MarkerAttribute_Correct,
+	Visualizer_MarkerAttribute_Incorrect,
+	Visualizer_MarkerAttribute_EnumCount
+} Visualizer_MarkerAttribute;
 
 // Array properties struct
 
@@ -29,37 +30,23 @@ typedef struct {
 
 	intptr_t        Size;
 
-	// Array of trees of AV_UNIQUEMARKER (used as max heaps)
-	// Used to deal with overlapping unique markers.
-	// The i'th position contains a list of markers
-	// pointing to i at the same time.
-	tree234**       aptreeUniqueMarkerMap;
+	// Array of trees of Visualizer_Marker (used as max heaps)
+	// Used to deal with overlapping markers.
+	// The i'th position contains a list of markers on i at the same time.
+	tree234**       aptreeMarkerMap;
 
-} AV_ARRAYPROP;
-
-typedef struct {
-
-	handle_t     hHandle;
-	intptr_t     Size;
-	isort_t*     aArrayState;
-	AvAttribute* aAttribute;
-
-	bool         bVisible;
-	isort_t      ValueMin;
-	isort_t      ValueMax;
-
-} AV_ARRAYPROP_RENDERER;
+} Visualizer_ArrayProp;
 
 typedef struct {
 
 	void (*Initialize)();
 	void (*Uninitialize)();
 
-	void (*AddArray)(intptr_t ArrayId, intptr_t Size);
-	void (*RemoveArray)(intptr_t ArrayId);
+	void (*AddArray)(rm_handle_t Handle, intptr_t Size);
+	void (*RemoveArray)(rm_handle_t Handle);
 	void (*UpdateArray)(
-		intptr_t ArrayId,
-		isort_t NewSize,
+		rm_handle_t Handle,
+		intptr_t NewSize,
 		isort_t* aNewArrayState,
 		bool bVisible,
 		isort_t ValueMin,
@@ -67,11 +54,11 @@ typedef struct {
 	);
 
 	void (*UpdateItem)(
-		intptr_t ArrayId,
-		uintptr_t iPos,
+		rm_handle_t ArrayHandle,
+		intptr_t iPosition,
 		uint32_t UpdateRequest,
 		isort_t NewValue,
-		AvAttribute NewAttr
+		Visualizer_MarkerAttribute NewAttr
 	);
 
 } AV_RENDERER_ENTRY;
@@ -97,15 +84,14 @@ void Visualizer_Sleep(double fSleepMultiplier);
 
 #endif
 
-void Visualizer_AddArray(
-	intptr_t ArrayId,
+rm_handle_t Visualizer_AddArray(
 	intptr_t Size
 );
 void Visualizer_RemoveArray(
-	intptr_t ArrayId
+	rm_handle_t ArrayHandle
 );
 void Visualizer_UpdateArray(
-	intptr_t ArrayId,
+	intptr_t ArrayHandle,
 	isort_t NewSize,
 	isort_t* aNewArrayState,
 	int32_t bVisible,
@@ -114,46 +100,32 @@ void Visualizer_UpdateArray(
 );
 
 void Visualizer_UpdateRead(
-	intptr_t ArrayId,
-	intptr_t iPos,
+	rm_handle_t ArrayHandle,
+	intptr_t iPosition,
 	double fSleepMultiplier
 );
 void Visualizer_UpdateRead2(
-	intptr_t ArrayId,
-	intptr_t iPosA,
-	intptr_t iPosB,
+	rm_handle_t ArrayHandle,
+	intptr_t iPositionA,
+	intptr_t iPositionB,
 	double fSleepMultiplier
 );
 void Visualizer_UpdateWrite(
-	intptr_t ArrayId,
-	intptr_t iPos,
+	intptr_t ArrayHandle,
+	intptr_t iPosition,
 	isort_t NewValue,
 	double fSleepMultiplier
 );
 void Visualizer_UpdateWrite2(
-	intptr_t ArrayId,
-	intptr_t iPosA,
-	intptr_t iPosB,
+	intptr_t ArrayHandle,
+	intptr_t iPositionA,
+	intptr_t iPositionB,
 	isort_t NewValueA,
 	isort_t NewValueB,
 	double fSleepMultiplier
 );
 
-void Visualizer_UpdatePointer(
-	intptr_t ArrayId,
-	intptr_t PointerId,
-	intptr_t iNewPos
-);
 void Visualizer_RemovePointer(
-	intptr_t ArrayId,
-	intptr_t PointerId
-);
-intptr_t Visualizer_UpdatePointerAuto(
-	intptr_t ArrayId,
-	intptr_t PointerId,
-	intptr_t iNewPos
-);
-void Visualizer_RemovePointerAuto(
 	intptr_t ArrayId,
 	intptr_t PointerId
 );
@@ -164,7 +136,7 @@ void Visualizer_RemovePointerAuto(
 #define Visualizer_Initialize()
 #define Visualizer_Uninitialize()
 #define Visualizer_Sleep(A)
-#define Visualizer_AddArray(A, B)
+#define Visualizer_AddArray(A)
 #define Visualizer_RemoveArray(A)
 #define Visualizer_UpdateArray(A, B, C, D, E, F)
 #define Visualizer_UpdateRead(A, B, C)
@@ -179,9 +151,3 @@ void Visualizer_RemovePointerAuto(
 
 #endif
 
-/*
- * UpdateRequest:
- *   AV_RENDERER_UPDATEVALUE
- *   AV_RENDERER_UPDATEATTR
- *
- */

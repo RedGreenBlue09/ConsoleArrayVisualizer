@@ -7,11 +7,16 @@
 void RendererCvt_Initialize();
 void RendererCvt_Uninitialize();
 
-void RendererCvt_AddArray(intptr_t ArrayId, intptr_t Size);
-void RendererCvt_RemoveArray(intptr_t ArrayId);
+void RendererCvt_AddArray(
+	rm_handle_t Handle,
+	intptr_t Size
+);
+void RendererCvt_RemoveArray(
+	rm_handle_t Handle
+);
 void RendererCvt_UpdateArray(
-	intptr_t ArrayId,
-	isort_t NewSize,
+	rm_handle_t Handle,
+	intptr_t NewSize,
 	isort_t* aNewArrayState,
 	bool bVisible,
 	isort_t ValueMin,
@@ -19,9 +24,9 @@ void RendererCvt_UpdateArray(
 );
 
 void RendererCvt_UpdateItem(
-	intptr_t ArrayId,
-	uintptr_t iPos,
+	rm_handle_t ArrayHandle,
+	intptr_t iPosition,
 	uint32_t UpdateRequest,
 	isort_t NewValue,
-	AvAttribute NewAttr
+	Visualizer_MarkerAttribute NewAttr
 );

@@ -13,18 +13,23 @@
 // Array
 typedef struct {
 
-	AV_ARRAYPROP_RENDERER;
+	rm_handle_t     Handle;
+	intptr_t     Size;
+	isort_t*     aState;
+	Visualizer_MarkerAttribute* aAttribute;
+
+	bool         bVisible;
+	isort_t      ValueMin;
+	isort_t      ValueMax;
 
 	// TODO: Horizontal scaling
 
-} RCVT_ARRAYPROP;
+} RendererCvt_ArrayProp;
 
-static tree234* RendererCvt_ptreeGlobalArrayProp; // tree of RCVT_ARRAYPROP_RENDERER
+static tree234* RendererCvt_ptreeArrayProp; // tree of RendererCvt_ArrayProp_RENDERER
 
-static int RendererCvt_ArrayPropIdCmp(void* pA, void* pB) {
-	RCVT_ARRAYPROP* pvapA = pA;
-	RCVT_ARRAYPROP* pvapB = pB;
-	return (pvapA->ArrayId > pvapB->ArrayId) - (pvapA->ArrayId < pvapB->ArrayId);
+static int RendererCvt_ArrayPropIdCmp(RendererCvt_ArrayProp* pA, RendererCvt_ArrayProp* pB) {
+	return (pA->Handle > pB->Handle) - (pA->Handle < pB->Handle);
 }
 
 #ifdef _WIN32
@@ -35,12 +40,12 @@ static ULONG OldInputMode = 0, OldOutputMode = 0;
 typedef struct {
 	int16_t X;
 	int16_t Y;
-} RCVT_COORD;
+} RendererCvt_Coord;
 
 typedef struct {
 
-	uint8_t sgrForeground : 8; // SGR
-	uint8_t sgrBackground : 8; // SGR
+	uint8_t SgrForeground : 8; // SGR
+	uint8_t SgrBackground : 8; // SGR
 	bool bBold         : 1; // ON / OFF
 	bool bUnderline    : 1; // ON / OFF
 	bool bNegative     : 1; // ON / OFF
@@ -49,73 +54,75 @@ typedef struct {
 	// MbText is used when updating text using *CellCacheChar() functions.
 	// https://devblogs.microsoft.com/commandline/windows-command-line-unicode-and-utf-8-output-text-buffer/
 
-} RCVT_VTFORMAT;
+} RendererCvt_VtFormat;
 
 typedef struct {
 
 	// Each "character" is equivalent to a glyph.
 	// 4-bytes default
 	union {
-		char strCharacter[4];
-		char* strMbCharacter;
+		char aGlyphData[sizeof(void*)];
+		char* aMbGlyphData;
 	};
-	RCVT_VTFORMAT vtfFormat;
+	RendererCvt_VtFormat Format;
 
-} RCVT_BUFFER_CELL;
+} RendererCvt_BufferCell;
 
-static RCVT_COORD RendererCvt_coordBufferSize; // No. of cells width & height
-static RCVT_BUFFER_CELL* RendererCvt_abcBufferCellCache;
+static RendererCvt_Coord RendererCvt_CoordBufferSize; // No. of cells width & height
+static RendererCvt_BufferCell* RendererCvt_aBufferCellCache2D;
 
-static RCVT_VTFORMAT RendererCvt_AvAttrToVtFormat(AvAttribute Attribute) {
+static RendererCvt_VtFormat RendererCvt_AvAttrToVtFormat(Visualizer_MarkerAttribute Attribute) {
 	// TODO: Improve
-	RCVT_VTFORMAT avtfTable[32] = { 0 };
-	avtfTable[AvAttribute_Background] = (RCVT_VTFORMAT){ 97, 40, false, false, false, false };
-	avtfTable[AvAttribute_Normal    ] = (RCVT_VTFORMAT){ 90, 47, false, false, false, false };
-	avtfTable[AvAttribute_Read      ] = (RCVT_VTFORMAT){ 93, 44, false, false, false, false };
-	avtfTable[AvAttribute_Write     ] = (RCVT_VTFORMAT){ 96, 41, false, false, false, false };
-	avtfTable[AvAttribute_Pointer   ] = (RCVT_VTFORMAT){ 91, 46, false, false, false, false };
-	avtfTable[AvAttribute_Correct   ] = (RCVT_VTFORMAT){ 95, 42, false, false, false, false };
-	avtfTable[AvAttribute_Incorrect ] = (RCVT_VTFORMAT){ 96, 41, false, false, false, false };
-	return ((unsigned int)Attribute < 32) ? avtfTable[Attribute] : (RCVT_VTFORMAT){ 0, 0, false, false, false, false }; // return 0 on unknown Attr.
+	RendererCvt_VtFormat FormatTable[Visualizer_MarkerAttribute_EnumCount] = { 0 };
+	FormatTable[Visualizer_MarkerAttribute_Background] = (RendererCvt_VtFormat){ 97, 40, false, false, false, false };
+	FormatTable[Visualizer_MarkerAttribute_Normal    ] = (RendererCvt_VtFormat){ 90, 47, false, false, false, false };
+	FormatTable[Visualizer_MarkerAttribute_Read      ] = (RendererCvt_VtFormat){ 93, 44, false, false, false, false };
+	FormatTable[Visualizer_MarkerAttribute_Write     ] = (RendererCvt_VtFormat){ 96, 41, false, false, false, false };
+	FormatTable[Visualizer_MarkerAttribute_Pointer   ] = (RendererCvt_VtFormat){ 91, 46, false, false, false, false };
+	FormatTable[Visualizer_MarkerAttribute_Correct   ] = (RendererCvt_VtFormat){ 95, 42, false, false, false, false };
+	FormatTable[Visualizer_MarkerAttribute_Incorrect ] = (RendererCvt_VtFormat){ 96, 41, false, false, false, false };
+	return ((unsigned int)Attribute < Visualizer_MarkerAttribute_EnumCount) ?
+		FormatTable[Attribute] :
+		(RendererCvt_VtFormat){ 0, 0, false, false, false, false };
 }
 
 static void RendererCvt_UpdateCellCacheChar(
-	RCVT_BUFFER_CELL* pbcCell,
-	char* strCharacter,
-	intptr_t nChars
+	RendererCvt_BufferCell* pbcCell,
+	char* aGlyphData,
+	intptr_t GlyphDataSize
 ) {
-	if (nChars > 3) {
+	if (GlyphDataSize > 3) {
 
-		if (pbcCell->vtfFormat.bMbChar)
-			pbcCell->strMbCharacter = realloc_guarded(pbcCell->strMbCharacter, (nChars + 1) * sizeof(char));
+		if (pbcCell->Format.bMbChar)
+			pbcCell->aMbGlyphData = realloc_guarded(pbcCell->aMbGlyphData, (GlyphDataSize + 1) * sizeof(char));
 		else
-			pbcCell->strMbCharacter = malloc_guarded((nChars + 1) * sizeof(char));
+			pbcCell->aMbGlyphData = malloc_guarded((GlyphDataSize + 1) * sizeof(char));
 
-		memcpy(pbcCell->strMbCharacter, strCharacter, nChars * sizeof(char));
-		pbcCell->strMbCharacter[nChars] = '\0';
+		memcpy(pbcCell->aMbGlyphData, aGlyphData, GlyphDataSize * sizeof(char));
+		pbcCell->aMbGlyphData[GlyphDataSize] = '\0';
 
 	} else {
 
-		if (pbcCell->vtfFormat.bMbChar)
-			free(pbcCell->strMbCharacter);
+		if (pbcCell->Format.bMbChar)
+			free(pbcCell->aMbGlyphData);
 
-		for (intptr_t i = 0; i < nChars; ++i)
-			pbcCell->strCharacter[i] = strCharacter[i];
-		strCharacter[nChars] = '\0';
+		for (intptr_t i = 0; i < GlyphDataSize; ++i)
+			pbcCell->aGlyphData[i] = aGlyphData[i];
+		aGlyphData[GlyphDataSize] = '\0';
 
 	}
 	return;
 }
 
-static char* RendererCvt_GetCellCacheChar(RCVT_BUFFER_CELL* pbcCell) {
-	return (pbcCell->vtfFormat.bMbChar) ? pbcCell->strMbCharacter : pbcCell->strCharacter;
+static char* RendererCvt_GetCellCacheChar(RendererCvt_BufferCell* pbcCell) {
+	return (pbcCell->Format.bMbChar) ? pbcCell->aMbGlyphData : pbcCell->aGlyphData;
 };
 
 void RendererCvt_Initialize() {
 
-	// Initialize RendererCvt_ptreeGlobalArrayProp
+	// Initialize RendererCvt_ptreeArrayProp
 
-	RendererCvt_ptreeGlobalArrayProp = newtree234(RendererCvt_ArrayPropIdCmp);
+	RendererCvt_ptreeArrayProp = newtree234(RendererCvt_ArrayPropIdCmp);
 
 #ifdef _WIN32
 	// Enable virtual terminal on Windows.
@@ -153,16 +160,16 @@ void RendererCvt_Initialize() {
 		fscanf_s(
 			stdin,
 			"\x1B[%"PRId16";%"PRId16"R",
-			&RendererCvt_coordBufferSize.Y,
-			&RendererCvt_coordBufferSize.X
+			&RendererCvt_CoordBufferSize.Y,
+			&RendererCvt_CoordBufferSize.X
 		);
 
 	}
-	if (RendererCvt_coordBufferSize.X <= 0 || RendererCvt_coordBufferSize.Y <= 0)
+	if (RendererCvt_CoordBufferSize.X <= 0 || RendererCvt_CoordBufferSize.Y <= 0)
 		abort();
 
-	intptr_t BufferSize1D = (intptr_t)RendererCvt_coordBufferSize.X * (intptr_t)RendererCvt_coordBufferSize.Y;
-	RendererCvt_abcBufferCellCache = malloc_guarded(BufferSize1D * sizeof(RCVT_BUFFER_CELL));
+	intptr_t BufferSize1D = (intptr_t)RendererCvt_CoordBufferSize.X * (intptr_t)RendererCvt_CoordBufferSize.Y;
+	RendererCvt_aBufferCellCache2D = malloc_guarded(BufferSize1D * sizeof(RendererCvt_BufferCell));
 
 	// Set cursor to top left
 
@@ -174,23 +181,23 @@ void RendererCvt_Initialize() {
 
 		// Change color
 
-		RCVT_BUFFER_CELL bcCell = {
-			.strCharacter = { ' ', '\0', '\0', '\0' },
-			.vtfFormat = RendererCvt_AvAttrToVtFormat(AvAttribute_Background)
+		RendererCvt_BufferCell bcCell = {
+			.aGlyphData = { ' ', '\0', '\0', '\0' },
+			.Format = RendererCvt_AvAttrToVtFormat(Visualizer_MarkerAttribute_Background)
 		};
 
 		// Update cell cache
 
 		for (intptr_t i = 0; i < BufferSize1D; ++i)
-			RendererCvt_abcBufferCellCache[i] = bcCell;
+			RendererCvt_aBufferCellCache2D[i] = bcCell;
 
 		// Write to stdout
 
 		fprintf(
 			stdout,
 			"\x1b[%"PRIu8";%"PRIu8";22;24;27m\x1b[2K",
-			bcCell.vtfFormat.sgrForeground,
-			bcCell.vtfFormat.sgrBackground
+			bcCell.Format.SgrForeground,
+			bcCell.Format.SgrBackground
 		);
 
 	}
@@ -200,22 +207,22 @@ void RendererCvt_Initialize() {
 
 void RendererCvt_Uninitialize() {
 
-	// Uninitialize RendererCvt_ptreeGlobalArrayProp
+	// Uninitialize RendererCvt_ptreeArrayProp
 
 	for (
-		RCVT_ARRAYPROP* prap = delpos234(RendererCvt_ptreeGlobalArrayProp, 0);
-		prap != NULL;
-		prap = delpos234(RendererCvt_ptreeGlobalArrayProp, 0)
+		RendererCvt_ArrayProp* pRenderer = delpos234(RendererCvt_ptreeArrayProp, 0);
+		pRenderer != NULL;
+		pRenderer = delpos234(RendererCvt_ptreeArrayProp, 0)
 	) {
-		free(prap);
+		free(pRenderer);
 	}
-	freetree234(RendererCvt_ptreeGlobalArrayProp);
+	freetree234(RendererCvt_ptreeArrayProp);
 
 	// Main buffer
 
 	fwrite("\x1B[?1049l", 1, sizeof("\x1B[?1049l"), stdout);
 
-	free(RendererCvt_abcBufferCellCache);
+	free(RendererCvt_aBufferCellCache2D);
 
 #ifdef _WIN32
 	// Restore old console mode on Windows
@@ -228,67 +235,67 @@ void RendererCvt_Uninitialize() {
 
 }
 
-void RendererCvt_AddArray(intptr_t ArrayId, intptr_t Size) {
+void RendererCvt_AddArray(rm_handle_t Handle, intptr_t Size) {
 
-	RCVT_ARRAYPROP* prapArrayProp = malloc_guarded(sizeof(RCVT_ARRAYPROP));
+	RendererCvt_ArrayProp* pArrayProp = malloc_guarded(sizeof(RendererCvt_ArrayProp));
 
-	prapArrayProp->ArrayId = ArrayId;
-	prapArrayProp->Size = Size;
+	pArrayProp->Handle = Handle;
+	pArrayProp->Size = Size;
 
-	prapArrayProp->aArrayState = malloc_guarded(Size * sizeof(isort_t));
+	pArrayProp->aState = malloc_guarded(Size * sizeof(isort_t));
 	for (intptr_t i = 0; i < Size; ++i)
-		prapArrayProp->aArrayState[i] = 0;
+		pArrayProp->aState[i] = 0;
 
-	prapArrayProp->aAttribute = malloc_guarded(Size * sizeof(AvAttribute));
+	pArrayProp->aAttribute = malloc_guarded(Size * sizeof(Visualizer_MarkerAttribute));
 	for (intptr_t i = 0; i < Size; ++i)
-		prapArrayProp->aAttribute[i] = AvAttribute_Normal;
+		pArrayProp->aAttribute[i] = Visualizer_MarkerAttribute_Normal;
 
-	prapArrayProp->bVisible = false;
-	prapArrayProp->ValueMin = 0;
-	prapArrayProp->ValueMax = 1;
+	pArrayProp->bVisible = false;
+	pArrayProp->ValueMin = 0;
+	pArrayProp->ValueMax = 1;
 
 	// Add to tree
 
-	add234(RendererCvt_ptreeGlobalArrayProp, prapArrayProp);
+	add234(RendererCvt_ptreeArrayProp, pArrayProp);
 
 	return;
 }
 
-void RendererCvt_RemoveArray(intptr_t ArrayId) {
+void RendererCvt_RemoveArray(rm_handle_t Handle) {
 
-	RCVT_ARRAYPROP rapFind = { .ArrayId = ArrayId };
-	RCVT_ARRAYPROP* prapArrayProp = find234(RendererCvt_ptreeGlobalArrayProp, &rapFind, NULL);
+	RendererCvt_ArrayProp ArrayPropFind = { .Handle = Handle };
+	RendererCvt_ArrayProp* pArrayProp = find234(RendererCvt_ptreeArrayProp, &ArrayPropFind, NULL);
 
-	free(prapArrayProp->aAttribute);
-	free(prapArrayProp->aArrayState);
+	free(pArrayProp->aAttribute);
+	free(pArrayProp->aState);
 
 	// Remove from tree
 
-	delpos234(RendererCvt_ptreeGlobalArrayProp, ArrayId);
-	free(prapArrayProp);
+	delpos234(RendererCvt_ptreeArrayProp, Handle);
+	free(pArrayProp);
 
 	return;
 
 }
 
 void RendererCvt_UpdateArray(
-	intptr_t ArrayId,
-	isort_t NewSize,
+	rm_handle_t Handle,
+	intptr_t NewSize,
 	isort_t* aNewArrayState,
 	bool bVisible,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
 
-	RCVT_ARRAYPROP rapFind = { .ArrayId = ArrayId };
-	RCVT_ARRAYPROP* prapArrayProp = find234(RendererCvt_ptreeGlobalArrayProp, &rapFind, NULL);
+	RendererCvt_ArrayProp ArrayPropFind = { .Handle = Handle };
+	RendererCvt_ArrayProp* pArrayProp = find234(RendererCvt_ptreeArrayProp, &ArrayPropFind, NULL);
 	
 	// Clear screen
 	
-	for (intptr_t i = 0; i < prapArrayProp->Size; ++i) {
+	for (intptr_t i = 0; i < pArrayProp->Size; ++i) {
 
 		RendererCvt_UpdateItem(
-			ArrayId,
+			Handle,
 			i,
 			AV_RENDERER_UPDATEVALUE,
 			0,
@@ -297,28 +304,28 @@ void RendererCvt_UpdateArray(
 
 	}
 
-	prapArrayProp->bVisible = bVisible;
-	prapArrayProp->ValueMin = ValueMin;
-	prapArrayProp->ValueMax = ValueMax;
+	pArrayProp->bVisible = bVisible;
+	pArrayProp->ValueMin = ValueMin;
+	pArrayProp->ValueMax = ValueMax;
 
 	// Handle array resize
 
-	if ((NewSize > 0) && (NewSize != prapArrayProp->Size)) {
+	if ((NewSize > 0) && (NewSize != pArrayProp->Size)) {
 
 		// Realloc arrays
 
 		isort_t* aResizedArrayState = realloc_guarded(
-			prapArrayProp->aArrayState,
+			pArrayProp->aState,
 			NewSize * sizeof(isort_t)
 		);
 
-		AvAttribute* aResizedAttribute = realloc_guarded(
-			prapArrayProp->aAttribute,
-			NewSize * sizeof(AvAttribute)
+		Visualizer_MarkerAttribute* aResizedAttribute = realloc_guarded(
+			pArrayProp->aAttribute,
+			NewSize * sizeof(Visualizer_MarkerAttribute)
 		);
 
 
-		intptr_t OldSize = prapArrayProp->Size;
+		intptr_t OldSize = pArrayProp->Size;
 		intptr_t NewPartSize = NewSize - OldSize;
 
 		// Initialize the new part
@@ -327,23 +334,23 @@ void RendererCvt_UpdateArray(
 			aResizedArrayState[OldSize + i] = 0;
 
 		for (intptr_t i = 0; i < NewPartSize; ++i)
-			aResizedAttribute[OldSize + i] = AvAttribute_Normal;
+			aResizedAttribute[OldSize + i] = Visualizer_MarkerAttribute_Normal;
 
-		prapArrayProp->aArrayState = aResizedArrayState;
-		prapArrayProp->aAttribute = aResizedAttribute;
+		pArrayProp->aState = aResizedArrayState;
+		pArrayProp->aAttribute = aResizedAttribute;
 
-		prapArrayProp->Size = NewSize;
+		pArrayProp->Size = NewSize;
 
 	}
 
-	isort_t* aArrayState = prapArrayProp->aArrayState;
-	intptr_t Size = prapArrayProp->Size;
+	isort_t* aState = pArrayProp->aState;
+	intptr_t Size = pArrayProp->Size;
 
 	// Handle new array state
 
 	if (aNewArrayState)
 		for (intptr_t i = 0; i < Size; ++i)
-			aArrayState[i] = aNewArrayState[i];
+			aState[i] = aNewArrayState[i];
 
 	// Re-render with new props
 
@@ -352,7 +359,7 @@ void RendererCvt_UpdateArray(
 
 		for (intptr_t i = 0; i < Size; ++i) {
 			RendererCvt_UpdateItem(
-				ArrayId,
+				Handle,
 				i,
 				AV_RENDERER_UPDATEVALUE,
 				aNewArrayState[i],
@@ -364,10 +371,10 @@ void RendererCvt_UpdateArray(
 
 		for (intptr_t i = 0; i < Size; ++i) {
 			RendererCvt_UpdateItem(
-				ArrayId,
+				Handle,
 				i,
 				AV_RENDERER_UPDATEVALUE,
-				aArrayState[i],
+				aState[i],
 				0
 			);
 		}
@@ -379,31 +386,31 @@ void RendererCvt_UpdateArray(
 }
 
 void RendererCvt_UpdateItem(
-	intptr_t ArrayId,
-	uintptr_t iPos,
+	rm_handle_t ArrayHandle,
+	intptr_t iPosition,
 	uint32_t UpdateRequest,
 	isort_t NewValue,
-	AvAttribute NewAttr
+	Visualizer_MarkerAttribute NewAttr
 ) {
 
-	RCVT_ARRAYPROP rapFind = { .ArrayId = ArrayId };
-	RCVT_ARRAYPROP* prapArrayProp = find234(RendererCvt_ptreeGlobalArrayProp, &rapFind, NULL);
+	RendererCvt_ArrayProp ArrayPropFind = { .Handle = ArrayHandle };
+	RendererCvt_ArrayProp* pArrayProp = find234(RendererCvt_ptreeArrayProp, &ArrayPropFind, NULL);
 
 	// Choose the correct value & attribute
 
-	isort_t TargetValue = prapArrayProp->aArrayState[iPos];
+	isort_t TargetValue = pArrayProp->aState[iPosition];
 	if (UpdateRequest & AV_RENDERER_UPDATEVALUE)
 		TargetValue = NewValue;
 
-	AvAttribute TargetAttr = prapArrayProp->aAttribute[iPos];
+	Visualizer_MarkerAttribute TargetAttr = pArrayProp->aAttribute[iPosition];
 	if (UpdateRequest & AV_RENDERER_UPDATEATTR)
 		TargetAttr = NewAttr;
 
-	prapArrayProp->aArrayState[iPos] = TargetValue;
-	prapArrayProp->aAttribute[iPos] = TargetAttr;
+	pArrayProp->aState[iPosition] = TargetValue;
+	pArrayProp->aAttribute[iPosition] = TargetAttr;
 
-	isort_t ValueMin = prapArrayProp->ValueMin;
-	isort_t ValueMax = prapArrayProp->ValueMax;
+	isort_t ValueMin = pArrayProp->ValueMin;
+	isort_t ValueMax = pArrayProp->ValueMax;
 
 	TargetValue -= ValueMin;
 	ValueMax -= ValueMin; // Warning: Overflow
@@ -413,36 +420,36 @@ void RendererCvt_UpdateItem(
 
 	// Scale the value to the corresponding screen height
 
-	double dfHeight = (double)TargetValue * (double)RendererCvt_coordBufferSize.Y / (double)ValueMax;
-	int16_t FloorHeight = (int16_t)dfHeight;
+	double HeightFloat = (double)TargetValue * (double)RendererCvt_CoordBufferSize.Y / (double)ValueMax;
+	int16_t FloorHeight = (int16_t)HeightFloat;
 
 	// Generate VT sequence
 
 	// Fill unused cells
 
-	int16_t TargetConsoleCol = (int16_t)iPos;
-	if (TargetConsoleCol >= RendererCvt_coordBufferSize.X)
-		TargetConsoleCol = RendererCvt_coordBufferSize.X - 1;
+	int16_t TargetConsoleCol = (int16_t)iPosition;
+	if (TargetConsoleCol >= RendererCvt_CoordBufferSize.X)
+		TargetConsoleCol = RendererCvt_CoordBufferSize.X - 1;
 
 	{
 		// Update cell cache
 
 		intptr_t i;
-		for (i = 0; i < (intptr_t)(RendererCvt_coordBufferSize.Y - FloorHeight); ++i) {
+		for (i = 0; i < (intptr_t)(RendererCvt_CoordBufferSize.Y - FloorHeight); ++i) {
 
-			RCVT_VTFORMAT vtfFormat = RendererCvt_AvAttrToVtFormat(AvAttribute_Background);
-			RCVT_BUFFER_CELL* pbcCell = &RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol];
-			pbcCell->vtfFormat.sgrForeground = vtfFormat.sgrForeground;
-			pbcCell->vtfFormat.sgrBackground = vtfFormat.sgrBackground;
+			RendererCvt_VtFormat Format = RendererCvt_AvAttrToVtFormat(Visualizer_MarkerAttribute_Background);
+			RendererCvt_BufferCell* pbcCell = &RendererCvt_aBufferCellCache2D[RendererCvt_CoordBufferSize.X * i + TargetConsoleCol];
+			pbcCell->Format.SgrForeground = Format.SgrForeground;
+			pbcCell->Format.SgrBackground = Format.SgrBackground;
 
 		}
 
-		for (i; i < RendererCvt_coordBufferSize.Y; ++i) {
+		for (i; i < RendererCvt_CoordBufferSize.Y; ++i) {
 
-			RCVT_VTFORMAT vtfFormat = RendererCvt_AvAttrToVtFormat(TargetAttr);
-			RCVT_BUFFER_CELL* pbcCell = &RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol];
-			pbcCell->vtfFormat.sgrForeground = vtfFormat.sgrForeground;
-			pbcCell->vtfFormat.sgrBackground = vtfFormat.sgrBackground;
+			RendererCvt_VtFormat Format = RendererCvt_AvAttrToVtFormat(TargetAttr);
+			RendererCvt_BufferCell* pbcCell = &RendererCvt_aBufferCellCache2D[RendererCvt_CoordBufferSize.X * i + TargetConsoleCol];
+			pbcCell->Format.SgrForeground = Format.SgrForeground;
+			pbcCell->Format.SgrBackground = Format.SgrBackground;
 
 		}
 
@@ -453,9 +460,9 @@ void RendererCvt_UpdateItem(
 	const char strFormat[] = "\x1b[%"PRIi16"G\x1b[%"PRIi16"d\x1b[%"PRIu8";%"PRIu8"m%s";
 	intptr_t Length = 0;
 
-	for (intptr_t i = 0; i < RendererCvt_coordBufferSize.Y; ++i) {
+	for (intptr_t i = 0; i < RendererCvt_CoordBufferSize.Y; ++i) {
 
-		RCVT_BUFFER_CELL* pbcCell = &RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol];
+		RendererCvt_BufferCell* pbcCell = &RendererCvt_aBufferCellCache2D[RendererCvt_CoordBufferSize.X * i + TargetConsoleCol];
 
 		Length += (intptr_t)snprintf(
 			NULL,
@@ -463,8 +470,8 @@ void RendererCvt_UpdateItem(
 			strFormat,
 			(int16_t)TargetConsoleCol + 1,
 			(int16_t)i + 1,
-			pbcCell->vtfFormat.sgrForeground,
-			pbcCell->vtfFormat.sgrBackground,
+			pbcCell->Format.SgrForeground,
+			pbcCell->Format.SgrBackground,
 			RendererCvt_GetCellCacheChar(pbcCell)
 		);
 
@@ -477,9 +484,9 @@ void RendererCvt_UpdateItem(
 	char* strBufferCurrent = strBuffer;
 	intptr_t LengthCurrent = Length;
 
-	for (intptr_t i = 0; i < RendererCvt_coordBufferSize.Y; ++i) {
+	for (intptr_t i = 0; i < RendererCvt_CoordBufferSize.Y; ++i) {
 		
-		RCVT_BUFFER_CELL* pbcCell = &RendererCvt_abcBufferCellCache[RendererCvt_coordBufferSize.X * i + TargetConsoleCol];
+		RendererCvt_BufferCell* pbcCell = &RendererCvt_aBufferCellCache2D[RendererCvt_CoordBufferSize.X * i + TargetConsoleCol];
 
 		int Written = sprintf_s(
 			strBufferCurrent,
@@ -487,8 +494,8 @@ void RendererCvt_UpdateItem(
 			strFormat,
 			(int16_t)TargetConsoleCol + 1,
 			(int16_t)i + 1,
-			pbcCell->vtfFormat.sgrForeground,
-			pbcCell->vtfFormat.sgrBackground,
+			pbcCell->Format.SgrForeground,
+			pbcCell->Format.SgrBackground,
 			RendererCvt_GetCellCacheChar(pbcCell)
 		);
 		strBufferCurrent += Written;
