@@ -18,7 +18,6 @@ typedef struct {
 	isort_t*     aState;
 	Visualizer_MarkerAttribute* aAttribute;
 
-	bool         bVisible;
 	isort_t      ValueMin;
 	isort_t      ValueMax;
 
@@ -235,7 +234,13 @@ void RendererCvt_Uninitialize() {
 
 }
 
-void RendererCvt_AddArray(rm_handle_t Handle, intptr_t Size) {
+void RendererCvt_AddArray(
+	rm_handle_t Handle,
+	intptr_t Size,
+	isort_t* aArrayState,
+	isort_t ValueMin,
+	isort_t ValueMax
+) {
 
 	RendererCvt_ArrayProp* pArrayProp = malloc_guarded(sizeof(RendererCvt_ArrayProp));
 
@@ -243,16 +248,19 @@ void RendererCvt_AddArray(rm_handle_t Handle, intptr_t Size) {
 	pArrayProp->Size = Size;
 
 	pArrayProp->aState = malloc_guarded(Size * sizeof(isort_t));
-	for (intptr_t i = 0; i < Size; ++i)
-		pArrayProp->aState[i] = 0;
+	if (aArrayState)
+		for (intptr_t i = 0; i < Size; ++i)
+			pArrayProp->aState[i] = aArrayState[i];
+	else
+		for (intptr_t i = 0; i < Size; ++i)
+			pArrayProp->aState[i] = 0;
 
 	pArrayProp->aAttribute = malloc_guarded(Size * sizeof(Visualizer_MarkerAttribute));
 	for (intptr_t i = 0; i < Size; ++i)
 		pArrayProp->aAttribute[i] = Visualizer_MarkerAttribute_Normal;
 
-	pArrayProp->bVisible = false;
-	pArrayProp->ValueMin = 0;
-	pArrayProp->ValueMax = 1;
+	pArrayProp->ValueMin = ValueMin;
+	pArrayProp->ValueMax = ValueMax;
 
 	// Add to tree
 
@@ -281,8 +289,6 @@ void RendererCvt_RemoveArray(rm_handle_t Handle) {
 void RendererCvt_UpdateArray(
 	rm_handle_t Handle,
 	intptr_t NewSize,
-	isort_t* aNewArrayState,
-	bool bVisible,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
@@ -290,7 +296,7 @@ void RendererCvt_UpdateArray(
 	RendererCvt_ArrayProp ArrayPropFind = { .Handle = Handle };
 	RendererCvt_ArrayProp* pArrayProp = find234(RendererCvt_ptreeArrayProp, &ArrayPropFind, NULL);
 	
-	// Clear screen
+	// Dummy clear screen. TODO.
 	
 	for (intptr_t i = 0; i < pArrayProp->Size; ++i) {
 
@@ -298,13 +304,12 @@ void RendererCvt_UpdateArray(
 			Handle,
 			i,
 			AV_RENDERER_UPDATEVALUE,
-			0,
+			pArrayProp->ValueMin,
 			0
 		);
 
 	}
 
-	pArrayProp->bVisible = bVisible;
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
 
@@ -318,17 +323,15 @@ void RendererCvt_UpdateArray(
 			pArrayProp->aState,
 			NewSize * sizeof(isort_t)
 		);
-
 		Visualizer_MarkerAttribute* aResizedAttribute = realloc_guarded(
 			pArrayProp->aAttribute,
 			NewSize * sizeof(Visualizer_MarkerAttribute)
 		);
 
+		// Initialize the new part
 
 		intptr_t OldSize = pArrayProp->Size;
 		intptr_t NewPartSize = NewSize - OldSize;
-
-		// Initialize the new part
 
 		for (intptr_t i = 0; i < NewPartSize; ++i)
 			aResizedArrayState[OldSize + i] = 0;
@@ -338,47 +341,21 @@ void RendererCvt_UpdateArray(
 
 		pArrayProp->aState = aResizedArrayState;
 		pArrayProp->aAttribute = aResizedAttribute;
-
 		pArrayProp->Size = NewSize;
 
 	}
 
-	isort_t* aState = pArrayProp->aState;
-	intptr_t Size = pArrayProp->Size;
-
-	// Handle new array state
-
-	if (aNewArrayState)
-		for (intptr_t i = 0; i < Size; ++i)
-			aState[i] = aNewArrayState[i];
-
 	// Re-render with new props
 
-	// Same attribute
-	if (aNewArrayState) {
-
-		for (intptr_t i = 0; i < Size; ++i) {
-			RendererCvt_UpdateItem(
-				Handle,
-				i,
-				AV_RENDERER_UPDATEVALUE,
-				aNewArrayState[i],
-				0
-			);
-		}
-
-	} else {
-
-		for (intptr_t i = 0; i < Size; ++i) {
-			RendererCvt_UpdateItem(
-				Handle,
-				i,
-				AV_RENDERER_UPDATEVALUE,
-				aState[i],
-				0
-			);
-		}
-
+	intptr_t Size = pArrayProp->Size;
+	for (intptr_t i = 0; i < Size; ++i) {
+		RendererCvt_UpdateItem(
+			Handle,
+			i,
+			AV_RENDERER_UPDATEVALUE,
+			pArrayProp->aState[i],
+			0
+		);
 	}
 
 	return;
@@ -398,13 +375,17 @@ void RendererCvt_UpdateItem(
 
 	// Choose the correct value & attribute
 
-	isort_t TargetValue = pArrayProp->aState[iPosition];
+	isort_t TargetValue;
 	if (UpdateRequest & AV_RENDERER_UPDATEVALUE)
 		TargetValue = NewValue;
+	else
+		TargetValue = pArrayProp->aState[iPosition];
 
-	Visualizer_MarkerAttribute TargetAttr = pArrayProp->aAttribute[iPosition];
+	Visualizer_MarkerAttribute TargetAttr;
 	if (UpdateRequest & AV_RENDERER_UPDATEATTR)
 		TargetAttr = NewAttr;
+	else
+		TargetAttr = pArrayProp->aAttribute[iPosition];
 
 	pArrayProp->aState[iPosition] = TargetValue;
 	pArrayProp->aAttribute[iPosition] = TargetAttr;

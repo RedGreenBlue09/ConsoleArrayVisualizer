@@ -42,13 +42,17 @@ typedef struct {
 	void (*Initialize)();
 	void (*Uninitialize)();
 
-	void (*AddArray)(rm_handle_t Handle, intptr_t Size);
+	void (*AddArray)(
+		rm_handle_t Handle,
+		intptr_t Size,
+		isort_t* aArrayState,
+		isort_t ValueMin,
+		isort_t ValueMax
+	);
 	void (*RemoveArray)(rm_handle_t Handle);
 	void (*UpdateArray)(
 		rm_handle_t Handle,
 		intptr_t NewSize,
-		isort_t* aNewArrayState,
-		bool bVisible,
 		isort_t ValueMin,
 		isort_t ValueMax
 	);
@@ -85,16 +89,17 @@ void Visualizer_Sleep(double fSleepMultiplier);
 #endif
 
 rm_handle_t Visualizer_AddArray(
-	intptr_t Size
+	intptr_t Size,
+	isort_t* aArrayState,
+	isort_t ValueMin,
+	isort_t ValueMax
 );
 void Visualizer_RemoveArray(
 	rm_handle_t ArrayHandle
 );
 void Visualizer_UpdateArray(
-	intptr_t ArrayHandle,
-	isort_t NewSize,
-	isort_t* aNewArrayState,
-	int32_t bVisible,
+	rm_handle_t ArrayHandle,
+	intptr_t NewSize,
 	isort_t ValueMin,
 	isort_t ValueMax
 );
@@ -111,23 +116,18 @@ void Visualizer_UpdateRead2(
 	double fSleepMultiplier
 );
 void Visualizer_UpdateWrite(
-	intptr_t ArrayHandle,
+	rm_handle_t ArrayHandle,
 	intptr_t iPosition,
 	isort_t NewValue,
 	double fSleepMultiplier
 );
 void Visualizer_UpdateWrite2(
-	intptr_t ArrayHandle,
+	rm_handle_t ArrayHandle,
 	intptr_t iPositionA,
 	intptr_t iPositionB,
 	isort_t NewValueA,
 	isort_t NewValueB,
 	double fSleepMultiplier
-);
-
-void Visualizer_RemovePointer(
-	intptr_t ArrayId,
-	intptr_t PointerId
 );
 
 #else

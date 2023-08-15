@@ -40,7 +40,6 @@ typedef struct {
 	isort_t* aState;
 	Visualizer_MarkerAttribute* aAttribute;
 
-	bool         bVisible;
 	isort_t      ValueMin;
 	isort_t      ValueMax;
 
@@ -158,7 +157,13 @@ void RendererCwc_Uninitialize() {
 
 }
 
-void RendererCwc_AddArray(rm_handle_t Handle, intptr_t Size) {
+void RendererCwc_AddArray(
+	rm_handle_t Handle,
+	intptr_t Size,
+	isort_t* aArrayState,
+	isort_t ValueMin,
+	isort_t ValueMax
+) {
 
 	RendererCwc_ArrayProp* pArrayProp = malloc_guarded(sizeof(RendererCwc_ArrayProp));
 
@@ -166,16 +171,19 @@ void RendererCwc_AddArray(rm_handle_t Handle, intptr_t Size) {
 	pArrayProp->Size = Size;
 
 	pArrayProp->aState = malloc_guarded(Size * sizeof(isort_t));
-	for (intptr_t i = 0; i < Size; ++i)
-		pArrayProp->aState[i] = 0;
+	if (aArrayState)
+		for (intptr_t i = 0; i < Size; ++i)
+			pArrayProp->aState[i] = aArrayState[i];
+	else
+		for (intptr_t i = 0; i < Size; ++i)
+			pArrayProp->aState[i] = 0;
 
 	pArrayProp->aAttribute = malloc_guarded(Size * sizeof(Visualizer_MarkerAttribute));
 	for (intptr_t i = 0; i < Size; ++i)
 		pArrayProp->aAttribute[i] = Visualizer_MarkerAttribute_Normal;
 
-	pArrayProp->bVisible = false;
-	pArrayProp->ValueMin = 0;
-	pArrayProp->ValueMax = 1;
+	pArrayProp->ValueMin = ValueMin;
+	pArrayProp->ValueMax = ValueMax;
 
 	// Add to tree
 
@@ -205,30 +213,27 @@ void RendererCwc_RemoveArray(rm_handle_t Handle) {
 void RendererCwc_UpdateArray(
 	rm_handle_t Handle,
 	intptr_t NewSize,
-	isort_t* aNewState,
-	bool bVisible,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
 
-	RendererCwc_ArrayProp Find = { .Handle = Handle };
-	RendererCwc_ArrayProp* pArrayProp = find234(RendererCwc_ptreeArrayProp, &Find, NULL);
+	RendererCwc_ArrayProp ArrayPropFind = { .Handle = Handle };
+	RendererCwc_ArrayProp* pArrayProp = find234(RendererCwc_ptreeArrayProp, &ArrayPropFind, NULL);
 
-	// Clear screen
-	
+	// Dummy clear screen. TODO.
+
 	for (intptr_t i = 0; i < pArrayProp->Size; ++i) {
 
 		RendererCwc_UpdateItem(
 			Handle,
 			i,
 			AV_RENDERER_UPDATEVALUE,
-			0,
+			pArrayProp->ValueMin,
 			0
 		);
 
 	}
 
-	pArrayProp->bVisible = bVisible;
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
 
@@ -238,71 +243,43 @@ void RendererCwc_UpdateArray(
 
 		// Realloc arrays
 
-		isort_t* aResizedState = realloc_guarded(
+		isort_t* aResizedArrayState = realloc_guarded(
 			pArrayProp->aState,
 			NewSize * sizeof(isort_t)
 		);
-
 		Visualizer_MarkerAttribute* aResizedAttribute = realloc_guarded(
 			pArrayProp->aAttribute,
 			NewSize * sizeof(Visualizer_MarkerAttribute)
 		);
 
+		// Initialize the new part
 
 		intptr_t OldSize = pArrayProp->Size;
 		intptr_t NewPartSize = NewSize - OldSize;
 
-		// Initialize the new part
-
 		for (intptr_t i = 0; i < NewPartSize; ++i)
-			aResizedState[OldSize + i] = 0;
+			aResizedArrayState[OldSize + i] = 0;
 
 		for (intptr_t i = 0; i < NewPartSize; ++i)
 			aResizedAttribute[OldSize + i] = Visualizer_MarkerAttribute_Normal;
 
-		pArrayProp->aState = aResizedState;
+		pArrayProp->aState = aResizedArrayState;
 		pArrayProp->aAttribute = aResizedAttribute;
-
 		pArrayProp->Size = NewSize;
 
 	}
 
-	isort_t* aState = pArrayProp->aState;
-	intptr_t Size = pArrayProp->Size;
-
-	// Handle new array state
-
-	if (aNewState)
-		for (intptr_t i = 0; i < Size; ++i)
-			aState[i] = aNewState[i];
-
 	// Re-render with new props
 
-	// Same attribute
-	if (aNewState) {
-
-		for (intptr_t i = 0; i < Size; ++i) {
-			RendererCwc_UpdateItem(
-				Handle,
-				i,
-				AV_RENDERER_UPDATEVALUE,
-				aNewState[i],
-				0
-			);
-		}
-
-	} else {
-
-		for (intptr_t i = 0; i < Size; ++i) {
-			RendererCwc_UpdateItem(
-				Handle,
-				i,
-				AV_RENDERER_UPDATEVALUE,
-				aState[i],
-				0
-			);
-		}
-
+	intptr_t Size = pArrayProp->Size;
+	for (intptr_t i = 0; i < Size; ++i) {
+		RendererCwc_UpdateItem(
+			Handle,
+			i,
+			AV_RENDERER_UPDATEVALUE,
+			pArrayProp->aState[i],
+			0
+		);
 	}
 
 	return;
@@ -334,13 +311,17 @@ void RendererCwc_UpdateItem(
 
 	// Choose the correct value & attribute
 
-	isort_t TargetValue = pArrayProp->aState[iPosition];
+	isort_t TargetValue;
 	if (UpdateRequest & AV_RENDERER_UPDATEVALUE)
 		TargetValue = NewValue;
+	else
+		TargetValue = pArrayProp->aState[iPosition];
 
-	Visualizer_MarkerAttribute TargetAttr = pArrayProp->aAttribute[iPosition];
+	Visualizer_MarkerAttribute TargetAttr;
 	if (UpdateRequest & AV_RENDERER_UPDATEATTR)
 		TargetAttr = NewAttr;
+	else
+		TargetAttr = pArrayProp->aAttribute[iPosition];
 
 	pArrayProp->aState[iPosition] = TargetValue;
 	pArrayProp->aAttribute[iPosition] = TargetAttr;
@@ -360,9 +341,10 @@ void RendererCwc_UpdateItem(
 	SHORT FloorHeight = (SHORT)HeightFloat;
 
 	// Convert Visualizer_MarkerAttribute to windows console attribute
+
 	USHORT TargetWinConAttr = RendererCwc_AttrToConAttr(TargetAttr);
 
-	// Initialize aciNewCharCells & update buffer cache
+	// Initialize update buffer cache
 
 	SHORT TargetConsoleCol = (SHORT)iPosition;
 	if (TargetConsoleCol >= csbiBufferCache.dwSize.X)

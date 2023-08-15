@@ -9,7 +9,10 @@ void RendererCwc_Uninitialize();
 
 void RendererCwc_AddArray(
 	rm_handle_t Handle,
-	intptr_t Size
+	intptr_t Size,
+	isort_t* aArrayState,
+	isort_t ValueMin,
+	isort_t ValueMax
 );
 void RendererCwc_RemoveArray(
 	rm_handle_t Handle
@@ -17,8 +20,6 @@ void RendererCwc_RemoveArray(
 void RendererCwc_UpdateArray(
 	rm_handle_t Handle,
 	intptr_t NewSize,
-	isort_t* aNewArrayState,
-	bool bVisible,
 	isort_t ValueMin,
 	isort_t ValueMax
 );

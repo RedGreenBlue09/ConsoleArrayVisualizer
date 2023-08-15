@@ -62,6 +62,8 @@ void WHS_weakHeapSort(isort_t* array, intptr_t n) {
 	free(bits);
 }
 
+rm_handle_t BUFS_arrayHandle;
+
 void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 
 	intptr_t j = i;
@@ -110,6 +112,13 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 */
 
 void BottomUpHeapSort(isort_t* array, intptr_t n) {
+
+	BUFS_arrayHandle = Visualizer_AddArray(n);
+	Visualizer_UpdateArray(
+		BUFS_arrayHandle,
+		0, // TODO
+
+	);
 
 	intptr_t length = n;
 

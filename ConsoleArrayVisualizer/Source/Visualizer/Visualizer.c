@@ -23,16 +23,11 @@ static resource_table_t Visualizer_ArrayPropResourceTable; // Resource table of 
 static resource_table_t Visualizer_MarkerResourceTable; // Resource table of Visualizer_Marker
 
 typedef struct {
+	rm_handle_t Handle; // For comparision
 	rm_handle_t ArrayHandle;
 	intptr_t iPosition;
 	Visualizer_MarkerAttribute Attribute;
 } Visualizer_Marker;
-
-typedef struct {
-	rm_handle_t Handle;
-	Visualizer_Marker Marker;
-} Visualizer_Marker_handle_pair;
-
 
 void Visualizer_Initialize() {
 
@@ -113,13 +108,16 @@ void Visualizer_Sleep(double fSleepMultiplier) {
 
 static int Visualizer_MarkerPriorityCmp(void* pA, void* pB);
 
-rm_handle_t Visualizer_AddArray(intptr_t Size) {
+rm_handle_t Visualizer_AddArray(
+	intptr_t Size,
+	isort_t* aArrayState,
+	isort_t ValueMin,
+	isort_t ValueMax
+) {
 
 	if (!Visualizer_bInitialized) return INVALID_HANDLE;
 	if (Size < 1) return INVALID_HANDLE;
 	
-	//
-
 	Visualizer_ArrayProp* pArrayProp = malloc_guarded(sizeof(Visualizer_ArrayProp));
 
 	pArrayProp->Size = Size;
@@ -127,11 +125,10 @@ rm_handle_t Visualizer_AddArray(intptr_t Size) {
 	for (intptr_t i = 0; i < Size; ++i)
 		pArrayProp->aptreeMarkerMap[i] = newtree234(Visualizer_MarkerPriorityCmp);
 
-	//
 	rm_handle_t ArrayHandle = AddResource(&Visualizer_ArrayPropResourceTable, pArrayProp);
 
 	// Call Renderer
-	Visualizer_RendererEntry.AddArray(ArrayHandle, Size);
+	Visualizer_RendererEntry.AddArray(ArrayHandle, Size, aArrayState, ValueMin, ValueMax);
 
 	return ArrayHandle;
 
@@ -170,10 +167,8 @@ void Visualizer_RemoveArray(rm_handle_t ArrayHandle) {
 }
 
 void Visualizer_UpdateArray(
-	intptr_t ArrayHandle,
-	isort_t NewSize,
-	isort_t* aNewArrayState,
-	int32_t bVisible,
+	rm_handle_t ArrayHandle,
+	intptr_t NewSize,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
@@ -188,18 +183,33 @@ void Visualizer_UpdateArray(
 
 	if ((NewSize > 0) && (NewSize != pArrayProp->Size)) {
 
-		// Resize the marker map
-		// TODO: MEMORY LEAK
+		// Free unused part from the marker map
 
-		tree234** aptreeResizedUmMap = realloc_guarded(pArrayProp->aptreeMarkerMap, NewSize);
 		intptr_t OldSize = pArrayProp->Size;
-		intptr_t NewPartSize = NewSize - OldSize;
+		tree234** aptreeOldMarkerMap = pArrayProp->aptreeMarkerMap;
+		for (intptr_t i = OldSize - NewSize; i < OldSize; ++i) {
+			for (
+				void* p = delpos234(aptreeOldMarkerMap[i], 0);
+				p != NULL;
+				p = delpos234(aptreeOldMarkerMap[i], 0)
+				) {
+				free(p);
+			}
+			freetree234(aptreeOldMarkerMap[i]);
+		}
+
+		// Resize the marker map
+
+		tree234** aptreeResizedMarkerMap = realloc_guarded(
+			aptreeOldMarkerMap,
+			NewSize * sizeof(tree234*)
+		);
 
 		// Initialize the new part
 
-		for (intptr_t i = 0; i < NewPartSize; ++i)
-			aptreeResizedUmMap[OldSize + i] = newtree234(Visualizer_MarkerPriorityCmp);
-		pArrayProp->aptreeMarkerMap = aptreeResizedUmMap;
+		for (intptr_t i = OldSize; i < NewSize; ++i)
+			aptreeResizedMarkerMap[i] = newtree234(Visualizer_MarkerPriorityCmp);
+		pArrayProp->aptreeMarkerMap = aptreeResizedMarkerMap;
 		pArrayProp->Size = NewSize;
 
 	}
@@ -209,8 +219,6 @@ void Visualizer_UpdateArray(
 	Visualizer_RendererEntry.UpdateArray(
 		ArrayHandle,
 		NewSize,
-		aNewArrayState,
-		bVisible,
 		ValueMin,
 		ValueMax
 	);
@@ -220,7 +228,7 @@ void Visualizer_UpdateArray(
 
 // Marker
 
-static const int Visualizer_MarkerAttrPriority[] = {
+static const int Visualizer_MarkerAttrPriority[Visualizer_MarkerAttribute_EnumCount] = {
 	0, //Visualizer_MarkerAttribute_Background
 	1, //Visualizer_MarkerAttribute_Normal
 	3, //Visualizer_MarkerAttribute_Read
@@ -230,13 +238,15 @@ static const int Visualizer_MarkerAttrPriority[] = {
 	6, //Visualizer_MarkerAttribute_Incorrect
 };
 
-static int Visualizer_MarkerPriorityCmp(void* pA, void* pB) {
-	// Compare by attribute
-	Visualizer_Marker* A = pA;
-	Visualizer_Marker* B = pB;
-	int PrioA = Visualizer_MarkerAttrPriority[A->Attribute];
-	int PrioB = Visualizer_MarkerAttrPriority[B->Attribute];
-	return (PrioA > PrioB) - (PrioA < PrioB);
+static int Visualizer_MarkerPriorityCmp(
+	Visualizer_Marker* pMarkerA,
+	Visualizer_Marker* pMarkerB
+) {
+	uintptr_t PrioA = (uintptr_t)Visualizer_MarkerAttrPriority[pMarkerA->Attribute];
+	uintptr_t PrioB = (uintptr_t)Visualizer_MarkerAttrPriority[pMarkerB->Attribute];
+	uintptr_t ValueA = (PrioA == PrioB) ? pMarkerA->Handle : PrioA;
+	uintptr_t ValueB = (PrioA == PrioB) ? pMarkerB->Handle : PrioB;
+	return (ValueA > ValueB) - (ValueA < ValueB);
 }
 
 rm_handle_t Visualizer_NewMarker(
@@ -249,24 +259,19 @@ rm_handle_t Visualizer_NewMarker(
 
 	Visualizer_ArrayProp* pArrayProp = GetResource(&Visualizer_ArrayPropResourceTable, ArrayHandle);
 
-	tree234** aptreeMarkerMap = pArrayProp->aptreeMarkerMap;
-
-	//
-
 	Visualizer_Marker* Marker = malloc_guarded(sizeof(Visualizer_Marker));
 	Marker->ArrayHandle = ArrayHandle;
 	Marker->iPosition = iPosition;
 	Marker->Attribute = Attribute;
 
-	// Add the new marker (shared pointer between resource table and map)
+	// Add the new marker (pointer is shared between resource table and map)
 
 	rm_handle_t MarkerHandle = AddResource(&Visualizer_MarkerResourceTable, Marker);
-	add234(aptreeMarkerMap[iPosition], Marker);
+	add234(pArrayProp->aptreeMarkerMap[iPosition], Marker);
 
-	// Update visually (call renderer)
-	
 	// Get the highest priority marker
-	Visualizer_Marker* HighestPriority = findrel234(aptreeMarkerMap[iPosition], NULL, NULL, REL234_LT);
+
+	Visualizer_Marker* HighestPriority = findrel234(pArrayProp->aptreeMarkerMap[iPosition], NULL, NULL, REL234_LT);
 
 	uint32_t UpdateRequest = AV_RENDERER_UPDATEATTR;
 	if (bUpdateValue)
@@ -289,7 +294,6 @@ void Visualizer_RemoveMarker(
 	rm_handle_t MarkerHandle
 ) {
 	Visualizer_ArrayProp* pArrayProp = GetResource(&Visualizer_ArrayPropResourceTable, ArrayHandle);
-	tree234** aptreeMarkerMap = pArrayProp->aptreeMarkerMap;
 
 	// Delete from table & map
 
@@ -300,12 +304,12 @@ void Visualizer_RemoveMarker(
 	del234(pArrayProp->aptreeMarkerMap[iPosition], Marker);
 	free(Marker);
 
-	// Update visually (call renderer)
-
 	// Get the highest priority marker
-	Visualizer_Marker* HighestPriority = findrel234(aptreeMarkerMap[iPosition], NULL, NULL, REL234_LT);
+
+	Visualizer_Marker* HighestPriority = findrel234(pArrayProp->aptreeMarkerMap[iPosition], NULL, NULL, REL234_LT);
 
 	// If 0 marker are in the map slot, reset to normal
+
 	Visualizer_MarkerAttribute TargetAttribute =
 		HighestPriority ?
 		HighestPriority->Attribute : 
@@ -323,7 +327,7 @@ void Visualizer_RemoveMarker(
 }
 
 // Read & Write
-// These functions restore original attributes before they return.
+// TODO: Batch RW like memset
 
 void Visualizer_UpdateRead(rm_handle_t ArrayHandle, intptr_t iPosition, double fSleepMultiplier) {
 
@@ -340,10 +344,7 @@ void Visualizer_UpdateRead(rm_handle_t ArrayHandle, intptr_t iPosition, double f
 		0,
 		Visualizer_MarkerAttribute_Read
 	);
-
-	//
 	Visualizer_Sleep(fSleepMultiplier);
-
 	Visualizer_RemoveMarker(ArrayHandle, MarkerHandle);
 
 	return;
@@ -374,10 +375,7 @@ void Visualizer_UpdateRead2(rm_handle_t ArrayHandle, intptr_t iPositionA, intptr
 		0,
 		Visualizer_MarkerAttribute_Read
 	);
-
-	//
 	Visualizer_Sleep(fSleepMultiplier);
-
 	Visualizer_RemoveMarker(ArrayHandle, MarkerHandleA);
 	Visualizer_RemoveMarker(ArrayHandle, MarkerHandleB);
 
@@ -386,7 +384,7 @@ void Visualizer_UpdateRead2(rm_handle_t ArrayHandle, intptr_t iPositionA, intptr
 }
 
 // For time precision, the sort will need to do the write(s) by itself.
-void Visualizer_UpdateWrite(intptr_t ArrayHandle, intptr_t iPosition, isort_t NewValue, double fSleepMultiplier) {
+void Visualizer_UpdateWrite(rm_handle_t ArrayHandle, intptr_t iPosition, isort_t NewValue, double fSleepMultiplier) {
 
 	if (!Visualizer_bInitialized) return;
 
@@ -401,10 +399,7 @@ void Visualizer_UpdateWrite(intptr_t ArrayHandle, intptr_t iPosition, isort_t Ne
 		NewValue,
 		Visualizer_MarkerAttribute_Write
 	);
-
-	//
 	Visualizer_Sleep(fSleepMultiplier);
-
 	Visualizer_RemoveMarker(ArrayHandle, MarkerHandle);
 
 	return;
@@ -412,7 +407,7 @@ void Visualizer_UpdateWrite(intptr_t ArrayHandle, intptr_t iPosition, isort_t Ne
 }
 
 void Visualizer_UpdateWrite2(
-	intptr_t ArrayHandle,
+	rm_handle_t ArrayHandle,
 	intptr_t iPositionA,
 	intptr_t iPositionB,
 	isort_t NewValueA,
@@ -426,7 +421,6 @@ void Visualizer_UpdateWrite2(
 	if (!pArrayProp) return;
 	if (iPositionA >= pArrayProp->Size || iPositionA < 0) return;
 	if (iPositionB >= pArrayProp->Size || iPositionB < 0) return;
-
 
 	intptr_t MarkerHandleA = Visualizer_NewMarker(
 		ArrayHandle,
@@ -442,10 +436,7 @@ void Visualizer_UpdateWrite2(
 		NewValueB,
 		Visualizer_MarkerAttribute_Write
 	);
-
-	//
 	Visualizer_Sleep(fSleepMultiplier);
-
 	Visualizer_RemoveMarker(ArrayHandle, MarkerHandleA);
 	Visualizer_RemoveMarker(ArrayHandle, MarkerHandleB);
 
