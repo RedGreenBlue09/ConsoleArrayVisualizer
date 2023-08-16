@@ -203,7 +203,7 @@ void RendererCwc_RemoveArray(rm_handle_t Handle) {
 
 	// Remove from tree
 
-	delpos234(RendererCwc_ptreeArrayProp, Handle);
+	del234(RendererCwc_ptreeArrayProp, pArrayProp);
 	free(pArrayProp);
 
 	return;
@@ -255,13 +255,12 @@ void RendererCwc_UpdateArray(
 		// Initialize the new part
 
 		intptr_t OldSize = pArrayProp->Size;
-		intptr_t NewPartSize = NewSize - OldSize;
 
-		for (intptr_t i = 0; i < NewPartSize; ++i)
-			aResizedArrayState[OldSize + i] = 0;
+		for (intptr_t i = OldSize; i < NewSize; ++i)
+			aResizedArrayState[i] = 0;
 
-		for (intptr_t i = 0; i < NewPartSize; ++i)
-			aResizedAttribute[OldSize + i] = Visualizer_MarkerAttribute_Normal;
+		for (intptr_t i = OldSize; i < NewSize; ++i)
+			aResizedAttribute[i] = Visualizer_MarkerAttribute_Normal;
 
 		pArrayProp->aState = aResizedArrayState;
 		pArrayProp->aAttribute = aResizedAttribute;
@@ -276,8 +275,8 @@ void RendererCwc_UpdateArray(
 		RendererCwc_UpdateItem(
 			Handle,
 			i,
-			AV_RENDERER_UPDATEVALUE,
-			pArrayProp->aState[i],
+			AV_RENDERER_NOUPDATE,
+			0,
 			0
 		);
 	}

@@ -50,6 +50,7 @@ void Visualizer_Initialize() {
 	Visualizer_RendererEntry.UpdateItem   = RendererCwc_UpdateItem;
 
 	/*
+	*/
 	Visualizer_RendererEntry.Initialize   = RendererCvt_Initialize;
 	Visualizer_RendererEntry.Uninitialize = RendererCvt_Uninitialize;
 
@@ -59,7 +60,6 @@ void Visualizer_Initialize() {
 
 	Visualizer_RendererEntry.UpdateItem   = RendererCvt_UpdateItem;
 
-	*/
 	// Call renderer
 
 	Visualizer_RendererEntry.Initialize();
@@ -193,7 +193,7 @@ void Visualizer_UpdateArray(
 
 		intptr_t OldSize = pArrayProp->Size;
 		tree234** aptreeOldMarkerMap = pArrayProp->aptreeMarkerMap;
-		for (intptr_t i = OldSize - NewSize; i < OldSize; ++i) {
+		for (intptr_t i = NewSize; i < OldSize; ++i) {
 			for (
 				Visualizer_Marker* pMarker = delpos234(aptreeOldMarkerMap[i], 0);
 				pMarker != NULL;

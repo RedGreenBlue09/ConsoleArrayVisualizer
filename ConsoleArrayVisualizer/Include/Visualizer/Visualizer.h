@@ -10,6 +10,7 @@
 typedef int32_t isort_t;
 typedef uint32_t usort_t;
 
+#define AV_RENDERER_NOUPDATE    (0x00)
 #define AV_RENDERER_UPDATEVALUE (0x01)
 #define AV_RENDERER_UPDATEATTR  (0x02)
 
@@ -77,7 +78,7 @@ void Visualizer_Initialize();
 void Visualizer_Uninitialize();
 
 // Sleep
-
+#define VISUALIZER_DISABLE_SLEEP 1
 #ifdef VISUALIZER_DISABLE_SLEEP
 #define Visualizer_Sleep(X) 
 #else
