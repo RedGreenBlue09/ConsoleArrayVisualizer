@@ -14,7 +14,8 @@ NTSYSAPI NTSTATUS NTAPI NtQueryTimerResolution(
 	OUT PULONG CurrentResolution
 );
 
-static uint32_t _MinTickResWindows = 0;
+static uint32_t _MinTickRes = 0;
+static uint64_t _ClockRes = 0;
 
 static void _sleep64_waitabletimer(int64_t Time) {
 
@@ -37,22 +38,29 @@ static void _sleep64_waitabletimer(int64_t Time) {
 
 void sleep64(uint64_t time) {
 
+	if (_ClockRes == 0) {
+		LARGE_INTEGER li;
+		QueryPerformanceFrequency(&li);
+		_ClockRes = li.QuadPart;
+	}
+
 	uint64_t StartTime = clock64();
 	
-	if (_MinTickResWindows == 0) {
+	if (_MinTickRes == 0) {
 		uint32_t Unused, Unused2;
 		NtQueryTimerResolution(
-			&_MinTickResWindows,
+			&_MinTickRes,
 			&Unused,
 			&Unused2
 		);
 	}
 	
-	int64_t WaitableTimerTime = ((int64_t)time * 10 / (int64_t)_MinTickResWindows - 1) * (int64_t)_MinTickResWindows;
+	int64_t WaitableTimerTime = ((int64_t)time * 10 / (int64_t)_MinTickRes - 1) * (int64_t)_MinTickRes;
 	if (WaitableTimerTime > 0)
 		_sleep64_waitabletimer(WaitableTimerTime);
 	
-	uint64_t TargetClockTime = StartTime + time;
+	// Potential overflow
+	uint64_t TargetClockTime = StartTime + (time * _ClockRes / 1000000);
 	while (clock64() < TargetClockTime);
 
 	return;

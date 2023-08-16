@@ -328,6 +328,7 @@ void Visualizer_RemoveMarker(rm_handle_t MarkerHandle) {
 		0,
 		TargetAttribute
 	);
+	free(pMarker);
 
 	return;
 }

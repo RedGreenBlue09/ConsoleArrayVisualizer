@@ -202,7 +202,7 @@ void** GetResourceList(resource_table_t* pResourceTable, intptr_t* pResourceCoun
 	intptr_t ResourceCount = count234(pResourceTable->ptreeHandleResourcePair);
 	if (pResourceCount)
 		*pResourceCount = ResourceCount;
-	void** apResourceList = malloc(ResourceCount * sizeof(void*));
+	void** apResourceList = malloc_guarded(ResourceCount * sizeof(void*));
 	for (intptr_t i = 0; i < ResourceCount; ++i)
 		apResourceList[i] = ((handle_resource_pair*)index234(pResourceTable->ptreeHandleResourcePair, i))->pResourceData;
 	return apResourceList;
