@@ -2,11 +2,12 @@
 #include "Sorts.h"
 #include "Visualizer/Visualizer.h"
 
-intptr_t GlobalPrimaryArrayId;
 
 int NTQS_isortCompare(const isort_t* a, const isort_t* b) {
 	return (*a > *b) - (*a < *b);
 }
+
+intptr_t LRQS_arrayHandle;
 
 void LRQS_Partition(isort_t* array, intptr_t low, intptr_t high) {
 
@@ -18,27 +19,27 @@ begin:
 	pivot = array[low + (high - low + 1) / 2];
 	left = low;
 	right = high;
-	Visualizer_UpdatePointer(0, 0, low + (high - low + 1) / 2);
+	rm_handle_t pointerHandle = Visualizer_CreatePointer(LRQS_arrayHandle, low + (high - low + 1) / 2);
 
 	while (left <= right) {
 		while (array[left] < pivot) {
-			Visualizer_UpdateRead2(0, left, right, 0.625);
+			Visualizer_UpdateRead2(LRQS_arrayHandle, left, right, 0.625);
 			++left;
 
 		}
 		while (array[right] > pivot) {
-			Visualizer_UpdateRead2(0, left, right, 0.625);
+			Visualizer_UpdateRead2(LRQS_arrayHandle, left, right, 0.625);
 			--right;
 		}
 
 		if (left <= right) {
-			Visualizer_UpdateWrite2(0, left, right, array[right], array[left], 0.625);
+			Visualizer_UpdateWrite2(LRQS_arrayHandle, left, right, array[right], array[left], 0.625);
 			ISORT_SWAP(array[left], array[right]);
 			++left;
 			--right;
 		}
 	}
-	Visualizer_RemovePointer(0, 0);
+	Visualizer_RemovePointer(pointerHandle);
 
 	// Call tail optimization
 	// (prevents O(n) call stack in worst case)
@@ -81,9 +82,11 @@ begin:
 * Negative integer support     : Yes
 */
 
-void LeftRightQuickSort(isort_t* array, intptr_t n) {
+void LeftRightQuickSort(isort_t* array, intptr_t n, rm_handle_t arrayHandle) {
 
 	if (n < 2) return;
+
+	LRQS_arrayHandle = arrayHandle;
 	LRQS_Partition(array, 0, n - 1);
 
 	return;

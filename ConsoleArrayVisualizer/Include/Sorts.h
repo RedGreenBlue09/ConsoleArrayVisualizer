@@ -25,18 +25,18 @@ void InsertionSort      (isort_t* array, intptr_t n);
 
 // ShellSort.c
 
-void ShellSortTokuda    (isort_t* array, intptr_t n);
-void ShellSortCiura     (isort_t* array, intptr_t n);
-void ShellSortPrimeMean (isort_t* array, intptr_t n);
-void ShellSort248       (isort_t* array, intptr_t n);
-void ShellSortPigeon    (isort_t* array, intptr_t n);
-void ShellSortSedgewick1986(isort_t* array, intptr_t n);
-void ShellSortCbrt16    (isort_t* array, intptr_t n);
-void ShellSortCbrt16p1  (isort_t* array, intptr_t n);
+void ShellSortTokuda    (isort_t* array, intptr_t n, rm_handle_t arrayHandle);
+void ShellSortCiura     (isort_t* array, intptr_t n, rm_handle_t arrayHandle);
+void ShellSortPrimeMean (isort_t* array, intptr_t n, rm_handle_t arrayHandle);
+void ShellSort248       (isort_t* array, intptr_t n, rm_handle_t arrayHandle);
+void ShellSortPigeon    (isort_t* array, intptr_t n, rm_handle_t arrayHandle);
+void ShellSortSedgewick1986(isort_t* array, intptr_t n, rm_handle_t arrayHandle);
+void ShellSortCbrt16    (isort_t* array, intptr_t n, rm_handle_t arrayHandle);
+void ShellSortCbrt16p1  (isort_t* array, intptr_t n, rm_handle_t arrayHandle);
 
 // QuickSort.c
 
-void LeftRightQuickSort (isort_t* array, intptr_t n);
+void LeftRightQuickSort (isort_t* array, intptr_t n, rm_handle_t arrayHandle);
 
 // MergeSort.c
 
@@ -45,7 +45,7 @@ void IterativeMergeSort (isort_t* array, intptr_t n);
 // HeapSort.c
 
 void WeakHeapSort       (isort_t* array, intptr_t n);
-void BottomUpHeapSort   (isort_t* array, intptr_t n);
+void BottomUpHeapSort   (isort_t* array, intptr_t n, rm_handle_t arrayHandle);
 
 // Distributive Sorts
 

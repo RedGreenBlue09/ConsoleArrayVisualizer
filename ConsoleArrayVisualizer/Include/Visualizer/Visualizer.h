@@ -69,24 +69,22 @@ typedef struct {
 
 // Visualizer.c
 
-// Low level renderer functions.
-//#define VISUALIZER_DISABLED
-
 #ifndef VISUALIZER_DISABLED
+
+// Initialization
 
 void Visualizer_Initialize();
 void Visualizer_Uninitialize();
 
-#define VISUALIZER_DISABLE_SLEEP
+// Sleep
+
 #ifdef VISUALIZER_DISABLE_SLEEP
-
 #define Visualizer_Sleep(X) 
-
 #else
-
 void Visualizer_Sleep(double fSleepMultiplier);
-
 #endif
+
+// Array
 
 rm_handle_t Visualizer_AddArray(
 	intptr_t Size,
@@ -104,6 +102,8 @@ void Visualizer_UpdateArray(
 	isort_t ValueMax
 );
 
+// Read
+
 void Visualizer_UpdateRead(
 	rm_handle_t ArrayHandle,
 	intptr_t iPosition,
@@ -115,6 +115,15 @@ void Visualizer_UpdateRead2(
 	intptr_t iPositionB,
 	double fSleepMultiplier
 );
+void Visualizer_UpdateReadMulti(
+	rm_handle_t ArrayHandle,
+	intptr_t iStartPosition,
+	intptr_t Length,
+	double fSleepMultiplier
+);
+
+// Write
+
 void Visualizer_UpdateWrite(
 	rm_handle_t ArrayHandle,
 	intptr_t iPosition,
@@ -128,6 +137,27 @@ void Visualizer_UpdateWrite2(
 	isort_t NewValueA,
 	isort_t NewValueB,
 	double fSleepMultiplier
+);
+void Visualizer_UpdateWriteMulti(
+	rm_handle_t ArrayHandle,
+	intptr_t iStartPosition,
+	intptr_t Length,
+	isort_t* aNewValue,
+	double fSleepMultiplier
+);
+
+// Pointer
+
+rm_handle_t Visualizer_CreatePointer(
+	rm_handle_t ArrayHandle,
+	intptr_t iPosition
+);
+void Visualizer_RemovePointer(
+	rm_handle_t MarkerHandle
+);
+void Visualizer_MovePointer(
+	rm_handle_t MarkerHandle,
+	intptr_t iNewPosition
 );
 
 #else

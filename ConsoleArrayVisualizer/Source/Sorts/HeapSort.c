@@ -75,7 +75,7 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 
 		if (right < end) {
 
-			Visualizer_UpdateRead2(0, right, left, 0.25);
+			Visualizer_UpdateRead2(BUFS_arrayHandle, right, left, 0.25);
 			if ((array[right] > array[left])) {
 				j = right;
 			} else {
@@ -90,12 +90,12 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 	}
 
 	while (array[i] > array[j]) {
-		Visualizer_UpdateRead2(0, i, j, 0.25);
+		Visualizer_UpdateRead2(BUFS_arrayHandle, i, j, 0.25);
 		j = (j - 1) / 2;
 	}
 
 	while (j > i) {
-		Visualizer_UpdateWrite2(0, i, j, array[j], array[i], 0.25);
+		Visualizer_UpdateWrite2(BUFS_arrayHandle, i, j, array[j], array[i], 0.25);
 		ISORT_SWAP(array[i], array[j]);
 		j = (j - 1) / 2;
 	}
@@ -111,22 +111,16 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 * Negative integer support     : Yes
 */
 
-void BottomUpHeapSort(isort_t* array, intptr_t n) {
-
-	BUFS_arrayHandle = Visualizer_AddArray(n);
-	Visualizer_UpdateArray(
-		BUFS_arrayHandle,
-		0, // TODO
-
-	);
+void BottomUpHeapSort(isort_t* array, intptr_t n, rm_handle_t arrayHandle) {
 
 	intptr_t length = n;
+	BUFS_arrayHandle = arrayHandle;
 
 	for (intptr_t i = (length - 1) / 2; i >= 0; --i)
 		BUHS_SiftDown(array, i, length);
 
 	for (intptr_t i = length - 1; i > 0; --i) {
-		Visualizer_UpdateWrite2(0, 0, i, array[i], array[0], 0.25);
+		Visualizer_UpdateWrite2(BUFS_arrayHandle, 0, i, array[i], array[0], 0.25);
 		ISORT_SWAP(array[0], array[i]);
 		BUHS_SiftDown(array, 0, i);
 	}

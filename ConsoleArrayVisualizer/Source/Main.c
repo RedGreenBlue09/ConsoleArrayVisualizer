@@ -77,24 +77,18 @@ int main() {
 
 	//
 	mainShuffle(aArray, N);
-	Visualizer_UpdateArray(MainArrayHandle, 0, 0, (isort_t)N - 1);
-
-	//
-	BottomUpHeapSort(aArray, N);
-
-	//
-	mainShuffle(aArray, N);
-	Visualizer_UpdateArray(MainArrayHandle, 0, 0, (isort_t)N - 1);
-
-	//
-	LeftRightQuickSort(aArray, N);
+	Visualizer_UpdateWriteMulti(MainArrayHandle, 0, N, aArray, 0.0);
+	BottomUpHeapSort(aArray, N, MainArrayHandle);
 
 	//
 	mainShuffle(aArray, N);
-	Visualizer_UpdateArray(MainArrayHandle, 0, 0, (isort_t)N - 1);
+	Visualizer_UpdateWriteMulti(MainArrayHandle, 0, N, aArray, 0.0);
+	LeftRightQuickSort(aArray, N, MainArrayHandle);
 
 	//
-	ShellSortCiura(aArray, N);
+	mainShuffle(aArray, N);
+	Visualizer_UpdateWriteMulti(MainArrayHandle, 0, N, aArray, 0.0);
+	ShellSortCiura(aArray, N, MainArrayHandle);
 
 	//
 	Visualizer_RemoveArray(0);

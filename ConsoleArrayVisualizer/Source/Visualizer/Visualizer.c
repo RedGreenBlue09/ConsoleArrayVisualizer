@@ -36,6 +36,7 @@ void Visualizer_Initialize() {
 	// Initialize Visualizer_ArrayPropResourceTable
 
 	CreateResourceTable(&Visualizer_ArrayPropResourceTable);
+	CreateResourceTable(&Visualizer_MarkerResourceTable);
 
 	// Only for now
 	
@@ -279,7 +280,7 @@ rm_handle_t Visualizer_NewMarker(
 
 	// Get the highest priority marker
 
-	Visualizer_Marker* HighestPriorityMarker = findrel234(pArrayProp->aptreeMarkerMap[iPosition], NULL, NULL, REL234_LT);
+	Visualizer_Marker* pHighestPriorityMarker = findrel234(pArrayProp->aptreeMarkerMap[iPosition], NULL, NULL, REL234_LT);
 
 	uint32_t UpdateRequest = AV_RENDERER_UPDATEATTR;
 	if (bUpdateValue)
@@ -290,7 +291,7 @@ rm_handle_t Visualizer_NewMarker(
 		iPosition,
 		UpdateRequest,
 		NewValue,
-		HighestPriorityMarker->Attribute
+		pHighestPriorityMarker->Attribute
 	);
 
 	return MarkerHandle;
@@ -311,13 +312,13 @@ void Visualizer_RemoveMarker(rm_handle_t MarkerHandle) {
 
 	// Get the highest priority marker
 
-	Visualizer_Marker* HighestPriorityMarker = findrel234(pArrayProp->aptreeMarkerMap[iPosition], NULL, NULL, REL234_LT);
+	Visualizer_Marker* pHighestPriorityMarker = findrel234(pArrayProp->aptreeMarkerMap[iPosition], NULL, NULL, REL234_LT);
 
 	// If 0 marker are in the map slot, reset to normal
 
 	Visualizer_MarkerAttribute TargetAttribute =
-		HighestPriorityMarker ?
-		HighestPriorityMarker->Attribute :
+		pHighestPriorityMarker ?
+		pHighestPriorityMarker->Attribute :
 		Visualizer_MarkerAttribute_Normal;
 
 	Visualizer_RendererEntry.UpdateItem(
@@ -334,26 +335,26 @@ void Visualizer_RemoveMarker(rm_handle_t MarkerHandle) {
 // On the same array & keep attribute
 void Visualizer_MoveMarker(rm_handle_t MarkerHandle, intptr_t iNewPosition) {
 
-	// Delete from old map slot
-
 	Visualizer_Marker* pMarker = GetResource(&Visualizer_MarkerResourceTable, MarkerHandle);
 	if (!pMarker)
 		return;
 	Visualizer_ArrayProp* pArrayProp = GetResource(&Visualizer_ArrayPropResourceTable, pMarker->ArrayHandle);
 	if (iNewPosition >= pArrayProp->Size || iNewPosition < 0) return;
 
+	// Delete from old map slot
+
 	intptr_t iOldPosition = pMarker->iPosition;
 	del234(pArrayProp->aptreeMarkerMap[iOldPosition], pMarker);
 
 	// Get the highest priority marker
 
-	Visualizer_Marker* HighestPriorityMarker = findrel234(pArrayProp->aptreeMarkerMap[iOldPosition], NULL, NULL, REL234_LT);
+	Visualizer_Marker* pHighestPriorityMarker = findrel234(pArrayProp->aptreeMarkerMap[iOldPosition], NULL, NULL, REL234_LT);
 
 	// If 0 marker are in the map slot, reset to normal
 
 	Visualizer_MarkerAttribute TargetAttribute =
-		HighestPriorityMarker ?
-		HighestPriorityMarker->Attribute :
+		pHighestPriorityMarker ?
+		pHighestPriorityMarker->Attribute :
 		Visualizer_MarkerAttribute_Normal;
 
 	Visualizer_RendererEntry.UpdateItem(
@@ -371,14 +372,14 @@ void Visualizer_MoveMarker(rm_handle_t MarkerHandle, intptr_t iNewPosition) {
 
 	// Get the highest priority marker
 
-	HighestPriorityMarker = findrel234(pArrayProp->aptreeMarkerMap[iNewPosition], NULL, NULL, REL234_LT);
+	pHighestPriorityMarker = findrel234(pArrayProp->aptreeMarkerMap[iNewPosition], NULL, NULL, REL234_LT);
 
 	Visualizer_RendererEntry.UpdateItem(
 		pMarker->ArrayHandle,
 		iNewPosition,
 		AV_RENDERER_UPDATEATTR,
 		0,
-		HighestPriorityMarker->Attribute
+		pHighestPriorityMarker->Attribute
 	);
 
 	return;
@@ -431,7 +432,12 @@ void Visualizer_UpdateRead2(rm_handle_t ArrayHandle, intptr_t iPositionA, intptr
 
 }
 
-void Visualizer_UpdateReadMulti(rm_handle_t ArrayHandle, intptr_t iStartPosition, intptr_t Length, double fSleepMultiplier) {
+void Visualizer_UpdateReadMulti(
+	rm_handle_t ArrayHandle,
+	intptr_t iStartPosition,
+	intptr_t Length,
+	double fSleepMultiplier
+) {
 
 	if (!Visualizer_bInitialized) return;
 	if (Length < 0) return;
@@ -536,6 +542,7 @@ void Visualizer_UpdateWriteMulti(
 }
 
 // Pointer
+// TODO: Improve
 
 rm_handle_t Visualizer_CreatePointer(
 	rm_handle_t ArrayHandle,
@@ -548,7 +555,7 @@ rm_handle_t Visualizer_CreatePointer(
 		iPosition,
 		false,
 		0,
-		Visualizer_MarkerAttribute_Write
+		Visualizer_MarkerAttribute_Pointer
 	);
 }
 
