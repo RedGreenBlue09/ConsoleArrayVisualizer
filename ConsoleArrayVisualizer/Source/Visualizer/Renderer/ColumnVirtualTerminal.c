@@ -13,7 +13,7 @@
 // Array
 typedef struct {
 
-	rm_handle_t     Handle;
+	rm_handle_t  Handle;
 	intptr_t     Size;
 	isort_t*     aState;
 	Visualizer_MarkerAttribute* aAttribute;
@@ -117,6 +117,17 @@ static char* RendererCvt_GetCellCacheChar(RendererCvt_BufferCell* pbcCell) {
 	return (pbcCell->Format.bMbChar) ? pbcCell->aMbGlyphData : pbcCell->aGlyphData;
 };
 
+static void RendererCvt_ClearScreen() {
+	const RendererCvt_VtFormat BackgroundFormat = RendererCvt_AvAttrToVtFormat(Visualizer_MarkerAttribute_Background);
+	fprintf(
+		stdout,
+		"\x1b[%"PRIu8";%"PRIu8";22;24;27m\x1b[2J",
+		BackgroundFormat.SgrForeground,
+		BackgroundFormat.SgrBackground
+	);
+	return;
+}
+
 void RendererCvt_Initialize() {
 
 	// Initialize RendererCvt_ptreeArrayProp
@@ -174,32 +185,19 @@ void RendererCvt_Initialize() {
 
 	fwrite("\x1B[1G\x1B[1d", 1, sizeof("\x1B[1G\x1B[1d"), stdout);
 
-	// Clear screen
+	// Initialize cell cache
 
-	{
+	RendererCvt_BufferCell bcCell = {
+		.aGlyphData = { ' ', '\0', '\0', '\0' },
+		.Format = RendererCvt_AvAttrToVtFormat(Visualizer_MarkerAttribute_Background)
+	};
 
-		// Change color
+	for (intptr_t i = 0; i < BufferSize1D; ++i)
+		RendererCvt_aBufferCellCache2D[i] = bcCell;
 
-		RendererCvt_BufferCell bcCell = {
-			.aGlyphData = { ' ', '\0', '\0', '\0' },
-			.Format = RendererCvt_AvAttrToVtFormat(Visualizer_MarkerAttribute_Background)
-		};
+	//
 
-		// Update cell cache
-
-		for (intptr_t i = 0; i < BufferSize1D; ++i)
-			RendererCvt_aBufferCellCache2D[i] = bcCell;
-
-		// Write to stdout
-
-		fprintf(
-			stdout,
-			"\x1b[%"PRIu8";%"PRIu8";22;24;27m\x1b[2K",
-			bcCell.Format.SgrForeground,
-			bcCell.Format.SgrBackground
-		);
-
-	}
+	RendererCvt_ClearScreen();
 
 	return;
 }
@@ -295,20 +293,8 @@ void RendererCvt_UpdateArray(
 
 	RendererCvt_ArrayProp ArrayPropFind = { .Handle = Handle };
 	RendererCvt_ArrayProp* pArrayProp = find234(RendererCvt_ptreeArrayProp, &ArrayPropFind, NULL);
-	
-	// Dummy clear screen. TODO.
-	
-	for (intptr_t i = 0; i < pArrayProp->Size; ++i) {
 
-		RendererCvt_UpdateItem(
-			Handle,
-			i,
-			AV_RENDERER_UPDATEVALUE,
-			pArrayProp->ValueMin,
-			0
-		);
-
-	}
+	RendererCvt_ClearScreen();
 
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;

@@ -78,10 +78,10 @@ int main() {
 	//
 	mainShuffle(aArray, N);
 	Visualizer_UpdateWriteMulti(MainArrayHandle, 0, N, aArray, 0.0);
-	BottomUpHeapSort(aArray, N, MainArrayHandle);
+	BottomUpHeapSort(aArray, N, MainArrayHandle); // This has incorrect results
 	
 
-	Visualizer_UpdateArray(MainArrayHandle, N * 3 / 4, 0, N * 3 / 4);
+	Visualizer_UpdateArray(MainArrayHandle, N, 0, N);
 	sleep64(1500000);
 
 	//
@@ -90,7 +90,7 @@ int main() {
 	LeftRightQuickSort(aArray, N, MainArrayHandle);
 
 
-	Visualizer_UpdateArray(MainArrayHandle, N * 5 / 4, 0, N * 5 / 4);
+	Visualizer_UpdateArray(MainArrayHandle, N, 0, N);
 	sleep64(1500000);
 
 	//

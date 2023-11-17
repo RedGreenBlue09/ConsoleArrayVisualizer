@@ -220,19 +220,16 @@ void RendererCwc_UpdateArray(
 	RendererCwc_ArrayProp ArrayPropFind = { .Handle = Handle };
 	RendererCwc_ArrayProp* pArrayProp = find234(RendererCwc_ptreeArrayProp, &ArrayPropFind, NULL);
 
-	// Dummy clear screen. TODO.
+	// Clear screen
 
-	for (intptr_t i = 0; i < pArrayProp->Size; ++i) {
-
-		RendererCwc_UpdateItem(
-			Handle,
-			i,
-			AV_RENDERER_UPDATEVALUE,
-			pArrayProp->ValueMin,
-			0
-		);
-
-	}
+	int32_t Written;
+	FillConsoleOutputAttribute(
+		hAltBuffer,
+		ATTR_WINCON_BACKGROUND,
+		csbiBufferCache.dwSize.X * csbiBufferCache.dwSize.Y,
+		(COORD){ 0, 0 },
+		&Written
+	);
 
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
