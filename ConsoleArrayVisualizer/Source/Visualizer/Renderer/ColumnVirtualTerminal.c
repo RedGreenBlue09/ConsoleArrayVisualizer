@@ -25,8 +25,8 @@ typedef struct {
 
 } RendererCvt_ArrayProp;
 
-static Visualizer_ArrayProp* RendererCvt_nArrayProp = 0;
-static Visualizer_ArrayProp* RendererCvt_aArrayProp = NULL;
+static intptr_t RendererCvt_nArrayProp = 0;
+static RendererCvt_ArrayProp* RendererCvt_aArrayProp = NULL;
 
 #ifdef _WIN32
 // To restore later

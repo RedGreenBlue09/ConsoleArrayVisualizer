@@ -7,7 +7,7 @@ int NTQS_isortCompare(const isort_t* a, const isort_t* b) {
 	return (*a > *b) - (*a < *b);
 }
 
-intptr_t LRQS_arrayHandle;
+Visualizer_ArrayHandle LRQS_arrayHandle;
 
 void LRQS_Partition(isort_t* array, intptr_t low, intptr_t high) {
 

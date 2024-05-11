@@ -44,7 +44,9 @@ typedef struct {
 
 typedef struct {
 
-	void (*Initialize)();
+	void (*Initialize)(
+		intptr_t nMaxArray
+	);
 	void (*Uninitialize)();
 
 	void (*AddArray)(

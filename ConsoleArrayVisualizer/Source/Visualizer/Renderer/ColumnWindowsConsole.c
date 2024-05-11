@@ -46,8 +46,8 @@ typedef struct {
 	// TODO: Horizontal scaling
 } RendererCwc_ArrayProp;
 
-static Visualizer_ArrayProp* RendererCwc_nArrayProp = 0;
-static Visualizer_ArrayProp* RendererCwc_aArrayProp = NULL;
+static intptr_t RendererCwc_nArrayProp = 0;
+static RendererCwc_ArrayProp* RendererCwc_aArrayProp = NULL;
 
 void RendererCwc_Initialize(intptr_t nMaxArray) {
 

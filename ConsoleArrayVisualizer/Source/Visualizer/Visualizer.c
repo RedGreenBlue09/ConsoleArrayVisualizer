@@ -61,7 +61,7 @@ void Visualizer_Initialize() {
 
 	// Call renderer
 
-	Visualizer_RendererEntry.Initialize();
+	Visualizer_RendererEntry.Initialize(16);
 
 	PoolInitialize(&Visualizer_ArrayPropPool, 16, sizeof(Visualizer_ArrayProp));
 	PoolInitialize(&Visualizer_MarkerPool, 256, sizeof(Visualizer_Marker));
@@ -130,8 +130,8 @@ Visualizer_ArrayHandle Visualizer_AddArray(
 
 void Visualizer_RemoveArray(Visualizer_ArrayHandle hArray) {
 
-	if (!Visualizer_bInitialized) return NULL;
-	if (!hArray) return NULL;
+	if (!Visualizer_bInitialized) return;
+	if (!hArray) return;
 
 	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, (pool_index)hArray);
 	intptr_t Size = pArrayProp->Size;
@@ -539,7 +539,7 @@ Visualizer_PointerHandle Visualizer_CreatePointer(
 	intptr_t iPosition
 ) {
 	if (!Visualizer_bInitialized) return NULL;
-	if (!hArray) return;
+	if (!hArray) return NULL;
 
 	return (Visualizer_PointerHandle)Visualizer_NewMarker(
 		hArray,

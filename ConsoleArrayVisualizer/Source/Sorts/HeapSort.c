@@ -136,7 +136,7 @@ void BottomUpHeapSort(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHa
 * Negative integer support     : Yes
 */
 
-void WeakHeapSort(isort_t* array, intptr_t n) {
+void WeakHeapSort(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
 
 	if (n < 2) return;
 	WHS_weakHeapSort(array, n);

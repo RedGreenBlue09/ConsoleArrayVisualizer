@@ -73,7 +73,7 @@ int main() {
 	//sleep64(5000000);
 
 	Visualizer_Initialize();
-	rm_handle_t MainArrayHandle = Visualizer_AddArray(N, aArray, 0, (isort_t)N - 1);
+	Visualizer_ArrayHandle MainArrayHandle = Visualizer_AddArray(N, aArray, 0, (isort_t)N - 1);
 
 	//
 	mainShuffle(aArray, N);

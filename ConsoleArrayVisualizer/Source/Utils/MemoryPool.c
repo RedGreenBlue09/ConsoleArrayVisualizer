@@ -1,5 +1,4 @@
 
-#include <assert.h>
 #include "Utils/GuardedMalloc.h"
 #include "Utils/MemoryPool.h"
 
