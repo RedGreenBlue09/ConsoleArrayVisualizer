@@ -37,6 +37,7 @@
     <ClCompile Include="Source\Sorts\QuickSort.c" />
     <ClCompile Include="Source\Sorts\ShellSort.c" />
     <ClCompile Include="Source\Utils\DynamicArray.c" />
+    <ClCompile Include="Source\Utils\MemoryPool.c" />
     <ClCompile Include="Source\Utils\ResourceManager.c" />
     <ClCompile Include="Source\Utils\Time.c" />
     <ClCompile Include="Source\Utils\Random.c" />
@@ -48,6 +49,7 @@
   <ItemGroup>
     <ClInclude Include="Include\Utils\DynamicArray.h" />
     <ClInclude Include="Include\Utils\GuardedMalloc.h" />
+    <ClInclude Include="Include\Utils\MemoryPool.h" />
     <ClInclude Include="Include\Utils\Random.h" />
     <ClInclude Include="Include\Utils\ResourceManager.h" />
     <ClInclude Include="Include\Utils\Time.h" />
@@ -219,7 +221,7 @@
       <EnableParallelCodeGeneration>
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -270,7 +272,7 @@
       <EnableParallelCodeGeneration>
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -323,7 +325,7 @@
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
