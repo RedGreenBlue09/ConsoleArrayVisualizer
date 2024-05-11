@@ -62,7 +62,7 @@ void WHS_weakHeapSort(isort_t* array, intptr_t n) {
 	free(bits);
 }
 
-rm_handle_t BUFS_arrayHandle;
+Visualizer_ArrayHandle BUFS_arrayHandle;
 
 void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 
@@ -111,7 +111,7 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 * Negative integer support     : Yes
 */
 
-void BottomUpHeapSort(isort_t* array, intptr_t n, rm_handle_t arrayHandle) {
+void BottomUpHeapSort(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
 
 	intptr_t length = n;
 	BUFS_arrayHandle = arrayHandle;

@@ -19,7 +19,7 @@ begin:
 	pivot = array[low + (high - low + 1) / 2];
 	left = low;
 	right = high;
-	rm_handle_t pointerHandle = Visualizer_CreatePointer(LRQS_arrayHandle, low + (high - low + 1) / 2);
+	Visualizer_PointerHandle pointerHandle = Visualizer_CreatePointer(LRQS_arrayHandle, low + (high - low + 1) / 2);
 
 	while (left <= right) {
 		while (array[left] < pivot) {
@@ -82,7 +82,7 @@ begin:
 * Negative integer support     : Yes
 */
 
-void LeftRightQuickSort(isort_t* array, intptr_t n, rm_handle_t arrayHandle) {
+void LeftRightQuickSort(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
 
 	if (n < 2) return;
 

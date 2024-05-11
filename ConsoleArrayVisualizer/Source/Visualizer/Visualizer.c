@@ -15,7 +15,6 @@
 // TODO: More parameter checks
 
 static AV_RENDERER_ENTRY Visualizer_RendererEntry;
-
 static const uint64_t Visualizer_TimeDefaultDelay = 10000; // microseconds
 static bool Visualizer_bInitialized = false;
 static pool Visualizer_ArrayPropPool;
@@ -28,6 +27,11 @@ typedef struct {
 } Visualizer_Marker;
 
 typedef void* Visualizer_MarkerHandle;
+
+static int Visualizer_MarkerPriorityCmp(
+	Visualizer_Marker* pMarkerA,
+	Visualizer_Marker* pMarkerB
+);
 
 void Visualizer_Initialize() {
 
@@ -96,11 +100,6 @@ void Visualizer_Sleep(double fSleepMultiplier) {
 
 // Array
 
-static int Visualizer_MarkerPriorityCmp(
-	Visualizer_Marker* pMarkerA,
-	Visualizer_Marker* pMarkerB
-);
-
 Visualizer_ArrayHandle Visualizer_AddArray(
 	intptr_t Size,
 	isort_t* aArrayState,
@@ -113,7 +112,7 @@ Visualizer_ArrayHandle Visualizer_AddArray(
 	
 	pool_index PoolIndex = PoolAllocate(&Visualizer_ArrayPropPool);
 	if (PoolIndex >= Visualizer_ArrayPropPool.nBlock) return NULL;
-	Visualizer_ArrayProp* pArrayProp = PoolGetAddress(&Visualizer_ArrayPropPool, PoolIndex);
+	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, PoolIndex);
 
 	// Initialize apMarkerTree
 
@@ -134,7 +133,7 @@ void Visualizer_RemoveArray(Visualizer_ArrayHandle hArray) {
 	if (!Visualizer_bInitialized) return NULL;
 	if (!hArray) return NULL;
 
-	Visualizer_ArrayProp* pArrayProp = PoolGetAddress(&Visualizer_ArrayPropPool, (pool_index)hArray);
+	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, (pool_index)hArray);
 	intptr_t Size = pArrayProp->Size;
 
 	// Uninitialize apMarkerTree
@@ -145,7 +144,8 @@ void Visualizer_RemoveArray(Visualizer_ArrayHandle hArray) {
 			pMarker != NULL;
 			pMarker = delpos234(pArrayProp->apMarkerTree[i], 0)
 		) {
-			PoolDeallocate(&Visualizer_MarkerPool, pMarker);
+			pool_index MarkerIndex = PoolAddressToIndex(&Visualizer_MarkerPool, pMarker);
+			PoolDeallocate(&Visualizer_MarkerPool, MarkerIndex);
 		}
 		freetree234(pArrayProp->apMarkerTree[i]);
 	}
@@ -171,7 +171,7 @@ void Visualizer_UpdateArray(
 	if (!hArray) return;
 	if (ValueMax <= ValueMin) return;
 
-	Visualizer_ArrayProp* pArrayProp = PoolGetAddress(&Visualizer_ArrayPropPool, (pool_index)hArray);
+	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, (pool_index)hArray);
 
 	// Handle array resize
 
@@ -187,7 +187,8 @@ void Visualizer_UpdateArray(
 				pMarker != NULL;
 				pMarker = delpos234(apOldMarkerTree[i], 0)
 				) {
-				PoolDeallocate(&Visualizer_MarkerPool, pMarker);
+				pool_index MarkerIndex = PoolAddressToIndex(&Visualizer_MarkerPool, pMarker);
+				PoolDeallocate(&Visualizer_MarkerPool, MarkerIndex);
 			}
 			freetree234(apOldMarkerTree[i]);
 		}
@@ -253,11 +254,11 @@ static Visualizer_MarkerHandle Visualizer_NewMarker(
 	assert(Visualizer_bInitialized);
 	assert(hArray);
 
-	Visualizer_ArrayProp* pArrayProp = PoolGetAddress(&Visualizer_ArrayPropPool, (pool_index)hArray);
+	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, (pool_index)hArray);
 	assert(iPosition >= 0 && iPosition < pArrayProp->Size);
 
 	pool_index PoolIndex = PoolAllocate(&Visualizer_MarkerPool);
-	Visualizer_Marker* pMarker = PoolGetAddress(&Visualizer_MarkerPool, PoolIndex);
+	Visualizer_Marker* pMarker = PoolIndexToAddress(&Visualizer_MarkerPool, PoolIndex);
 	pMarker->hArray = hArray;
 	pMarker->iPosition = iPosition;
 	pMarker->Attribute = Attribute;
@@ -266,7 +267,7 @@ static Visualizer_MarkerHandle Visualizer_NewMarker(
 
 	// Get the highest priority marker
 
-	Visualizer_Marker* pHighestPriorityMarker = findrel234(pArrayProp->apMarkerTree[iPosition], NULL, NULL, REL234_LT);
+	Visualizer_Marker* pTopMarker = findrel234(pArrayProp->apMarkerTree[iPosition], NULL, NULL, REL234_LT);
 
 	uint32_t UpdateRequest = AV_RENDERER_UPDATEATTR;
 	if (bUpdateValue)
@@ -276,7 +277,7 @@ static Visualizer_MarkerHandle Visualizer_NewMarker(
 		iPosition,
 		UpdateRequest,
 		NewValue,
-		pHighestPriorityMarker->Attribute
+		pTopMarker->Attribute
 	);
 
 	return (Visualizer_MarkerHandle)PoolIndex;
@@ -287,21 +288,21 @@ static void Visualizer_RemoveMarker(Visualizer_MarkerHandle hMarker) {
 
 	assert(hMarker);
 
-	Visualizer_Marker* pMarker = PoolGetAddress(&Visualizer_MarkerPool, (pool_index)hMarker);
-	Visualizer_ArrayProp* pArrayProp = PoolGetAddress(&Visualizer_ArrayPropPool, (pool_index)pMarker->hArray);
+	Visualizer_Marker* pMarker = PoolIndexToAddress(&Visualizer_MarkerPool, (pool_index)hMarker);
+	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, (pool_index)pMarker->hArray);
 
 	intptr_t iPosition = pMarker->iPosition;
 	del234(pArrayProp->apMarkerTree[iPosition], pMarker);
 
 	// Get the highest priority marker
 
-	Visualizer_Marker* pHighestPriorityMarker = findrel234(pArrayProp->apMarkerTree[iPosition], NULL, NULL, REL234_LT);
+	Visualizer_Marker* pTopMarker = findrel234(pArrayProp->apMarkerTree[iPosition], NULL, NULL, REL234_LT);
 
 	// If 0 marker are in the map slot, reset to normal
 
-	Visualizer_MarkerAttribute TargetAttribute =
-		pHighestPriorityMarker ?
-		pHighestPriorityMarker->Attribute :
+	Visualizer_MarkerAttribute Attribute =
+		pTopMarker ?
+		pTopMarker->Attribute :
 		Visualizer_MarkerAttribute_Normal;
 
 	Visualizer_RendererEntry.UpdateItem(
@@ -309,7 +310,7 @@ static void Visualizer_RemoveMarker(Visualizer_MarkerHandle hMarker) {
 		iPosition,
 		AV_RENDERER_UPDATEATTR,
 		0,
-		TargetAttribute
+		Attribute
 	);
 	PoolDeallocate(&Visualizer_MarkerPool, pMarker);
 
@@ -321,8 +322,8 @@ static void Visualizer_MoveMarker(Visualizer_MarkerHandle hMarker, intptr_t iNew
 
 	assert(pMarker);
 
-	Visualizer_Marker* pMarker = PoolGetAddress(&Visualizer_MarkerPool, (pool_index)hMarker);
-	Visualizer_ArrayProp* pArrayProp = PoolGetAddress(&Visualizer_ArrayPropPool, (pool_index)pMarker->hArray);
+	Visualizer_Marker* pMarker = PoolIndexToAddress(&Visualizer_MarkerPool, (pool_index)hMarker);
+	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, (pool_index)pMarker->hArray);
 	assert(iNewPosition >= 0 && iNewPosition < pArrayProp->Size);
 
 	// Delete from old map slot
@@ -332,13 +333,13 @@ static void Visualizer_MoveMarker(Visualizer_MarkerHandle hMarker, intptr_t iNew
 
 	// Get the highest priority marker
 
-	Visualizer_Marker* pHighestPriorityMarker = findrel234(pArrayProp->apMarkerTree[iOldPosition], NULL, NULL, REL234_LT);
+	Visualizer_Marker* pTopMarker = findrel234(pArrayProp->apMarkerTree[iOldPosition], NULL, NULL, REL234_LT);
 
 	// If 0 marker are in the map slot, reset to normal
 
-	Visualizer_MarkerAttribute TargetAttribute =
-		pHighestPriorityMarker ?
-		pHighestPriorityMarker->Attribute :
+	Visualizer_MarkerAttribute Attribute =
+		pTopMarker ?
+		pTopMarker->Attribute :
 		Visualizer_MarkerAttribute_Normal;
 
 	Visualizer_RendererEntry.UpdateItem(
@@ -346,7 +347,7 @@ static void Visualizer_MoveMarker(Visualizer_MarkerHandle hMarker, intptr_t iNew
 		iOldPosition,
 		AV_RENDERER_UPDATEATTR,
 		0,
-		TargetAttribute
+		Attribute
 	);
 
 	// Add to new map slot
@@ -356,14 +357,14 @@ static void Visualizer_MoveMarker(Visualizer_MarkerHandle hMarker, intptr_t iNew
 
 	// Get the highest priority marker
 
-	pHighestPriorityMarker = findrel234(pArrayProp->apMarkerTree[iNewPosition], NULL, NULL, REL234_LT);
+	pTopMarker = findrel234(pArrayProp->apMarkerTree[iNewPosition], NULL, NULL, REL234_LT);
 
 	Visualizer_RendererEntry.UpdateItem(
 		pMarker->hArray,
 		iNewPosition,
 		AV_RENDERER_UPDATEATTR,
 		0,
-		pHighestPriorityMarker->Attribute
+		pTopMarker->Attribute
 	);
 
 	return;

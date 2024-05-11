@@ -13,9 +13,9 @@
 // Array
 typedef struct {
 
-	rm_handle_t  Handle;
-	intptr_t     Size;
-	isort_t*     aState;
+	Visualizer_ArrayHandle      hArray;
+	intptr_t                    Size;
+	isort_t*                    aState;
 	Visualizer_MarkerAttribute* aAttribute;
 
 	isort_t      ValueMin;
@@ -25,11 +25,8 @@ typedef struct {
 
 } RendererCvt_ArrayProp;
 
-static tree234* RendererCvt_ptreeArrayProp; // tree of RendererCvt_ArrayProp_RENDERER
-
-static int RendererCvt_ArrayPropIdCmp(RendererCvt_ArrayProp* pA, RendererCvt_ArrayProp* pB) {
-	return (pA->Handle > pB->Handle) - (pA->Handle < pB->Handle);
-}
+static Visualizer_ArrayProp* RendererCvt_nArrayProp = 0;
+static Visualizer_ArrayProp* RendererCvt_aArrayProp = NULL;
 
 #ifdef _WIN32
 // To restore later
@@ -128,11 +125,12 @@ static void RendererCvt_ClearScreen() {
 	return;
 }
 
-void RendererCvt_Initialize() {
+void RendererCvt_Initialize(intptr_t nMaxArray) {
 
-	// Initialize RendererCvt_ptreeArrayProp
+	// Initialize RendererCvt_aArrayProp
 
-	RendererCvt_ptreeArrayProp = newtree234(RendererCvt_ArrayPropIdCmp);
+	RendererCvt_nArrayProp = nMaxArray;
+	RendererCvt_aArrayProp = malloc_guarded(nMaxArray * sizeof(*RendererCvt_aArrayProp));
 
 #ifdef _WIN32
 	// Enable virtual terminal on Windows.
@@ -204,16 +202,9 @@ void RendererCvt_Initialize() {
 
 void RendererCvt_Uninitialize() {
 
-	// Uninitialize RendererCvt_ptreeArrayProp
+	// Uninitialize RendererCvt_aArrayProp
 
-	for (
-		RendererCvt_ArrayProp* pRenderer = delpos234(RendererCvt_ptreeArrayProp, 0);
-		pRenderer != NULL;
-		pRenderer = delpos234(RendererCvt_ptreeArrayProp, 0)
-	) {
-		free(pRenderer);
-	}
-	freetree234(RendererCvt_ptreeArrayProp);
+	free(RendererCvt_aArrayProp);
 
 	// Main buffer
 
@@ -233,16 +224,16 @@ void RendererCvt_Uninitialize() {
 }
 
 void RendererCvt_AddArray(
-	rm_handle_t Handle,
+	Visualizer_ArrayHandle hArray,
 	intptr_t Size,
 	isort_t* aArrayState,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
 
-	RendererCvt_ArrayProp* pArrayProp = malloc_guarded(sizeof(RendererCvt_ArrayProp));
+	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)hArray;
 
-	pArrayProp->Handle = Handle;
+	pArrayProp->hArray = hArray;
 	pArrayProp->Size = Size;
 
 	pArrayProp->aState = malloc_guarded(Size * sizeof(isort_t));
@@ -260,39 +251,28 @@ void RendererCvt_AddArray(
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
 
-	// Add to tree
-
-	add234(RendererCvt_ptreeArrayProp, pArrayProp);
-
 	return;
 }
 
-void RendererCvt_RemoveArray(rm_handle_t Handle) {
+void RendererCvt_RemoveArray(Visualizer_ArrayHandle hArray) {
 
-	RendererCvt_ArrayProp ArrayPropFind = { .Handle = Handle };
-	RendererCvt_ArrayProp* pArrayProp = find234(RendererCvt_ptreeArrayProp, &ArrayPropFind, NULL);
+	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)hArray;
 
 	free(pArrayProp->aAttribute);
 	free(pArrayProp->aState);
-
-	// Remove from tree
-
-	del234(RendererCvt_ptreeArrayProp, pArrayProp);
-	free(pArrayProp);
 
 	return;
 
 }
 
 void RendererCvt_UpdateArray(
-	rm_handle_t Handle,
+	Visualizer_ArrayHandle hArray,
 	intptr_t NewSize,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
 
-	RendererCvt_ArrayProp ArrayPropFind = { .Handle = Handle };
-	RendererCvt_ArrayProp* pArrayProp = find234(RendererCvt_ptreeArrayProp, &ArrayPropFind, NULL);
+	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)hArray;
 
 	RendererCvt_ClearScreen();
 
@@ -335,7 +315,7 @@ void RendererCvt_UpdateArray(
 	intptr_t Size = pArrayProp->Size;
 	for (intptr_t i = 0; i < Size; ++i) {
 		RendererCvt_UpdateItem(
-			Handle,
+			hArray,
 			i,
 			AV_RENDERER_NOUPDATE,
 			0,
@@ -348,15 +328,14 @@ void RendererCvt_UpdateArray(
 }
 
 void RendererCvt_UpdateItem(
-	rm_handle_t ArrayHandle,
+	Visualizer_ArrayHandle hArray,
 	intptr_t iPosition,
 	uint32_t UpdateRequest,
 	isort_t NewValue,
 	Visualizer_MarkerAttribute NewAttr
 ) {
 
-	RendererCvt_ArrayProp ArrayPropFind = { .Handle = ArrayHandle };
-	RendererCvt_ArrayProp* pArrayProp = find234(RendererCvt_ptreeArrayProp, &ArrayPropFind, NULL);
+	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)hArray;
 
 	// Choose the correct value & attribute
 

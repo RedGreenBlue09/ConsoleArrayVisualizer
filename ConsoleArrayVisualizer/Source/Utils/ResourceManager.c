@@ -5,7 +5,7 @@
 #include "Utils/ResourceManager.h"
 
 typedef struct {
-	rm_handle_t Handle;
+	Visualizer_ArrayHandle hArray;
 	void* pResourceData;
 } handle_resource_pair;
 
@@ -92,7 +92,7 @@ rm_handle_t AddResource(resource_table_t* pResourceTable, void* pResource) {
 
 }
 
-void* RemoveResource(resource_table_t* pResourceTable, rm_handle_t Handle) {
+void* RemoveResource(resource_table_t* pResourceTable, Visualizer_ArrayHandle hArray) {
 
 	tree234* ptreeHandleResourcePair = pResourceTable->ptreeHandleResourcePair;
 	tree234* ptreeEmptyHandle = pResourceTable->ptreeEmptyHandle;
@@ -177,7 +177,7 @@ void* RemoveResource(resource_table_t* pResourceTable, rm_handle_t Handle) {
 
 }
 
-void* GetResource(resource_table_t* pResourceTable, rm_handle_t Handle) {
+void* GetResource(resource_table_t* pResourceTable, Visualizer_ArrayHandle hArray) {
 	handle_resource_pair SearchHandleResourcePair = (handle_resource_pair){ Handle, 0 };
 	handle_resource_pair* pResultHandleResourcePair = find234(pResourceTable->ptreeHandleResourcePair, &SearchHandleResourcePair, NULL);
 	if (!pResultHandleResourcePair)
@@ -186,7 +186,7 @@ void* GetResource(resource_table_t* pResourceTable, rm_handle_t Handle) {
 		return pResultHandleResourcePair->pResourceData;
 }
 
-void* SetResource(resource_table_t* pResourceTable, rm_handle_t Handle, void* pResourceData) {
+void* SetResource(resource_table_t* pResourceTable, Visualizer_ArrayHandle hArray, void* pResourceData) {
 	handle_resource_pair SearchHandleResourcePair = (handle_resource_pair){ Handle, 0 };
 	handle_resource_pair* pResultHandleResourcePair = find234(pResourceTable->ptreeHandleResourcePair, &SearchHandleResourcePair, NULL);
 	void* pOldResourceData = pResultHandleResourcePair->pResourceData;

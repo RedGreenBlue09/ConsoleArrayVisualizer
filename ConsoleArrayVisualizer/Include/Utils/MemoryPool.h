@@ -13,8 +13,12 @@ typedef struct {
 	pool_index NextIndex;
 } pool;
 
-inline void* PoolGetAddress(pool* pPool, pool_index Index) {
+inline void* PoolIndexToAddress(pool* pPool, pool_index Index) {
 	return (pPool->pMemory + (Index * pPool->BlockSize));
+}
+inline pool_index PoolAddressToIndex(pool* pPool, void* pAddress) {
+	assert(pAddress >= pPool->pMemory);
+	return ((uint8_t*)pAddress - pPool->pMemory) / pPool->BlockSize; // FIXME: UNDERFLOW?
 }
 
 void PoolInitialize(pool* pPool, pool_index nBlock, uintptr_t BlockSize);

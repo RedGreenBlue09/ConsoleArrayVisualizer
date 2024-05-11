@@ -35,29 +35,26 @@ static LONG_PTR OldWindowStyle = 0;
 // Array
 typedef struct {
 
-	rm_handle_t     Handle;
-	intptr_t     Size;
-	isort_t* aState;
+	Visualizer_ArrayHandle      hArray;
+	intptr_t                    Size;
+	isort_t*                    aState;
 	Visualizer_MarkerAttribute* aAttribute;
 
 	isort_t      ValueMin;
 	isort_t      ValueMax;
 
 	// TODO: Horizontal scaling
-
 } RendererCwc_ArrayProp;
 
-static tree234* RendererCwc_ptreeArrayProp; // tree of RendererCwc_ArrayProp_RENDERER
+static Visualizer_ArrayProp* RendererCwc_nArrayProp = 0;
+static Visualizer_ArrayProp* RendererCwc_aArrayProp = NULL;
 
-static int RendererCwc_ArrayPropIdCmp(RendererCwc_ArrayProp* pA, RendererCwc_ArrayProp* pB) {
-	return (pA->Handle > pB->Handle) - (pA->Handle < pB->Handle);
-}
+void RendererCwc_Initialize(intptr_t nMaxArray) {
 
-void RendererCwc_Initialize() {
+	// Initialize RendererCwc_aArrayProp
 
-	// Initialize RendererCwc_ptreeArrayProp
-
-	RendererCwc_ptreeArrayProp = newtree234(RendererCwc_ArrayPropIdCmp);
+	RendererCwc_nArrayProp = nMaxArray;
+	RendererCwc_aArrayProp = malloc_guarded(nMaxArray * sizeof(*RendererCwc_aArrayProp));
 
 	// New window style
 
@@ -129,16 +126,9 @@ void RendererCwc_Initialize() {
 
 void RendererCwc_Uninitialize() {
 
-	// Uninitialize RendererCwc_ptreeArrayProp
+	// Uninitialize RendererCwc_aArrayProp
 
-	for (
-		RendererCwc_ArrayProp* p = delpos234(RendererCwc_ptreeArrayProp, 0);
-		p != NULL;
-		p = delpos234(RendererCwc_ptreeArrayProp, 0)
-	) {
-		free(p);
-	}
-	freetree234(RendererCwc_ptreeArrayProp);
+	free(RendererCwc_aArrayProp);
 
 	// Free alternate buffer
 
@@ -158,16 +148,16 @@ void RendererCwc_Uninitialize() {
 }
 
 void RendererCwc_AddArray(
-	rm_handle_t Handle,
+	Visualizer_ArrayHandle hArray,
 	intptr_t Size,
 	isort_t* aArrayState,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
 
-	RendererCwc_ArrayProp* pArrayProp = malloc_guarded(sizeof(RendererCwc_ArrayProp));
+	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)hArray;
 
-	pArrayProp->Handle = Handle;
+	pArrayProp->hArray = hArray;
 	pArrayProp->Size = Size;
 
 	pArrayProp->aState = malloc_guarded(Size * sizeof(isort_t));
@@ -185,40 +175,29 @@ void RendererCwc_AddArray(
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
 
-	// Add to tree
-
-	add234(RendererCwc_ptreeArrayProp, pArrayProp);
-
 	return;
 
 }
 
-void RendererCwc_RemoveArray(rm_handle_t Handle) {
+void RendererCwc_RemoveArray(Visualizer_ArrayHandle hArray) {
 
-	RendererCwc_ArrayProp Find = { .Handle = Handle };
-	RendererCwc_ArrayProp* pArrayProp = find234(RendererCwc_ptreeArrayProp, &Find, NULL);
+	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)hArray;
 
 	free(pArrayProp->aAttribute);
 	free(pArrayProp->aState);
-
-	// Remove from tree
-
-	del234(RendererCwc_ptreeArrayProp, pArrayProp);
-	free(pArrayProp);
 
 	return;
 
 }
 
 void RendererCwc_UpdateArray(
-	rm_handle_t Handle,
+	Visualizer_ArrayHandle hArray,
 	intptr_t NewSize,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
 
-	RendererCwc_ArrayProp ArrayPropFind = { .Handle = Handle };
-	RendererCwc_ArrayProp* pArrayProp = find234(RendererCwc_ptreeArrayProp, &ArrayPropFind, NULL);
+	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)hArray;
 
 	// Clear screen
 
@@ -270,7 +249,7 @@ void RendererCwc_UpdateArray(
 	intptr_t Size = pArrayProp->Size;
 	for (intptr_t i = 0; i < Size; ++i) {
 		RendererCwc_UpdateItem(
-			Handle,
+			hArray,
 			i,
 			AV_RENDERER_NOUPDATE,
 			0,
@@ -295,15 +274,14 @@ static USHORT RendererCwc_AttrToConAttr(Visualizer_MarkerAttribute Attribute) {
 }
 
 void RendererCwc_UpdateItem(
-	rm_handle_t ArrayHandle,
+	Visualizer_ArrayHandle hArray,
 	intptr_t iPosition,
 	uint32_t UpdateRequest,
 	isort_t NewValue,
 	Visualizer_MarkerAttribute NewAttr
 ) {
 
-	RendererCwc_ArrayProp Find = { .Handle = ArrayHandle };
-	RendererCwc_ArrayProp* pArrayProp = find234(RendererCwc_ptreeArrayProp, &Find, NULL);
+	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)hArray;
 
 	// Choose the correct value & attribute
 
@@ -326,7 +304,7 @@ void RendererCwc_UpdateItem(
 	isort_t ValueMax = pArrayProp->ValueMax;
 
 	TargetValue -= ValueMin;
-	ValueMax -= ValueMin; // Warning: Overflow
+	ValueMax -= ValueMin; // FIXME: Underflow
 
 	if (TargetValue > ValueMax)
 		TargetValue = ValueMax;
