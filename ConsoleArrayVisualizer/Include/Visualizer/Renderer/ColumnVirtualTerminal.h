@@ -8,24 +8,24 @@ void RendererCvt_Initialize();
 void RendererCvt_Uninitialize();
 
 void RendererCvt_AddArray(
-	rm_handle_t Handle,
+	Visualizer_ArrayProp* pArrayProp,
 	intptr_t Size,
 	isort_t* aArrayState,
 	isort_t ValueMin,
 	isort_t ValueMax
 );
 void RendererCvt_RemoveArray(
-	rm_handle_t Handle
+	Visualizer_ArrayProp* pArrayProp
 );
 void RendererCvt_UpdateArray(
-	rm_handle_t Handle,
+	Visualizer_ArrayProp* pArrayProp,
 	intptr_t NewSize,
 	isort_t ValueMin,
 	isort_t ValueMax
 );
 
 void RendererCvt_UpdateItem(
-	rm_handle_t ArrayHandle,
+	Visualizer_ArrayProp* pArrayProp,
 	intptr_t iPosition,
 	uint32_t UpdateRequest,
 	isort_t NewValue,

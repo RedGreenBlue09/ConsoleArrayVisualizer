@@ -5,10 +5,13 @@
 
 #include "Utils/Tree234.h"
 #include "Utils/DynamicArray.h"
-#include "Utils/ResourceManager.h"
+//#include "Utils/ResourceManager.h"
 
 typedef int32_t isort_t;
 typedef uint32_t usort_t;
+
+typedef void varray;
+typedef void vpointer;
 
 #define AV_RENDERER_NOUPDATE    (0x00)
 #define AV_RENDERER_UPDATEVALUE (0x01)
@@ -44,22 +47,24 @@ typedef struct {
 	void (*Uninitialize)();
 
 	void (*AddArray)(
-		rm_handle_t Handle,
+		varray* pArray,
 		intptr_t Size,
 		isort_t* aArrayState,
 		isort_t ValueMin,
 		isort_t ValueMax
 	);
-	void (*RemoveArray)(rm_handle_t Handle);
+	void (*RemoveArray)(
+		varray* pArray
+	);
 	void (*UpdateArray)(
-		rm_handle_t Handle,
+		varray* pArray,
 		intptr_t NewSize,
 		isort_t ValueMin,
 		isort_t ValueMax
 	);
 
 	void (*UpdateItem)(
-		rm_handle_t ArrayHandle,
+		varray* pArray,
 		intptr_t iPosition,
 		uint32_t UpdateRequest,
 		isort_t NewValue,
@@ -87,17 +92,17 @@ void Visualizer_Sleep(double fSleepMultiplier);
 
 // Array
 
-rm_handle_t Visualizer_AddArray(
+varray* Visualizer_AddArray(
 	intptr_t Size,
 	isort_t* aArrayState,
 	isort_t ValueMin,
 	isort_t ValueMax
 );
 void Visualizer_RemoveArray(
-	rm_handle_t ArrayHandle
+	varray* pArray
 );
 void Visualizer_UpdateArray(
-	rm_handle_t ArrayHandle,
+	varray* pArray,
 	intptr_t NewSize,
 	isort_t ValueMin,
 	isort_t ValueMax
@@ -106,18 +111,18 @@ void Visualizer_UpdateArray(
 // Read
 
 void Visualizer_UpdateRead(
-	rm_handle_t ArrayHandle,
+	varray* pArray,
 	intptr_t iPosition,
 	double fSleepMultiplier
 );
 void Visualizer_UpdateRead2(
-	rm_handle_t ArrayHandle,
+	varray* pArray,
 	intptr_t iPositionA,
 	intptr_t iPositionB,
 	double fSleepMultiplier
 );
 void Visualizer_UpdateReadMulti(
-	rm_handle_t ArrayHandle,
+	varray* pArray,
 	intptr_t iStartPosition,
 	intptr_t Length,
 	double fSleepMultiplier
@@ -126,13 +131,13 @@ void Visualizer_UpdateReadMulti(
 // Write
 
 void Visualizer_UpdateWrite(
-	rm_handle_t ArrayHandle,
+	varray* pArray,
 	intptr_t iPosition,
 	isort_t NewValue,
 	double fSleepMultiplier
 );
 void Visualizer_UpdateWrite2(
-	rm_handle_t ArrayHandle,
+	varray* pArray,
 	intptr_t iPositionA,
 	intptr_t iPositionB,
 	isort_t NewValueA,
@@ -140,7 +145,7 @@ void Visualizer_UpdateWrite2(
 	double fSleepMultiplier
 );
 void Visualizer_UpdateWriteMulti(
-	rm_handle_t ArrayHandle,
+	varray* pArray,
 	intptr_t iStartPosition,
 	intptr_t Length,
 	isort_t* aNewValue,
@@ -149,15 +154,11 @@ void Visualizer_UpdateWriteMulti(
 
 // Pointer
 
-rm_handle_t Visualizer_CreatePointer(
-	rm_handle_t ArrayHandle,
-	intptr_t iPosition
-);
 void Visualizer_RemovePointer(
-	rm_handle_t MarkerHandle
+	vpointer* pPointer
 );
 void Visualizer_MovePointer(
-	rm_handle_t MarkerHandle,
+	vpointer* pPointer,
 	intptr_t iNewPosition
 );
 
