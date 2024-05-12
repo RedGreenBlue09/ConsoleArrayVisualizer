@@ -306,6 +306,8 @@ void RendererCwc_UpdateItem(
 	TargetValue -= ValueMin;
 	ValueMax -= ValueMin; // FIXME: Underflow
 
+	if (TargetValue < 0) // TODO: Negative
+		TargetValue = 0;
 	if (TargetValue > ValueMax)
 		TargetValue = ValueMax;
 

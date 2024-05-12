@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef uintptr_t pool_index;
 
@@ -14,11 +15,17 @@ typedef struct {
 	pool_index NextIndex;
 } pool;
 
+inline bool PoolValidateIndex(pool* pPool, pool_index Index) {
+	return Index < pPool->nBlock;
+}
+
 inline void* PoolIndexToAddress(pool* pPool, pool_index Index) {
+	assert(PoolValidateIndex(pPool, Index));
 	return (pPool->pMemory + (Index * pPool->BlockSize));
 }
+
 inline pool_index PoolAddressToIndex(pool* pPool, void* pAddress) {
-	assert(pAddress >= pPool->pMemory);
+	assert((uint8_t*)pAddress >= pPool->pMemory && (uint8_t*)pAddress < (pPool->pMemory + pPool->nBlock));
 	return ((uint8_t*)pAddress - pPool->pMemory) / pPool->BlockSize; // FIXME: UNDERFLOW?
 }
 

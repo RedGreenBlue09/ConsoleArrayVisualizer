@@ -360,6 +360,8 @@ void RendererCvt_UpdateItem(
 	TargetValue -= ValueMin;
 	ValueMax -= ValueMin; // Warning: Overflow
 
+	if (TargetValue < 0) // TODO: Negative
+		TargetValue = 0;
 	if (TargetValue > ValueMax)
 		TargetValue = ValueMax;
 

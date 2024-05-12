@@ -68,7 +68,7 @@ int intcmp(void* a, void* b) {
 int main() {
 
 	//intptr_t N = 512;
-	intptr_t N = 512;
+	intptr_t N = 256;
 	isort_t* aArray = malloc_guarded(N * sizeof(isort_t));
 	//sleep64(5000000);
 

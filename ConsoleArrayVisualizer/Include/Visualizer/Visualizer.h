@@ -85,7 +85,7 @@ void Visualizer_Initialize();
 void Visualizer_Uninitialize();
 
 // Sleep
-#define VISUALIZER_DISABLE_SLEEP 1
+//#define VISUALIZER_DISABLE_SLEEP 1
 #ifdef VISUALIZER_DISABLE_SLEEP
 #define Visualizer_Sleep(X) 
 #else
