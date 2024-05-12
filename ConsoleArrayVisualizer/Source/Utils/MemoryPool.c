@@ -40,13 +40,7 @@ pool_index PoolAllocate(pool* pPool) {
 
 		pool_index FreeIndex = pPool->NextIndex;
 		--pPool->nFreeBlock;
-
-		// The last free block always points to END.
-		//if (pPool->nFreeBlock > 0)
-			pPool->NextIndex = *(pool_index*)PoolIndexToAddress(pPool, FreeIndex);
-		//else
-			//pPool->NextIndex = pPool->nBlock; // END
-
+		pPool->NextIndex = *(pool_index*)PoolIndexToAddress(pPool, FreeIndex);
 		return FreeIndex;
 
 	} else
@@ -64,15 +58,7 @@ void PoolDeallocate(pool* pPool, pool_index Index)
 	assert(Index < pPool->nBlock);
 
 	pool_index* pFreeBlock = PoolIndexToAddress(pPool, Index);
-	//if (pPool->NextIndex < pPool->nBlock)
-	//{
-		*pFreeBlock = pPool->NextIndex;
-		pPool->NextIndex = Index;
-	//}
-	//else
-	//{
-	//	*pFreeBlock = pPool->nBlock; // Last free block points to END.
-	//	pPool->NextIndex = Index;
-	//}
+	*pFreeBlock = pPool->NextIndex;
+	pPool->NextIndex = Index;
 	++pPool->nFreeBlock;
 }
