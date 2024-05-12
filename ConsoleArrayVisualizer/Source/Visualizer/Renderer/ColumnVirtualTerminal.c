@@ -13,7 +13,7 @@
 // Array
 typedef struct {
 
-	Visualizer_ArrayHandle      hArray;
+	pool_index                  ArrayIndex;
 	intptr_t                    Size;
 	isort_t*                    aState;
 	Visualizer_MarkerAttribute* aAttribute;
@@ -224,16 +224,16 @@ void RendererCvt_Uninitialize() {
 }
 
 void RendererCvt_AddArray(
-	Visualizer_ArrayHandle hArray,
+	pool_index ArrayIndex,
 	intptr_t Size,
 	isort_t* aArrayState,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
 
-	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)hArray;
+	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)ArrayIndex;
 
-	pArrayProp->hArray = hArray;
+	pArrayProp->ArrayIndex = ArrayIndex;
 	pArrayProp->Size = Size;
 
 	pArrayProp->aState = malloc_guarded(Size * sizeof(isort_t));
@@ -254,9 +254,9 @@ void RendererCvt_AddArray(
 	return;
 }
 
-void RendererCvt_RemoveArray(Visualizer_ArrayHandle hArray) {
+void RendererCvt_RemoveArray(pool_index ArrayIndex) {
 
-	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)hArray;
+	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)ArrayIndex;
 
 	free(pArrayProp->aAttribute);
 	free(pArrayProp->aState);
@@ -266,13 +266,13 @@ void RendererCvt_RemoveArray(Visualizer_ArrayHandle hArray) {
 }
 
 void RendererCvt_UpdateArray(
-	Visualizer_ArrayHandle hArray,
+	pool_index ArrayIndex,
 	intptr_t NewSize,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
 
-	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)hArray;
+	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)ArrayIndex;
 
 	RendererCvt_ClearScreen();
 
@@ -315,7 +315,7 @@ void RendererCvt_UpdateArray(
 	intptr_t Size = pArrayProp->Size;
 	for (intptr_t i = 0; i < Size; ++i) {
 		RendererCvt_UpdateItem(
-			hArray,
+			ArrayIndex,
 			i,
 			AV_RENDERER_NOUPDATE,
 			0,
@@ -328,14 +328,14 @@ void RendererCvt_UpdateArray(
 }
 
 void RendererCvt_UpdateItem(
-	Visualizer_ArrayHandle hArray,
+	pool_index ArrayIndex,
 	intptr_t iPosition,
 	uint32_t UpdateRequest,
 	isort_t NewValue,
 	Visualizer_MarkerAttribute NewAttr
 ) {
 
-	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)hArray;
+	RendererCvt_ArrayProp* pArrayProp = RendererCvt_aArrayProp + (uintptr_t)ArrayIndex;
 
 	// Choose the correct value & attribute
 

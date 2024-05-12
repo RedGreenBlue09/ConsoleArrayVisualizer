@@ -7,7 +7,7 @@ int NTQS_isortCompare(const isort_t* a, const isort_t* b) {
 	return (*a > *b) - (*a < *b);
 }
 
-Visualizer_ArrayHandle LRQS_arrayHandle;
+Visualizer_Handle LRQS_arrayHandle;
 
 void LRQS_Partition(isort_t* array, intptr_t low, intptr_t high) {
 
@@ -19,7 +19,7 @@ begin:
 	pivot = array[low + (high - low + 1) / 2];
 	left = low;
 	right = high;
-	Visualizer_PointerHandle pointerHandle = Visualizer_CreatePointer(LRQS_arrayHandle, low + (high - low + 1) / 2);
+	Visualizer_Handle pointerHandle = Visualizer_CreatePointer(LRQS_arrayHandle, low + (high - low + 1) / 2);
 
 	while (left <= right) {
 		while (array[left] < pivot) {
@@ -82,7 +82,7 @@ begin:
 * Negative integer support     : Yes
 */
 
-void LeftRightQuickSort(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
+void LeftRightQuickSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 
 	if (n < 2) return;
 

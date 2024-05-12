@@ -70,7 +70,7 @@ intptr_t gapsCbrt16p1[] = {
 	42275937, 106528683, 268435457, 676414966
 };
 
-void SHS_ShellSort(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle, intptr_t* gaps, intptr_t nGaps) {
+void SHS_ShellSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle, intptr_t* gaps, intptr_t nGaps) {
 
 	if (n < 2) return;
 
@@ -82,7 +82,7 @@ void SHS_ShellSort(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandl
 
 		intptr_t gap = gaps[pass];
 
-		Visualizer_PointerHandle pointerHandle = Visualizer_CreatePointer(arrayHandle, gap);
+		Visualizer_Handle pointerHandle = Visualizer_CreatePointer(arrayHandle, gap);
 		for (intptr_t i = gap; i < n; ++i) {
 			isort_t temp = array[i];
 			Visualizer_MovePointer(pointerHandle, i);
@@ -107,42 +107,42 @@ void SHS_ShellSort(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandl
 
 // Exports:
 
-void ShellSortTokuda(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
+void ShellSortTokuda(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 	SHS_ShellSort(array, n, arrayHandle, gapsTokuda, sizeof(gapsTokuda) / sizeof(*gapsTokuda));
 	return;
 }
 
-void ShellSortCiura(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
+void ShellSortCiura(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 	SHS_ShellSort(array, n, arrayHandle, gapsCiura, sizeof(gapsCiura) / sizeof(*gapsCiura));
 	return;
 }
 
-void ShellSortPrimeMean(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
+void ShellSortPrimeMean(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 	SHS_ShellSort(array, n, arrayHandle, gapsPrimeMean, sizeof(gapsPrimeMean) / sizeof(*gapsPrimeMean));
 	return;
 }
 
-void ShellSort248(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
+void ShellSort248(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 	SHS_ShellSort(array, n, arrayHandle, gaps248, sizeof(gaps248) / sizeof(*gaps248));
 	return;
 }
 
-void ShellSortPigeon(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
+void ShellSortPigeon(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 	SHS_ShellSort(array, n, arrayHandle, gapsPigeon, sizeof(gapsPigeon) / sizeof(*gapsPigeon));
 	return;
 }
 
-void ShellSortSedgewick1986(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
+void ShellSortSedgewick1986(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 	SHS_ShellSort(array, n, arrayHandle, gapsSedgewick1986, sizeof(gapsSedgewick1986) / sizeof(*gapsSedgewick1986));
 	return;
 }
 
-void ShellSortCbrt16(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
+void ShellSortCbrt16(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 	SHS_ShellSort(array, n, arrayHandle, gapsCbrt16, sizeof(gapsCbrt16) / sizeof(*gapsCbrt16));
 	return;
 }
 
-void ShellSortCbrt16p1(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
+void ShellSortCbrt16p1(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 	SHS_ShellSort(array, n, arrayHandle, gapsCbrt16p1, sizeof(gapsCbrt16p1) / sizeof(*gapsCbrt16p1));
 	return;
 }

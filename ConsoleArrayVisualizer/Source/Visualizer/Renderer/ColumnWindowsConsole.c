@@ -35,7 +35,7 @@ static LONG_PTR OldWindowStyle = 0;
 // Array
 typedef struct {
 
-	Visualizer_ArrayHandle      hArray;
+	pool_index                  ArrayIndex;
 	intptr_t                    Size;
 	isort_t*                    aState;
 	Visualizer_MarkerAttribute* aAttribute;
@@ -148,16 +148,16 @@ void RendererCwc_Uninitialize() {
 }
 
 void RendererCwc_AddArray(
-	Visualizer_ArrayHandle hArray,
+	pool_index ArrayIndex,
 	intptr_t Size,
 	isort_t* aArrayState,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
 
-	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)hArray;
+	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)ArrayIndex;
 
-	pArrayProp->hArray = hArray;
+	pArrayProp->ArrayIndex = ArrayIndex;
 	pArrayProp->Size = Size;
 
 	pArrayProp->aState = malloc_guarded(Size * sizeof(isort_t));
@@ -179,9 +179,9 @@ void RendererCwc_AddArray(
 
 }
 
-void RendererCwc_RemoveArray(Visualizer_ArrayHandle hArray) {
+void RendererCwc_RemoveArray(pool_index ArrayIndex) {
 
-	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)hArray;
+	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)ArrayIndex;
 
 	free(pArrayProp->aAttribute);
 	free(pArrayProp->aState);
@@ -191,13 +191,13 @@ void RendererCwc_RemoveArray(Visualizer_ArrayHandle hArray) {
 }
 
 void RendererCwc_UpdateArray(
-	Visualizer_ArrayHandle hArray,
+	pool_index ArrayIndex,
 	intptr_t NewSize,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
 
-	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)hArray;
+	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)ArrayIndex;
 
 	// Clear screen
 
@@ -249,7 +249,7 @@ void RendererCwc_UpdateArray(
 	intptr_t Size = pArrayProp->Size;
 	for (intptr_t i = 0; i < Size; ++i) {
 		RendererCwc_UpdateItem(
-			hArray,
+			ArrayIndex,
 			i,
 			AV_RENDERER_NOUPDATE,
 			0,
@@ -274,14 +274,14 @@ static USHORT RendererCwc_AttrToConAttr(Visualizer_MarkerAttribute Attribute) {
 }
 
 void RendererCwc_UpdateItem(
-	Visualizer_ArrayHandle hArray,
+	pool_index ArrayIndex,
 	intptr_t iPosition,
 	uint32_t UpdateRequest,
 	isort_t NewValue,
 	Visualizer_MarkerAttribute NewAttr
 ) {
 
-	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)hArray;
+	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)ArrayIndex;
 
 	// Choose the correct value & attribute
 

@@ -100,7 +100,7 @@ void IMS_iterativeMergeSort(isort_t* a, size_t n) {
 
 // Exports:
 
-void IterativeMergeSort(isort_t* array, intptr_t n, Visualizer_ArrayHandle arrayHandle) {
+void IterativeMergeSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 
 	if (n < 2) return;
 	IMS_iterativeMergeSort(array, n);
