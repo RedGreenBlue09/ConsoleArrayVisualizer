@@ -5,7 +5,8 @@
 
 //#include "Utils/DynamicArray.h"
 #include "Utils/MemoryPool.h"
-#include "Utils/Tree234.h"
+// #include "Utils/Tree234.h"
+#include "Utils/LinkedList.h"
 //#include "Utils/ResourceManager.h"
 
 typedef int32_t isort_t;
@@ -28,6 +29,11 @@ typedef enum {
 	Visualizer_MarkerAttribute_EnumCount
 } Visualizer_MarkerAttribute;
 
+typedef struct {
+	pool_index nMarker;
+	pool_index iTailNode;
+} Visualizer_MarkerList;
+
 // Array properties struct
 
 typedef struct {
@@ -37,7 +43,10 @@ typedef struct {
 	// Array of trees of Visualizer_Marker (used as max heaps)
 	// Used to deal with overlapping markers.
 	// The i'th position contains a list of markers on i at the same time.
-	tree234**       apMarkerTree;
+	// tree234**       apMarkerTree;
+
+	// Array of linked lists, each node is a Visualizer_Marker.
+	Visualizer_MarkerList* aMarkerList;
 
 } Visualizer_ArrayProp;
 

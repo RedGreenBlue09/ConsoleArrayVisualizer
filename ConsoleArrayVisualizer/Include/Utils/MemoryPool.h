@@ -15,9 +15,7 @@ typedef struct {
 	pool_index NextIndex;
 } pool;
 
-inline bool PoolValidateIndex(pool* pPool, pool_index Index) {
-	return Index < pPool->nBlock;
-}
+#define POOL_INVALID_INDEX UINTPTR_MAX
 
 inline void* PoolIndexToAddress(pool* pPool, pool_index Index) {
 	assert(PoolValidateIndex(pPool, Index));

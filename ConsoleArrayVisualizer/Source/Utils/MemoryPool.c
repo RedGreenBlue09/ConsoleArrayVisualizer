@@ -44,7 +44,7 @@ pool_index PoolAllocate(pool* pPool) {
 		return FreeIndex;
 
 	} else
-		return pPool->nBlock; // END
+		return POOL_INVALID_INDEX;
 
 }
 
