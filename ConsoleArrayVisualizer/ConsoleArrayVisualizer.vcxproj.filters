@@ -90,6 +90,9 @@
     <ClCompile Include="Source\Utils\MemoryPool.c">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Utils\LinkedList.c">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Sorts.h">
@@ -126,6 +129,9 @@
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
     <ClInclude Include="Include\Utils\MemoryPool.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Utils\LinkedList.h">
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
   </ItemGroup>

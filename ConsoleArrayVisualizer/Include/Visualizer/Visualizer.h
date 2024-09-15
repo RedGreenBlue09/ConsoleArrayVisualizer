@@ -3,11 +3,8 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-//#include "Utils/DynamicArray.h"
 #include "Utils/MemoryPool.h"
-// #include "Utils/Tree234.h"
 #include "Utils/LinkedList.h"
-//#include "Utils/ResourceManager.h"
 
 typedef int32_t isort_t;
 typedef uint32_t usort_t;
@@ -29,11 +26,6 @@ typedef enum {
 	Visualizer_MarkerAttribute_EnumCount
 } Visualizer_MarkerAttribute;
 
-typedef struct {
-	pool_index nMarker;
-	pool_index iTailNode;
-} Visualizer_MarkerList;
-
 // Array properties struct
 
 typedef struct {
@@ -46,7 +38,7 @@ typedef struct {
 	// tree234**       apMarkerTree;
 
 	// Array of linked lists, each node is a Visualizer_Marker.
-	Visualizer_MarkerList* aMarkerList;
+	pool_index* aiMarkerListTail;
 
 } Visualizer_ArrayProp;
 
