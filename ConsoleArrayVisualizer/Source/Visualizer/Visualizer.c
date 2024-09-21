@@ -31,7 +31,7 @@ typedef void* Visualizer_Handle;
 
 void Visualizer_Initialize() {
 
-	if (Visualizer_bInitialized) return;
+	assert(!Visualizer_bInitialized);
 
 	// Only for now
 	
@@ -69,7 +69,7 @@ void Visualizer_Initialize() {
 
 void Visualizer_Uninitialize() {
 
-	if (!Visualizer_bInitialized) return;
+	assert(Visualizer_bInitialized);
 
 	Visualizer_bInitialized = false;
 	PoolDestroy(&Visualizer_ArrayPropPool);
@@ -84,12 +84,9 @@ void Visualizer_Uninitialize() {
 #ifndef VISUALIZER_DISABLE_SLEEP
 
 void Visualizer_Sleep(double fSleepMultiplier) {
-
-	if (!Visualizer_bInitialized) return;
-
+	assert(Visualizer_bInitialized);
 	sleep64((uint64_t)((double)Visualizer_TimeDefaultDelay * fSleepMultiplier));
 	return;
-
 }
 
 #endif
@@ -124,8 +121,8 @@ Visualizer_Handle Visualizer_AddArray(
 	isort_t ValueMax
 ) {
 
-	if (!Visualizer_bInitialized) return NULL;
-	if (Size < 1) return NULL;
+	assert(Visualizer_bInitialized);
+	if (Size < 1) return NULL; // TODO: Allow this
 	
 	pool_index Index = PoolAllocate(&Visualizer_ArrayPropPool);
 	if (Index == POOL_INVALID_INDEX) return NULL;
@@ -146,8 +143,9 @@ Visualizer_Handle Visualizer_AddArray(
 
 void Visualizer_RemoveArray(Visualizer_Handle hArray) {
 
-	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray)) return;
+	assert(Visualizer_bInitialized);
+	if (!hArray) return;
+	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray));
 
 	pool_index Index = Visualizer_HandleToPoolIndex(hArray);
 	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, Index);
@@ -185,9 +183,10 @@ void Visualizer_UpdateArray(
 	isort_t ValueMax
 ) {
 
-	if (!Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray)) return;
-	if (!Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray)) return;
-	if (ValueMax <= ValueMin) return;
+	assert(Visualizer_bInitialized);
+	if (!hArray) return;
+	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray));
+	assert(ValueMax <= ValueMin);
 
 	pool_index Index = Visualizer_HandleToPoolIndex(hArray);
 	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, Index);
@@ -236,23 +235,12 @@ void Visualizer_UpdateArray(
 // TODO: No highlight if time = 0
 // TODO: UpdateRequest structure
 
-static const int Visualizer_MarkerAttrPriority[Visualizer_MarkerAttribute_EnumCount] = {
-	0, //Visualizer_MarkerAttribute_Background
-	1, //Visualizer_MarkerAttribute_Normal
-	3, //Visualizer_MarkerAttribute_Read
-	4, //Visualizer_MarkerAttribute_Write
-	2, //Visualizer_MarkerAttribute_Pointer
-	5, //Visualizer_MarkerAttribute_Correct
-	6, //Visualizer_MarkerAttribute_Incorrect
-};
-
 static Visualizer_Handle Visualizer_NewMarker(
 	Visualizer_Handle hArray,
 	intptr_t iPosition,
 	Visualizer_MarkerAttribute Attribute
 ) {
 
-	assert(Visualizer_bInitialized);
 	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray));
 
 	pool_index iArray = Visualizer_HandleToPoolIndex(hArray);
@@ -288,7 +276,6 @@ static Visualizer_Handle Visualizer_NewMarker(
 
 static void Visualizer_RemoveMarker(Visualizer_Handle hMarker) {
 
-	assert(Visualizer_bInitialized);
 	assert(Visualizer_ValidateHandle(&Visualizer_MarkerPool, hMarker));
 
 	pool_index iMarker = Visualizer_HandleToPoolIndex(hMarker);
@@ -382,8 +369,9 @@ static void Visualizer_MoveMarker(Visualizer_Handle hMarker, intptr_t iNewPositi
 
 void Visualizer_UpdateRead(Visualizer_Handle hArray, intptr_t iPosition, double fSleepMultiplier) {
 
-	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray)) return;
+	assert(Visualizer_bInitialized);
+	if (!hArray) return;
+	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray));
 
 	Visualizer_Handle hMarker = Visualizer_NewMarker(
 		hArray,
@@ -393,8 +381,7 @@ void Visualizer_UpdateRead(Visualizer_Handle hArray, intptr_t iPosition, double 
 		Visualizer_MarkerAttribute_Read
 	);
 	Visualizer_Sleep(fSleepMultiplier);
-	if (Visualizer_ValidateHandle(&Visualizer_MarkerPool, hMarker))
-		Visualizer_RemoveMarker(hMarker);
+	if (hMarker) Visualizer_RemoveMarker(hMarker);
 
 	return;
 
@@ -403,8 +390,9 @@ void Visualizer_UpdateRead(Visualizer_Handle hArray, intptr_t iPosition, double 
 // Update 2 items (used for comparisions).
 void Visualizer_UpdateRead2(Visualizer_Handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
 
-	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray)) return;
+	assert(Visualizer_bInitialized);
+	if (!hArray) return;
+	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray));
 
 	Visualizer_Handle hMarkerA = Visualizer_NewMarker(
 		hArray,
@@ -421,10 +409,8 @@ void Visualizer_UpdateRead2(Visualizer_Handle hArray, intptr_t iPositionA, intpt
 		Visualizer_MarkerAttribute_Read
 	);
 	Visualizer_Sleep(fSleepMultiplier);
-	if (Visualizer_ValidateHandle(&Visualizer_MarkerPool, hMarkerA))
-		Visualizer_RemoveMarker(hMarkerA);
-	if (Visualizer_ValidateHandle(&Visualizer_MarkerPool, hMarkerB))
-		Visualizer_RemoveMarker(hMarkerB);
+	if (hMarkerA) Visualizer_RemoveMarker(hMarkerA);
+	if (hMarkerB) Visualizer_RemoveMarker(hMarkerB);
 
 	return;
 
@@ -437,8 +423,9 @@ void Visualizer_UpdateReadMulti(
 	double fSleepMultiplier
 ) {
 
-	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray)) return;
+	assert(Visualizer_bInitialized);
+	if (!hArray) return;
+	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray));
 	if (Length < 0) return;
 
 	Visualizer_Handle* ahMarker = malloc_guarded(Length * sizeof(*ahMarker));
@@ -453,8 +440,7 @@ void Visualizer_UpdateReadMulti(
 	}
 	Visualizer_Sleep(fSleepMultiplier);
 	for (intptr_t i = iStartPosition; i < (iStartPosition + Length); ++i)
-		if (Visualizer_ValidateHandle(&Visualizer_MarkerPool, ahMarker[i]))
-			Visualizer_RemoveMarker(ahMarker[i]);
+		if (ahMarker[i]) Visualizer_RemoveMarker(ahMarker[i]);
 
 	return;
 
@@ -463,8 +449,9 @@ void Visualizer_UpdateReadMulti(
 // For time precision, the sort will need to do the write(s) by itself.
 void Visualizer_UpdateWrite(Visualizer_Handle hArray, intptr_t iPosition, isort_t NewValue, double fSleepMultiplier) {
 
-	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray)) return;
+	assert(Visualizer_bInitialized);
+	if (!hArray) return;
+	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray));
 
 	Visualizer_Handle hMarker = Visualizer_NewMarker(
 		hArray,
@@ -474,8 +461,7 @@ void Visualizer_UpdateWrite(Visualizer_Handle hArray, intptr_t iPosition, isort_
 		Visualizer_MarkerAttribute_Write
 	);
 	Visualizer_Sleep(fSleepMultiplier);
-	if (Visualizer_ValidateHandle(&Visualizer_MarkerPool, hMarker))
-		Visualizer_RemoveMarker(hMarker);
+	if (hMarker) Visualizer_RemoveMarker(hMarker);
 
 	return;
 
@@ -490,8 +476,9 @@ void Visualizer_UpdateWrite2(
 	double fSleepMultiplier
 ) {
 
-	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray)) return;
+	assert(Visualizer_bInitialized);
+	if (!hArray) return;
+	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray));
 
 	Visualizer_Handle hMarkerA = Visualizer_NewMarker(
 		hArray,
@@ -508,10 +495,8 @@ void Visualizer_UpdateWrite2(
 		Visualizer_MarkerAttribute_Write
 	);
 	Visualizer_Sleep(fSleepMultiplier);
-	if (Visualizer_ValidateHandle(&Visualizer_MarkerPool, hMarkerA))
-		Visualizer_RemoveMarker(hMarkerA);
-	if (Visualizer_ValidateHandle(&Visualizer_MarkerPool, hMarkerB))
-		Visualizer_RemoveMarker(hMarkerB);
+	if (hMarkerA) Visualizer_RemoveMarker(hMarkerA);
+	if (hMarkerB) Visualizer_RemoveMarker(hMarkerB);
 
 	return;
 
@@ -525,8 +510,9 @@ void Visualizer_UpdateWriteMulti(
 	double fSleepMultiplier
 ) {
 
-	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray)) return;
+	assert(Visualizer_bInitialized);
+	if (!hArray) return;
+	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray));
 	if (Length < 0) return;
 
 	Visualizer_Handle* ahMarker = malloc_guarded(Length * sizeof(*ahMarker));
@@ -541,8 +527,7 @@ void Visualizer_UpdateWriteMulti(
 	}
 	Visualizer_Sleep(fSleepMultiplier);
 	for (intptr_t i = iStartPosition; i < (iStartPosition + Length); ++i)
-		if (Visualizer_ValidateHandle(&Visualizer_MarkerPool, ahMarker[i]))
-			Visualizer_RemoveMarker(ahMarker[i]);
+		if (ahMarker[i]) Visualizer_RemoveMarker(ahMarker[i]);
 
 	return;
 
@@ -554,10 +539,11 @@ Visualizer_Handle Visualizer_CreatePointer(
 	Visualizer_Handle hArray,
 	intptr_t iPosition
 ) {
-	if (!Visualizer_bInitialized) return NULL;
-	if (!Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray)) return NULL;
+	assert(Visualizer_bInitialized);
+	if (!hArray) return;
+	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hArray));
 
-	return (Visualizer_Handle)Visualizer_NewMarker(
+	return Visualizer_NewMarker(
 		hArray,
 		iPosition,
 		false,
@@ -569,11 +555,11 @@ Visualizer_Handle Visualizer_CreatePointer(
 void Visualizer_RemovePointer(
 	Visualizer_Handle hPointer
 ) {
-	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_ValidateHandle(&Visualizer_MarkerPool, hPointer)) return;
+	assert(Visualizer_bInitialized);
+	if (!hPointer) return;
+	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hPointer));
 
 	Visualizer_RemoveMarker(hPointer);
-
 	return;
 }
 
@@ -581,11 +567,11 @@ void Visualizer_MovePointer(
 	Visualizer_Handle hPointer,
 	intptr_t iNewPosition
 ) {
-	if (!Visualizer_bInitialized) return;
-	if (!Visualizer_ValidateHandle(&Visualizer_MarkerPool, hPointer)) return;
+	assert(Visualizer_bInitialized);
+	if (!hPointer) return;
+	assert(Visualizer_ValidateHandle(&Visualizer_ArrayPropPool, hPointer));
 
 	Visualizer_MoveMarker(hPointer, iNewPosition);
-
 	return;
 }
 
