@@ -133,9 +133,9 @@ Visualizer_Handle Visualizer_AddArray(
 
 	// Initialize aMarkerList
 
-	pArrayProp->aiMarkerListTail = malloc_guarded(Size * sizeof(*pArrayProp->aiMarkerListTail));
-	for (intptr_t i = 0; i < Size; ++i)
-		pArrayProp->aiMarkerListTail[i] = POOL_INVALID_INDEX;
+	pArrayProp->apMarkerListTail = malloc_guarded(Size * sizeof(*pArrayProp->apMarkerListTail));
+	for (intptr_t i = 0; i < Size; ++i) // TODO: calloc_guarded
+		pArrayProp->apMarkerListTail[i] = NULL;
 
 	// Call Renderer
 
@@ -156,12 +156,11 @@ void Visualizer_RemoveArray(Visualizer_Handle hArray) {
 	// Uninitialize aMarkerList
 
 	for (intptr_t i = 0; i < Size; ++i) {
-		pool_index iNode = pArrayProp->aiMarkerListTail[i];
-		while (iNode != POOL_INVALID_INDEX) {
-			Visualizer_MarkerNode* pNode = PoolIndexToAddress(&Visualizer_MarkerPool, iNode);
-			pool_index iPreviousNode = pNode->Node.iPreviousNode;
-			PoolDeallocate(&Visualizer_MarkerPool, iNode);
-			iNode = iPreviousNode;
+		Visualizer_MarkerNode* pNode = pArrayProp->apMarkerListTail[i];
+		while (pNode != NULL) {
+			Visualizer_MarkerNode* pPreviousNode = pNode->Node.pPreviousNode;
+			PoolDeallocateAddress(&Visualizer_MarkerPool, pNode);
+			pNode = pPreviousNode;
 		}
 	}
 
@@ -197,28 +196,27 @@ void Visualizer_UpdateArray(
 
 	if ((NewSize > 0) && (NewSize != pArrayProp->Size)) {
 
-		// Free unused part from the marker map
+		// Free unused part from the marker array
 
 		intptr_t OldSize = pArrayProp->Size;
 		for (intptr_t i = NewSize; i < OldSize; ++i) {
-			pool_index iNode = pArrayProp->aiMarkerListTail[i];
-			while (iNode != POOL_INVALID_INDEX) {
-				Visualizer_MarkerNode* pNode = PoolIndexToAddress(&Visualizer_MarkerPool, iNode);
-				pool_index iPreviousNode = pNode->Node.iPreviousNode;
-				PoolDeallocate(&Visualizer_MarkerPool, iNode);
-				iNode = iPreviousNode;
+			Visualizer_MarkerNode* pNode = pArrayProp->apMarkerListTail[i];
+			while (pNode != POOL_INVALID_INDEX) {
+				Visualizer_MarkerNode* pPreviousNode = pNode->Node.pPreviousNode;
+				PoolDeallocateAddress(&Visualizer_MarkerPool, pNode);
+				pNode = pPreviousNode;
 			}
 		}
 
-		// Resize the marker map
+		// Resize the marker array
 
-		pool_index* aiResizedMarkerListTail = malloc_guarded(NewSize * sizeof(*aiResizedMarkerListTail));
+		pool_index* apResizedMarkerListTail = malloc_guarded(NewSize * sizeof(*apResizedMarkerListTail));
 
 		// Initialize the new part
 
 		for (intptr_t i = OldSize; i < NewSize; ++i)
-			pArrayProp->aiMarkerListTail[i] = POOL_INVALID_INDEX;
-		pArrayProp->aiMarkerListTail = aiResizedMarkerListTail;
+			pArrayProp->apMarkerListTail[i] = NULL;
+		pArrayProp->apMarkerListTail = apResizedMarkerListTail;
 		pArrayProp->Size = NewSize;
 
 	}
@@ -261,18 +259,19 @@ static Visualizer_Handle Visualizer_NewMarker(
 	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, iArray);
 	assert(iPosition >= 0 && iPosition < pArrayProp->Size);
 
-	pool_index* piTailNode = &pArrayProp->aiMarkerListTail[iPosition];
-	pool_index iMarker = LinkedList_NewNode(&Visualizer_MarkerPool);
+	Visualizer_MarkerNode** ppTailNode = &pArrayProp->apMarkerListTail[iPosition];
+	pool_index iMarker = PoolAllocate(&Visualizer_MarkerPool);
 
 	if (iMarker != POOL_INVALID_INDEX) {
 		Visualizer_MarkerNode* pMarker = PoolIndexToAddress(&Visualizer_MarkerPool, iMarker);
+		LinkedList_InitializeNode(pMarker);
 		pMarker->hArray = hArray;
 		pMarker->iPosition = iPosition;
 		pMarker->Attribute = Attribute;
 
-		if (*piTailNode != POOL_INVALID_INDEX)
-			LinkedList_Insert(&Visualizer_MarkerPool, *piTailNode, iMarker);
-		*piTailNode = iMarker;
+		if (*ppTailNode != NULL)
+			LinkedList_Insert(*ppTailNode, pMarker);
+		*ppTailNode = pMarker;
 
 		Visualizer_RendererEntry.UpdateItem(
 			iArray,
@@ -297,19 +296,17 @@ static void Visualizer_RemoveMarker(Visualizer_Handle hMarker) {
 	pool_index iArray = Visualizer_HandleToPoolIndex(pMarker->hArray);
 	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, iArray);
 	intptr_t iPosition = pMarker->iPosition;
-	pool_index* piTailNode = &pArrayProp->aiMarkerListTail[iPosition];
+	Visualizer_MarkerNode** ppTailNode = &pArrayProp->apMarkerListTail[iPosition];
 
-	LinkedList_Remove(&Visualizer_MarkerPool, iMarker);
-	if (iMarker == *piTailNode) { // Remove tail
+	LinkedList_Remove(pMarker);
+	if (pMarker == *ppTailNode) { // Remove tail
 
-		*piTailNode = pMarker->Node.iPreviousNode;
+		*ppTailNode = pMarker->Node.pPreviousNode;
 		Visualizer_MarkerAttribute Attribute;
-		if (*piTailNode == POOL_INVALID_INDEX) // Nothing left
+		if (*ppTailNode == NULL) // Nothing left
 			Attribute = Visualizer_MarkerAttribute_Normal;
-		else {
-			Visualizer_MarkerNode* pTopMarker = PoolIndexToAddress(&Visualizer_ArrayPropPool, *piTailNode);
-			Attribute = pTopMarker->Attribute;
-		}
+		else
+			Attribute = (*ppTailNode)->Attribute;
 
 		Visualizer_RendererEntry.UpdateItem(
 			iArray,
@@ -340,19 +337,17 @@ static void Visualizer_MoveMarker(Visualizer_Handle hMarker, intptr_t iNewPositi
 	// Remove from old position
 
 	intptr_t iOldPosition = pMarker->iPosition;
-	pool_index* piOldTailNode = &pArrayProp->aiMarkerListTail[iOldPosition];
+	Visualizer_MarkerNode** ppOldTailNode = &pArrayProp->apMarkerListTail[iOldPosition];
 
-	LinkedList_Remove(&Visualizer_MarkerPool, iMarker);
-	if (iMarker == *piOldTailNode) { // Remove tail
+	LinkedList_Remove(pMarker);
+	if (pMarker == *ppOldTailNode) { // Remove tail
 
-		*piOldTailNode = pMarker->Node.iPreviousNode;
+		*ppOldTailNode = pMarker->Node.pPreviousNode;
 		Visualizer_MarkerAttribute Attribute;
-		if (*piOldTailNode == POOL_INVALID_INDEX) // Nothing left
+		if (*ppOldTailNode == NULL) // Nothing left
 			Attribute = Visualizer_MarkerAttribute_Normal;
-		else {
-			Visualizer_MarkerNode* pTopMarker = PoolIndexToAddress(&Visualizer_ArrayPropPool, *piOldTailNode);
-			Attribute = pTopMarker->Attribute;
-		}
+		else
+			Attribute = (*ppOldTailNode)->Attribute;
 
 		Visualizer_RendererEntry.UpdateItem(
 			iArray,
@@ -366,12 +361,11 @@ static void Visualizer_MoveMarker(Visualizer_Handle hMarker, intptr_t iNewPositi
 
 	// Add new position
 
-	pool_index* piNewTailNode = &pArrayProp->aiMarkerListTail[iNewPosition];
-	if (*piNewTailNode != POOL_INVALID_INDEX)
-		LinkedList_Insert(&Visualizer_MarkerPool, *piNewTailNode, iMarker);
-	*piNewTailNode = iMarker;
+	pool_index* ppNewTailNode = &pArrayProp->apMarkerListTail[iNewPosition];
+	if (*ppNewTailNode != NULL)
+		LinkedList_Insert(*ppNewTailNode, pMarker);
+	*ppNewTailNode = pMarker;
 
-	Visualizer_MarkerNode* pMarker = PoolIndexToAddress(&Visualizer_MarkerPool, iMarker);
 	Visualizer_RendererEntry.UpdateItem(
 		iArray,
 		iNewPosition,

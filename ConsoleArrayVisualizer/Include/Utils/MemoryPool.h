@@ -23,7 +23,7 @@ inline void* PoolIndexToAddress(pool* pPool, pool_index Index) {
 }
 
 inline pool_index PoolAddressToIndex(pool* pPool, void* pAddress) {
-	assert((uint8_t*)pAddress >= pPool->pMemory && (uint8_t*)pAddress < (pPool->pMemory + pPool->nBlock));
+	assert((uint8_t*)pAddress >= pPool->pMemory && pAddress <= PoolIndexToAddress(pPool, pPool->nBlock - 1));
 	return ((uint8_t*)pAddress - pPool->pMemory) / pPool->BlockSize; // FIXME: UNDERFLOW?
 }
 
@@ -31,3 +31,4 @@ void PoolInitialize(pool* pPool, pool_index nBlock, uintptr_t BlockSize);
 void PoolDestroy(pool* pPool);
 pool_index PoolAllocate(pool* pPool);
 void PoolDeallocate(pool* pPool, pool_index Index);
+void PoolDeallocateAddress(pool* pPool, void* pBlock);

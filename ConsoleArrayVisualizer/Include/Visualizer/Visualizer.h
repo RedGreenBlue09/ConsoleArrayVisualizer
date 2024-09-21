@@ -38,7 +38,7 @@ typedef struct {
 	// tree234**       apMarkerTree;
 
 	// Array of linked lists, each node is a Visualizer_Marker.
-	pool_index* aiMarkerListTail;
+	llist_node** apMarkerListTail;
 
 } Visualizer_ArrayProp;
 

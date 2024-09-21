@@ -62,3 +62,17 @@ void PoolDeallocate(pool* pPool, pool_index Index)
 	pPool->NextIndex = Index;
 	++pPool->nFreeBlock;
 }
+
+void PoolDeallocateAddress(pool* pPool, void* pBlock)
+{
+	assert(pPool);
+	assert(pPool->nBlock > 0);
+	assert(pPool->BlockSize > 0);
+	assert(pPool->nFreeBlock < pPool->nBlock);
+	assert(pPool->pMemory);
+	assert(pBlock >= pPool->pMemory && pBlock <= PoolIndexToAddress(pPool, pPool->nBlock - 1));
+
+	*(pool_index*)pBlock = pPool->NextIndex;
+	pPool->NextIndex = PoolAddressToIndex(pPool, pBlock);
+	++pPool->nFreeBlock;
+}
