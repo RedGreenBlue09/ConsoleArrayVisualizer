@@ -11,9 +11,12 @@ typedef uint32_t usort_t;
 
 typedef void* Visualizer_Handle;
 
-#define AV_RENDERER_NOUPDATE    (0x00)
-#define AV_RENDERER_UPDATEVALUE (0x01)
-#define AV_RENDERER_UPDATEATTR  (0x02)
+typedef enum {
+	Visualizer_UpdateType_NoUpdate    = 0,
+	Visualizer_UpdateType_UpdateValue = (1 << 0),
+	Visualizer_UpdateType_UpdateAttr  = (1 << 1),
+} Visualizer_UpdateType;
+
 
 typedef enum {
 	Visualizer_MarkerAttribute_Background,
@@ -38,9 +41,17 @@ typedef struct {
 	// tree234**       apMarkerTree;
 
 	// Array of linked lists, each node is a Visualizer_Marker.
-	llist_node** apMarkerListTail;
+	Visualizer_MarkerNode** apMarkerListTail;
 
 } Visualizer_ArrayProp;
+
+typedef struct {
+	pool_index iArray;
+	intptr_t iPosition;
+	Visualizer_UpdateType UpdateType;
+	isort_t Value;
+	Visualizer_MarkerAttribute Attribute;
+} Visualizer_UpdateRequest;
 
 typedef struct {
 
@@ -67,11 +78,7 @@ typedef struct {
 	);
 
 	void (*UpdateItem)(
-		pool_index ArrayIndex,
-		intptr_t iPosition,
-		uint32_t UpdateRequest,
-		isort_t NewValue,
-		Visualizer_MarkerAttribute NewAttr
+		Visualizer_UpdateRequest* pUpdateRequest
 	);
 
 } AV_RENDERER_ENTRY;

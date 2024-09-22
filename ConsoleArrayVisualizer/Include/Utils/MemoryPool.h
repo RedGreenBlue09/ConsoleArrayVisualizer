@@ -18,11 +18,13 @@ typedef struct {
 #define POOL_INVALID_INDEX UINTPTR_MAX
 
 inline void* PoolIndexToAddress(pool* pPool, pool_index Index) {
-	assert(PoolValidateIndex(pPool, Index));
+	assert(pPool);
+	assert(Index < pPool->nBlock);
 	return (pPool->pMemory + (Index * pPool->BlockSize));
 }
 
 inline pool_index PoolAddressToIndex(pool* pPool, void* pAddress) {
+	assert(pPool);
 	assert((uint8_t*)pAddress >= pPool->pMemory && pAddress <= PoolIndexToAddress(pPool, pPool->nBlock - 1));
 	return ((uint8_t*)pAddress - pPool->pMemory) / pPool->BlockSize; // FIXME: UNDERFLOW?
 }
