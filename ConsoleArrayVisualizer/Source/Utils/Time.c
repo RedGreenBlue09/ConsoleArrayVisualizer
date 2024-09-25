@@ -59,7 +59,7 @@ void sleep64(uint64_t time) {
 	if (WaitableTimerTime > 0)
 		_sleep64_waitabletimer(WaitableTimerTime);
 	
-	// Potential overflow
+	// FIXME: Potential overflow
 	uint64_t TargetClockTime = StartTime + (time * _ClockRes / 1000000);
 	while (clock64() < TargetClockTime);
 

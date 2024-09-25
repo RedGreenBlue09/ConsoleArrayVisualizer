@@ -14,9 +14,9 @@ void LinkedList_InitializeNode(llist_node* pNode) {
 void LinkedList_Insert(llist_node* pNode, llist_node* pNewNode) {
 	assert(pNode);
 	assert(pNewNode);
-	pNode->pNextNode = pNewNode;
 	pNewNode->pPreviousNode = pNode;
 	pNewNode->pNextNode = pNode->pNextNode;
+	pNode->pNextNode = pNewNode;
 }
 
 void LinkedList_Remove(llist_node* pNode) {

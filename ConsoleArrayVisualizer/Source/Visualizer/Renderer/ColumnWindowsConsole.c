@@ -246,15 +246,13 @@ void RendererCwc_UpdateArray(
 
 	// Re-render with new props
 
+	Visualizer_UpdateRequest UpdateRequest;
+	UpdateRequest.iArray = ArrayIndex;
+	UpdateRequest.UpdateType = Visualizer_UpdateType_NoUpdate;
 	intptr_t Size = pArrayProp->Size;
 	for (intptr_t i = 0; i < Size; ++i) {
-		RendererCwc_UpdateItem(
-			ArrayIndex,
-			i,
-			AV_RENDERER_NOUPDATE,
-			0,
-			0
-		);
+		UpdateRequest.iPosition = i;
+		RendererCwc_UpdateItem(&UpdateRequest);
 	}
 
 	return;
@@ -274,26 +272,22 @@ static USHORT RendererCwc_AttrToConAttr(Visualizer_MarkerAttribute Attribute) {
 }
 
 void RendererCwc_UpdateItem(
-	pool_index ArrayIndex,
-	intptr_t iPosition,
-	uint32_t UpdateRequest,
-	isort_t NewValue,
-	Visualizer_MarkerAttribute NewAttr
+	Visualizer_UpdateRequest* pUpdateRequest
 ) {
-
-	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)ArrayIndex;
+	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + pUpdateRequest->iArray;
+	intptr_t iPosition = pUpdateRequest->iPosition;
 
 	// Choose the correct value & attribute
 
 	isort_t TargetValue;
-	if (UpdateRequest & AV_RENDERER_UPDATEVALUE)
-		TargetValue = NewValue;
+	if (pUpdateRequest->UpdateType & Visualizer_UpdateType_UpdateValue)
+		TargetValue = pUpdateRequest->Value;
 	else
 		TargetValue = pArrayProp->aState[iPosition];
 
 	Visualizer_MarkerAttribute TargetAttr;
-	if (UpdateRequest & AV_RENDERER_UPDATEATTR)
-		TargetAttr = NewAttr;
+	if (pUpdateRequest->UpdateType & Visualizer_UpdateType_UpdateAttr)
+		TargetAttr = pUpdateRequest->Attribute;
 	else
 		TargetAttr = pArrayProp->aAttribute[iPosition];
 
@@ -354,5 +348,4 @@ void RendererCwc_UpdateItem(
 	);
 
 	return;
-
 }

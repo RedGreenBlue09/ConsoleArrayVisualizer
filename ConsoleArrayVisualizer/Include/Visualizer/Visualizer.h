@@ -29,6 +29,13 @@ typedef enum {
 	Visualizer_MarkerAttribute_EnumCount
 } Visualizer_MarkerAttribute;
 
+typedef struct {
+	llist_node Node;
+	pool_index iArray;
+	intptr_t iPosition;
+	Visualizer_MarkerAttribute Attribute;
+} Visualizer_MarkerNode;
+
 // Array properties struct
 
 typedef struct {
@@ -93,7 +100,7 @@ void Visualizer_Initialize();
 void Visualizer_Uninitialize();
 
 // Sleep
-//#define VISUALIZER_DISABLE_SLEEP 1
+#define VISUALIZER_DISABLE_SLEEP 1
 #ifdef VISUALIZER_DISABLE_SLEEP
 #define Visualizer_Sleep(X) 
 #else

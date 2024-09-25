@@ -25,9 +25,5 @@ void RendererCvt_UpdateArray(
 );
 
 void RendererCvt_UpdateItem(
-	pool_index ArrayIndex,
-	intptr_t iPosition,
-	uint32_t UpdateRequest,
-	isort_t NewValue,
-	Visualizer_MarkerAttribute NewAttr
+	Visualizer_UpdateRequest* pUpdateRequest
 );

@@ -70,7 +70,7 @@ void PoolDeallocateAddress(pool* pPool, void* pBlock)
 	assert(pPool->BlockSize > 0);
 	assert(pPool->nFreeBlock < pPool->nBlock);
 	assert(pPool->pMemory);
-	assert(pBlock >= pPool->pMemory && pBlock <= PoolIndexToAddress(pPool, pPool->nBlock - 1));
+	assert((uint8_t*)pBlock >= pPool->pMemory && pBlock <= PoolIndexToAddress(pPool, pPool->nBlock - 1));
 
 	*(pool_index*)pBlock = pPool->NextIndex;
 	pPool->NextIndex = PoolAddressToIndex(pPool, pBlock);
