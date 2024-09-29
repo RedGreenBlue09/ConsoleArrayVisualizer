@@ -38,7 +38,6 @@ void Visualizer_Initialize() {
 	Visualizer_RendererEntry.UpdateItem   = RendererCwc_UpdateItem;
 
 	/*
-	*/
 	Visualizer_RendererEntry.Initialize   = RendererCvt_Initialize;
 	Visualizer_RendererEntry.Uninitialize = RendererCvt_Uninitialize;
 
@@ -47,6 +46,7 @@ void Visualizer_Initialize() {
 	Visualizer_RendererEntry.UpdateArray  = RendererCvt_UpdateArray;
 
 	Visualizer_RendererEntry.UpdateItem   = RendererCvt_UpdateItem;
+	*/
 
 	// Call renderer
 
@@ -231,11 +231,11 @@ void Visualizer_UpdateArray(
 
 // Value might be updated the same time as marker is created
 static Visualizer_Handle Visualizer_NewMarker(
-	Visualizer_UpdateRequest* pUpdateRequest,
+	Visualizer_UpdateRequest UpdateRequest,
 	Visualizer_MarkerAttribute Attribute
 ) {
-	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, pUpdateRequest->iArray);
-	intptr_t iPosition = pUpdateRequest->iPosition;
+	Visualizer_ArrayProp* pArrayProp = PoolIndexToAddress(&Visualizer_ArrayPropPool, UpdateRequest.iArray);
+	intptr_t iPosition = UpdateRequest.iPosition;
 	assert(iPosition >= 0 && iPosition < pArrayProp->Size);
 
 	Visualizer_MarkerNode** ppTailNode = &pArrayProp->apMarkerListTail[iPosition];
@@ -244,7 +244,7 @@ static Visualizer_Handle Visualizer_NewMarker(
 	if (iMarker != POOL_INVALID_INDEX) {
 		Visualizer_MarkerNode* pMarker = PoolIndexToAddress(&Visualizer_MarkerPool, iMarker);
 		LinkedList_InitializeNode(&pMarker->Node);
-		pMarker->iArray = pUpdateRequest->iArray;
+		pMarker->iArray = UpdateRequest.iArray;
 		pMarker->iPosition = iPosition;
 		pMarker->Attribute = Attribute;
 
@@ -252,10 +252,10 @@ static Visualizer_Handle Visualizer_NewMarker(
 			LinkedList_Insert(&(*ppTailNode)->Node, &pMarker->Node);
 		*ppTailNode = pMarker;
 
-		pUpdateRequest->Attribute = pMarker->Attribute; // pMarker is the top one
-		pUpdateRequest->UpdateType |= Visualizer_UpdateType_UpdateAttr;
+		UpdateRequest.Attribute = pMarker->Attribute; // pMarker is the top one
+		UpdateRequest.UpdateType |= Visualizer_UpdateType_UpdateAttr;
 	}
-	Visualizer_RendererEntry.UpdateItem(pUpdateRequest);
+	Visualizer_RendererEntry.UpdateItem(&UpdateRequest);
 
 	return Visualizer_PoolIndexToHandle(iMarker);
 }
@@ -351,7 +351,7 @@ void Visualizer_UpdateRead(Visualizer_Handle hArray, intptr_t iPosition, double 
 	UpdateRequest.iArray = Visualizer_HandleToPoolIndex(hArray);
 	UpdateRequest.iPosition = iPosition;
 	UpdateRequest.UpdateType = Visualizer_UpdateType_NoUpdate;
-	Visualizer_Handle hMarker = Visualizer_NewMarker(&UpdateRequest, Visualizer_MarkerAttribute_Read);
+	Visualizer_Handle hMarker = Visualizer_NewMarker(UpdateRequest, Visualizer_MarkerAttribute_Read);
 
 	Visualizer_Sleep(fSleepMultiplier);
 
@@ -369,9 +369,9 @@ void Visualizer_UpdateRead2(Visualizer_Handle hArray, intptr_t iPositionA, intpt
 	UpdateRequest.iArray = Visualizer_HandleToPoolIndex(hArray);
 	UpdateRequest.iPosition = iPositionA;
 	UpdateRequest.UpdateType = Visualizer_UpdateType_NoUpdate;
-	Visualizer_Handle hMarkerA = Visualizer_NewMarker(&UpdateRequest, Visualizer_MarkerAttribute_Read);
+	Visualizer_Handle hMarkerA = Visualizer_NewMarker(UpdateRequest, Visualizer_MarkerAttribute_Read);
 	UpdateRequest.iPosition = iPositionB;
-	Visualizer_Handle hMarkerB = Visualizer_NewMarker(&UpdateRequest, Visualizer_MarkerAttribute_Read);
+	Visualizer_Handle hMarkerB = Visualizer_NewMarker(UpdateRequest, Visualizer_MarkerAttribute_Read);
 
 	Visualizer_Sleep(fSleepMultiplier);
 
@@ -398,7 +398,7 @@ void Visualizer_UpdateReadMulti(
 
 	Visualizer_Handle* ahMarker = malloc_guarded(Length * sizeof(*ahMarker)); // TODO: Stop using malloc
 	for (intptr_t i = 0; i < Length; ++i) {
-		ahMarker[i] = Visualizer_NewMarker(&UpdateRequest, Visualizer_MarkerAttribute_Read);
+		ahMarker[i] = Visualizer_NewMarker(UpdateRequest, Visualizer_MarkerAttribute_Read);
 		++UpdateRequest.iPosition;
 	}
 	Visualizer_Sleep(fSleepMultiplier);
@@ -421,7 +421,7 @@ void Visualizer_UpdateWrite(Visualizer_Handle hArray, intptr_t iPosition, isort_
 	UpdateRequest.iPosition = iPosition;
 	UpdateRequest.UpdateType = Visualizer_UpdateType_UpdateValue;
 	UpdateRequest.Value = NewValue;
-	Visualizer_Handle hMarker = Visualizer_NewMarker(&UpdateRequest, Visualizer_MarkerAttribute_Write);
+	Visualizer_Handle hMarker = Visualizer_NewMarker(UpdateRequest, Visualizer_MarkerAttribute_Write);
 
 	Visualizer_Sleep(fSleepMultiplier);
 
@@ -443,10 +443,10 @@ void Visualizer_UpdateWrite2(
 	UpdateRequest.iPosition = iPositionA;
 	UpdateRequest.UpdateType = Visualizer_UpdateType_UpdateValue;
 	UpdateRequest.Value = NewValueA;
-	Visualizer_Handle hMarkerA = Visualizer_NewMarker(&UpdateRequest, Visualizer_MarkerAttribute_Write);
+	Visualizer_Handle hMarkerA = Visualizer_NewMarker(UpdateRequest, Visualizer_MarkerAttribute_Write);
 	UpdateRequest.iPosition = iPositionB;
 	UpdateRequest.Value = NewValueB;
-	Visualizer_Handle hMarkerB = Visualizer_NewMarker(&UpdateRequest, Visualizer_MarkerAttribute_Write);
+	Visualizer_Handle hMarkerB = Visualizer_NewMarker(UpdateRequest, Visualizer_MarkerAttribute_Write);
 
 	Visualizer_Sleep(fSleepMultiplier);
 
@@ -475,7 +475,7 @@ void Visualizer_UpdateWriteMulti(
 	Visualizer_Handle* ahMarker = malloc_guarded(Length * sizeof(*ahMarker)); // TODO: Stop using malloc
 	for (intptr_t i = 0; i < Length; ++i) {
 		UpdateRequest.Value = aNewValue[UpdateRequest.iPosition];
-		ahMarker[i] = Visualizer_NewMarker(&UpdateRequest, Visualizer_MarkerAttribute_Write);
+		ahMarker[i] = Visualizer_NewMarker(UpdateRequest, Visualizer_MarkerAttribute_Write);
 		++UpdateRequest.iPosition;
 	}
 	Visualizer_Sleep(fSleepMultiplier);
@@ -500,7 +500,7 @@ Visualizer_Handle Visualizer_CreatePointer(
 	UpdateRequest.iArray = Visualizer_HandleToPoolIndex(hArray);
 	UpdateRequest.iPosition = iPosition;
 	UpdateRequest.UpdateType = Visualizer_UpdateType_NoUpdate;
-	return Visualizer_NewMarker(&UpdateRequest, Visualizer_MarkerAttribute_Pointer);
+	return Visualizer_NewMarker(UpdateRequest, Visualizer_MarkerAttribute_Pointer);
 }
 
 void Visualizer_RemovePointer(
