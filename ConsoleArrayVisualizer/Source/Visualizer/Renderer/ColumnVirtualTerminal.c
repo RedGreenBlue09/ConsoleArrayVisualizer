@@ -387,7 +387,7 @@ void RendererCvt_UpdateItem(
 
 		}
 
-		for (i; i < RendererCvt_CoordBufferSize.Y; ++i) {
+		for (; i < RendererCvt_CoordBufferSize.Y; ++i) {
 
 			RendererCvt_VtFormat Format = RendererCvt_AvAttrToVtFormat(TargetAttr);
 			RendererCvt_BufferCell* pbcCell = &RendererCvt_aBufferCellCache2D[RendererCvt_CoordBufferSize.X * i + TargetConsoleCol];

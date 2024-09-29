@@ -75,17 +75,8 @@
     <ClCompile Include="Source\Visualizer\Renderer\ColumnWindowsConsole.c">
       <Filter>Source Files\Visualizer\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Utils\Tree234.c">
-      <Filter>Source Files\Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Utils\DynamicArray.c">
-      <Filter>Source Files\Utils</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Visualizer\Renderer\ColumnVirtualTerminal.c">
       <Filter>Source Files\Visualizer\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Utils\ResourceManager.c">
-      <Filter>Source Files\Utils</Filter>
     </ClCompile>
     <ClCompile Include="Source\Utils\MemoryPool.c">
       <Filter>Source Files\Utils</Filter>
@@ -104,13 +95,7 @@
     <ClInclude Include="Include\Visualizer\Renderer\ColumnVirtualTerminal.h">
       <Filter>Header Files\Visualizer\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Include\Utils\Tree234.h">
-      <Filter>Header Files\Utils</Filter>
-    </ClInclude>
     <ClInclude Include="Include\Utils\PointerSize.h">
-      <Filter>Header Files\Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\Utils\DynamicArray.h">
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
     <ClInclude Include="Include\Utils\GuardedMalloc.h">
@@ -124,9 +109,6 @@
     </ClInclude>
     <ClInclude Include="Include\Visualizer\Visualizer.h">
       <Filter>Header Files\Visualizer</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\Utils\ResourceManager.h">
-      <Filter>Header Files\Utils</Filter>
     </ClInclude>
     <ClInclude Include="Include\Utils\MemoryPool.h">
       <Filter>Header Files\Utils</Filter>
