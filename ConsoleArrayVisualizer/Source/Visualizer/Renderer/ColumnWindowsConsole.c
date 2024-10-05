@@ -322,12 +322,10 @@ void RendererCwc_UpdateItem(
 
 	{
 		intptr_t i = 0;
-		for (; i < (intptr_t)(csbiBufferCache.dwSize.Y - FloorHeight); ++i) {
+		for (; i < (intptr_t)(csbiBufferCache.dwSize.Y - FloorHeight); ++i)
 			aciBufferCache[csbiBufferCache.dwSize.X * i + TargetConsoleCol].Attributes = ATTR_WINCON_BACKGROUND;
-		}
-		for (; i < csbiBufferCache.dwSize.Y; ++i) {
+		for (; i < csbiBufferCache.dwSize.Y; ++i)
 			aciBufferCache[csbiBufferCache.dwSize.X * i + TargetConsoleCol].Attributes = TargetWinConAttr;
-		}
 	}
 
 	// Write to console

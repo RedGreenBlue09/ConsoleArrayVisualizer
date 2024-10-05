@@ -186,7 +186,7 @@ void RendererCvt_Initialize(intptr_t nMaxArray) {
 	// Initialize cell cache
 
 	RendererCvt_BufferCell bcCell = {
-		.aGlyphData = { ' ', '\0', '\0', '\0' },
+		.aGlyphData = { ' ' },
 		.Format = RendererCvt_AvAttrToVtFormat(Visualizer_MarkerAttribute_Background)
 	};
 
