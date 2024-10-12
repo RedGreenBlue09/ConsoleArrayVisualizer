@@ -1,10 +1,15 @@
 #pragma once
 
-#include <malloc.h>
 #include <stdlib.h>
 
 inline void* malloc_guarded(size_t size) {
 	void* p = malloc(size);
+	if (!p) abort();
+	return p;
+}
+
+inline void* calloc_guarded(size_t count, size_t size) {
+	void* p = calloc(count, size);
 	if (!p) abort();
 	return p;
 }

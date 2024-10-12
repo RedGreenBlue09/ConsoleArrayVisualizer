@@ -1,33 +1,34 @@
 #pragma once
 
 #include <inttypes.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 
 #include "Utils/MemoryPool.h"
 #include "Utils/LinkedList.h"
+#include "Utils/SpinLock.h"
+
+// TODO: Hide internal stuff
 
 typedef int32_t isort_t;
 typedef uint32_t usort_t;
 
 typedef void* Visualizer_Handle;
 
-typedef enum {
-	Visualizer_UpdateType_NoUpdate    = 0,
-	Visualizer_UpdateType_UpdateValue = (1 << 0),
-	Visualizer_UpdateType_UpdateAttr  = (1 << 1),
-} Visualizer_UpdateType;
+typedef uint8_t Visualizer_MarkerAttribute;
+#define Visualizer_MarkerAttribute_Background 0
+#define Visualizer_MarkerAttribute_Normal 1
+#define Visualizer_MarkerAttribute_Read 2
+#define Visualizer_MarkerAttribute_Write 3
+#define Visualizer_MarkerAttribute_Pointer 4
+#define Visualizer_MarkerAttribute_Correct 5
+#define Visualizer_MarkerAttribute_Incorrect 6
+#define Visualizer_MarkerAttribute_EnumCount 7
 
-
-typedef enum {
-	Visualizer_MarkerAttribute_Background,
-	Visualizer_MarkerAttribute_Normal,
-	Visualizer_MarkerAttribute_Read,
-	Visualizer_MarkerAttribute_Write,
-	Visualizer_MarkerAttribute_Pointer,
-	Visualizer_MarkerAttribute_Correct,
-	Visualizer_MarkerAttribute_Incorrect,
-	Visualizer_MarkerAttribute_EnumCount
-} Visualizer_MarkerAttribute;
+typedef uint8_t Visualizer_UpdateType;
+#define Visualizer_UpdateType_NoUpdate 0
+#define Visualizer_UpdateType_UpdateValue (1 << 0)
+#define Visualizer_UpdateType_UpdateAttr (1 << 1)
 
 typedef struct {
 	llist_node Node;
@@ -36,29 +37,26 @@ typedef struct {
 	Visualizer_MarkerAttribute Attribute;
 } Visualizer_MarkerNode;
 
+typedef struct {
+	spinlock Lock;
+	bool bUpdated;
+	Visualizer_MarkerAttribute Attribute;
+	isort_t Value;
+} Visualizer_SharedArrayMember;
+
+typedef struct {
+	Visualizer_SharedArrayMember Shared;
+	Visualizer_MarkerNode* pMarkerListTail; // Linked list
+} Visualizer_ArrayMember;
+
 // Array properties struct
 
 typedef struct {
 
-	intptr_t        Size;
-
-	// Array of trees of Visualizer_Marker (used as max heaps)
-	// Used to deal with overlapping markers.
-	// The i'th position contains a list of markers on i at the same time.
-	// tree234**       apMarkerTree;
-
-	// Array of linked lists, each node is a Visualizer_Marker.
-	Visualizer_MarkerNode** apMarkerListTail;
+	intptr_t Size;
+	Visualizer_ArrayMember* aState;
 
 } Visualizer_ArrayProp;
-
-typedef struct {
-	pool_index iArray;
-	intptr_t iPosition;
-	Visualizer_UpdateType UpdateType;
-	isort_t Value;
-	Visualizer_MarkerAttribute Attribute;
-} Visualizer_UpdateRequest;
 
 typedef struct {
 
@@ -82,10 +80,6 @@ typedef struct {
 		intptr_t NewSize,
 		isort_t ValueMin,
 		isort_t ValueMax
-	);
-
-	void (*UpdateItem)(
-		Visualizer_UpdateRequest* pUpdateRequest
 	);
 
 } AV_RENDERER_ENTRY;
