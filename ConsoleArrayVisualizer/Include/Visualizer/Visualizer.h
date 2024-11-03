@@ -1,14 +1,14 @@
 #pragma once
 
 #include <inttypes.h>
-#include <stdatomic.h>
+//#include <stdatomic.h>
+#define _Atomic
 #include <stdbool.h>
-
 #include "Utils/MemoryPool.h"
 #include "Utils/LinkedList.h"
-#include "Utils/SpinLock.h"
 
 // TODO: Hide internal stuff
+// TODO: Make array resize work
 
 typedef int32_t isort_t;
 typedef uint32_t usort_t;
@@ -27,8 +27,8 @@ typedef uint8_t Visualizer_MarkerAttribute;
 
 typedef uint8_t Visualizer_UpdateType;
 #define Visualizer_UpdateType_NoUpdate 0
-#define Visualizer_UpdateType_UpdateValue (1 << 0)
-#define Visualizer_UpdateType_UpdateAttr (1 << 1)
+#define Visualizer_UpdateType_UpdateAttr (1 << 0)
+#define Visualizer_UpdateType_UpdateValue (1 << 1)
 
 typedef struct {
 	llist_node Node;
@@ -38,24 +38,21 @@ typedef struct {
 } Visualizer_MarkerNode;
 
 typedef struct {
-	spinlock Lock;
 	bool bUpdated;
 	Visualizer_MarkerAttribute Attribute;
 	isort_t Value;
 } Visualizer_SharedArrayMember;
 
 typedef struct {
-	Visualizer_SharedArrayMember Shared;
+	_Atomic Visualizer_SharedArrayMember Shared;
 	Visualizer_MarkerNode* pMarkerListTail; // Linked list
 } Visualizer_ArrayMember;
 
 // Array properties struct
 
 typedef struct {
-
 	intptr_t Size;
 	Visualizer_ArrayMember* aState;
-
 } Visualizer_ArrayProp;
 
 typedef struct {

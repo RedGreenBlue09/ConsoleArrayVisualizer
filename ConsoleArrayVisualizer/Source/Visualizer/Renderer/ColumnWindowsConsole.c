@@ -10,8 +10,8 @@
 
 // Buffer stuff
 static HANDLE hAltBuffer = NULL;
-static CONSOLE_SCREEN_BUFFER_INFOEX csbiBufferCache = { 0 };
-static CHAR_INFO* aciBufferCache;
+static CONSOLE_SCREEN_BUFFER_INFOEX BufferInfo = { 0 };
+static CHAR_INFO* aBufferCache;
 // Unicode support is not going to be added
 // as it's too slow with current limitations.
 // https://github.com/microsoft/terminal/discussions/13339
@@ -29,32 +29,37 @@ static CHAR_INFO* aciBufferCache;
 #define ATTR_WINCON_INCORRECT  0x2EU
 
 // For uninitialization
-static HANDLE hOldBuffer = NULL;
-static LONG_PTR OldWindowStyle = 0;
+static HANDLE hOldBuffer;
+static LONG_PTR OldWindowStyle;
 
 // Array
 typedef struct {
+	isort_t Value;
+	uint8_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
+} ArrayMember;
 
-	pool_index                  ArrayIndex;
-	intptr_t                    Size;
-	isort_t*                    aState;
-	Visualizer_MarkerAttribute* aAttribute;
+typedef struct {
+	pool_index iArray;
+	intptr_t iPosition;
+	Visualizer_MarkerAttribute Attribute;
+} Marker;
 
+typedef struct {
+	intptr_t     Size;
 	isort_t      ValueMin;
 	isort_t      ValueMax;
-
+	ArrayMember* aState;
 	// TODO: Horizontal scaling
-} RendererCwc_ArrayProp;
+} ArrayProp;
 
-static intptr_t RendererCwc_nArrayProp = 0;
-static RendererCwc_ArrayProp* RendererCwc_aArrayProp = NULL;
+static pool ArrayPropPool;
+static pool MarkerPool;
 
-void RendererCwc_Initialize(intptr_t nMaxArray) {
-
+static int ThreadMain(void* pData) {
 	// Initialize RendererCwc_aArrayProp
 
-	RendererCwc_nArrayProp = nMaxArray;
-	RendererCwc_aArrayProp = malloc_guarded(nMaxArray * sizeof(*RendererCwc_aArrayProp));
+	PoolInitialize(&ArrayPropPool, 16, sizeof(ArrayProp));
+	PoolInitialize(&MarkerPool, 256, sizeof(Marker));
 
 	// New window style
 
@@ -88,21 +93,21 @@ void RendererCwc_Initialize(intptr_t nMaxArray) {
 
 	// Set cursor to top left
 
-	csbiBufferCache.cbSize = sizeof(csbiBufferCache);
-	GetConsoleScreenBufferInfoEx(hAltBuffer, &csbiBufferCache);
-	csbiBufferCache.dwCursorPosition = (COORD){ 0, 0 };
-	csbiBufferCache.wAttributes = ATTR_WINCON_BACKGROUND;
-	SetConsoleScreenBufferInfoEx(hAltBuffer, &csbiBufferCache);
+	BufferInfo.cbSize = sizeof(BufferInfo);
+	GetConsoleScreenBufferInfoEx(hAltBuffer, &BufferInfo);
+	BufferInfo.dwCursorPosition = (COORD){ 0, 0 };
+	BufferInfo.wAttributes = ATTR_WINCON_BACKGROUND;
+	SetConsoleScreenBufferInfoEx(hAltBuffer, &BufferInfo);
 
-	GetConsoleScreenBufferInfoEx(hAltBuffer, &csbiBufferCache);
+	GetConsoleScreenBufferInfoEx(hAltBuffer, &BufferInfo);
 
 	// Initialize buffer cache
 
-	LONG BufferSize = csbiBufferCache.dwSize.X * csbiBufferCache.dwSize.Y;
-	aciBufferCache = malloc_guarded(BufferSize * sizeof(CHAR_INFO));
+	LONG BufferSize = BufferInfo.dwSize.X * BufferInfo.dwSize.Y;
+	aBufferCache = malloc_guarded(BufferSize * sizeof(*aBufferCache));
 	for (intptr_t i = 0; i < BufferSize; ++i) {
-		aciBufferCache[i].Char.UnicodeChar = ' ';
-		aciBufferCache[i].Attributes = ATTR_WINCON_BACKGROUND;
+		aBufferCache[i].Char.UnicodeChar = ' ';
+		aBufferCache[i].Attributes = ATTR_WINCON_BACKGROUND;
 	}
 
 	// Clear screen
@@ -110,25 +115,27 @@ void RendererCwc_Initialize(intptr_t nMaxArray) {
 	SMALL_RECT Rect = {
 		0,
 		0,
-		csbiBufferCache.dwSize.X - 1,
-		csbiBufferCache.dwSize.Y - 1,
+		BufferInfo.dwSize.X - 1,
+		BufferInfo.dwSize.Y - 1,
 	};
 	WriteConsoleOutputW(
 		hAltBuffer,
-		aciBufferCache,
-		csbiBufferCache.dwSize,
+		aBufferCache,
+		BufferInfo.dwSize,
 		(COORD){ 0, 0 },
 		&Rect
 	);
+}
 
-	return;
+void RendererCwc_Initialize() {
+
+
 }
 
 void RendererCwc_Uninitialize() {
-
-	// Uninitialize RendererCwc_aArrayProp
-
-	free(RendererCwc_aArrayProp);
+	
+	PoolDestroy(&MarkerPool);
+	PoolDestroy(&ArrayPropPool);
 
 	// Free alternate buffer
 
@@ -141,63 +148,77 @@ void RendererCwc_Uninitialize() {
 	SetWindowLongPtrW(hWindow, GWL_STYLE, OldWindowStyle);
 	SetWindowPos(hWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE);
 
-	free(aciBufferCache);
-
-	return;
+	free(aBufferCache);
 
 }
 
-void RendererCwc_AddArray(
-	pool_index ArrayIndex,
+static Visualizer_Handle PoolIndexToHandle(pool_index PoolIndex) {
+	return (Visualizer_Handle)(PoolIndex + 1);
+}
+
+static pool_index HandleToPoolIndex(Visualizer_Handle hHandle) {
+	return (pool_index)hHandle - 1;
+}
+
+static void* GetHandleData(pool* pPool, Visualizer_Handle hHandle) {
+	return PoolIndexToAddress(pPool, HandleToPoolIndex(hHandle));
+}
+
+static bool ValidateHandle(pool* pPool, Visualizer_Handle hHandle) {
+	return ((pool_index)hHandle > 0) & ((pool_index)hHandle <= pPool->nBlock);
+}
+
+Visualizer_Handle RendererCwc_AddArray(
 	intptr_t Size,
 	isort_t* aArrayState,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
+	if (Size < 1) return NULL; // TODO: Allow this
 
-	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)ArrayIndex;
+	pool_index Index = PoolAllocate(&ArrayPropPool);
+	if (Index == POOL_INVALID_INDEX) return NULL;
+	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
-	pArrayProp->ArrayIndex = ArrayIndex;
 	pArrayProp->Size = Size;
-
 	pArrayProp->aState = malloc_guarded(Size * sizeof(isort_t));
 	if (aArrayState)
 		for (intptr_t i = 0; i < Size; ++i)
-			pArrayProp->aState[i] = aArrayState[i];
+			pArrayProp->aState[i] = (ArrayMember){ aArrayState[i] };
 	else
 		for (intptr_t i = 0; i < Size; ++i)
-			pArrayProp->aState[i] = 0;
-
-	pArrayProp->aAttribute = malloc_guarded(Size * sizeof(Visualizer_MarkerAttribute));
-	for (intptr_t i = 0; i < Size; ++i)
-		pArrayProp->aAttribute[i] = Visualizer_MarkerAttribute_Normal;
+			pArrayProp->aState[i] = (ArrayMember){ 0 };
 
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
 
-	return;
-
+	return Visualizer_PoolIndexToHandle(Index);
 }
 
-void RendererCwc_RemoveArray(pool_index ArrayIndex) {
+void RendererCwc_RemoveArray(Visualizer_Handle hArray) {
 
-	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)ArrayIndex;
+	assert(ValidateHandle(&ArrayPropPool, hArray));
+	pool_index Index = HandleToPoolIndex(hArray);
+	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
-	free(pArrayProp->aAttribute);
 	free(pArrayProp->aState);
+	// FIXME: Dealloc markers
 
-	return;
+	PoolDeallocate(&ArrayPropPool, Index);
 
 }
 
+/*
 void RendererCwc_UpdateArray(
-	pool_index ArrayIndex,
+	Visualizer_Handle hArray,
 	intptr_t NewSize,
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
 
-	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + (uintptr_t)ArrayIndex;
+	assert(ValidateHandle(&ArrayPropPool, hArray));
+	pool_index Index = HandleToPoolIndex(hArray);
+	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
 	// Clear screen
 
@@ -205,7 +226,7 @@ void RendererCwc_UpdateArray(
 	FillConsoleOutputAttribute(
 		hAltBuffer,
 		ATTR_WINCON_BACKGROUND,
-		csbiBufferCache.dwSize.X * csbiBufferCache.dwSize.Y,
+		BufferInfo.dwSize.X * BufferInfo.dwSize.Y,
 		(COORD){ 0, 0 },
 		&Written
 	);
@@ -258,6 +279,7 @@ void RendererCwc_UpdateArray(
 	return;
 
 }
+*/
 
 static USHORT RendererCwc_AttrToConAttr(Visualizer_MarkerAttribute Attribute) {
 	USHORT WinConAttrTable[32] = { 0 };
@@ -307,7 +329,7 @@ void RendererCwc_UpdateItem(
 
 	// Scale the value to the corresponding screen height
 
-	double HeightFloat = (double)TargetValue * (double)csbiBufferCache.dwSize.Y / (double)ValueMax;
+	double HeightFloat = (double)TargetValue * (double)BufferInfo.dwSize.Y / (double)ValueMax;
 	SHORT FloorHeight = (SHORT)HeightFloat;
 
 	// Convert Visualizer_MarkerAttribute to windows console attribute
@@ -317,15 +339,15 @@ void RendererCwc_UpdateItem(
 	// Initialize update buffer cache
 
 	SHORT TargetConsoleCol = (SHORT)iPosition;
-	if (TargetConsoleCol >= csbiBufferCache.dwSize.X)
-		TargetConsoleCol = csbiBufferCache.dwSize.X - 1;
+	if (TargetConsoleCol >= BufferInfo.dwSize.X)
+		TargetConsoleCol = BufferInfo.dwSize.X - 1;
 
 	{
 		intptr_t i = 0;
-		for (; i < (intptr_t)(csbiBufferCache.dwSize.Y - FloorHeight); ++i)
-			aciBufferCache[csbiBufferCache.dwSize.X * i + TargetConsoleCol].Attributes = ATTR_WINCON_BACKGROUND;
-		for (; i < csbiBufferCache.dwSize.Y; ++i)
-			aciBufferCache[csbiBufferCache.dwSize.X * i + TargetConsoleCol].Attributes = TargetWinConAttr;
+		for (; i < (intptr_t)(BufferInfo.dwSize.Y - FloorHeight); ++i)
+			aBufferCache[BufferInfo.dwSize.X * i + TargetConsoleCol].Attributes = ATTR_WINCON_BACKGROUND;
+		for (; i < BufferInfo.dwSize.Y; ++i)
+			aBufferCache[BufferInfo.dwSize.X * i + TargetConsoleCol].Attributes = TargetWinConAttr;
 	}
 
 	// Write to console
@@ -334,13 +356,13 @@ void RendererCwc_UpdateItem(
 		TargetConsoleCol,
 		0,
 		TargetConsoleCol,
-		csbiBufferCache.dwSize.Y - 1,
+		BufferInfo.dwSize.Y - 1,
 	};
 
 	WriteConsoleOutputW(
 		hAltBuffer,
-		aciBufferCache,
-		csbiBufferCache.dwSize,
+		aBufferCache,
+		BufferInfo.dwSize,
 		(COORD){ TargetConsoleCol, 0 },
 		&Rect
 	);

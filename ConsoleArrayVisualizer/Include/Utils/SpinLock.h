@@ -5,20 +5,15 @@
 
 typedef _Atomic bool spinlock;
 
-static inline void spinlock_init(spinlock* pLock)
-{
+static inline void spinlock_init(spinlock* pLock) {
 	*pLock = false;
 }
 
-static inline void spinlock_lock(spinlock* pLock)
-{
+static inline void spinlock_lock(spinlock* pLock) {
 	while (atomic_exchange(pLock, true) == true)
-		while (atomic_load(pLock) == true);
-	return;
+		while (*pLock == true);
 }
 
-static inline void spinlock_unlock(spinlock* pLock)
-{
-	atomic_store(pLock, false);
-	return;
+static inline void spinlock_unlock(spinlock* pLock) {
+	*pLock = false;
 }
