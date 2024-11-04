@@ -1,6 +1,7 @@
 
 #include "Visualizer/Visualizer.h"
 #include "Utils/GuardedMalloc.h"
+#include "Utils/SharedLock.h"
 
 #include <Windows.h>
 #include "Visualizer/Renderer/ColumnWindowsConsole.h"
@@ -34,8 +35,9 @@ static LONG_PTR OldWindowStyle;
 
 // Array
 typedef struct {
-	isort_t Value;
-	uint8_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
+	_Atomic isort_t Value;
+	_Atomic uint8_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
+	sharedlock SharedLock;
 } ArrayMember;
 
 typedef struct {
@@ -129,7 +131,7 @@ static int ThreadMain(void* pData) {
 
 void RendererCwc_Initialize() {
 
-
+	// Create thread
 }
 
 void RendererCwc_Uninitialize() {
@@ -174,11 +176,11 @@ Visualizer_Handle RendererCwc_AddArray(
 	isort_t ValueMin,
 	isort_t ValueMax
 ) {
-	if (Size < 1) return NULL; // TODO: Allow this
-
 	pool_index Index = PoolAllocate(&ArrayPropPool);
 	if (Index == POOL_INVALID_INDEX) return NULL;
 	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
+
+	if (Size < 1) return NULL; // TODO: Allow this
 
 	pArrayProp->Size = Size;
 	pArrayProp->aState = malloc_guarded(Size * sizeof(isort_t));
@@ -281,81 +283,136 @@ void RendererCwc_UpdateArray(
 }
 */
 
-static USHORT RendererCwc_AttrToConAttr(Visualizer_MarkerAttribute Attribute) {
-	USHORT WinConAttrTable[32] = { 0 };
-	WinConAttrTable[Visualizer_MarkerAttribute_Background] = ATTR_WINCON_BACKGROUND;
-	WinConAttrTable[Visualizer_MarkerAttribute_Normal] = ATTR_WINCON_NORMAL;
-	WinConAttrTable[Visualizer_MarkerAttribute_Read] = ATTR_WINCON_READ;
-	WinConAttrTable[Visualizer_MarkerAttribute_Write] = ATTR_WINCON_WRITE;
-	WinConAttrTable[Visualizer_MarkerAttribute_Pointer] = ATTR_WINCON_POINTER;
-	WinConAttrTable[Visualizer_MarkerAttribute_Correct] = ATTR_WINCON_CORRECT;
-	WinConAttrTable[Visualizer_MarkerAttribute_Incorrect] = ATTR_WINCON_INCORRECT;
-	return WinConAttrTable[Attribute]; // return 0 on unknown Attr.
+void RendererCwc_AddMarker(
+	Visualizer_Handle hArray,
+	intptr_t iPosition,
+	Visualizer_MarkerAttribute Attribute
+) {
+	assert(ValidateHandle(&ArrayPropPool, hArray));
+	pool_index Index = HandleToPoolIndex(hArray);
+	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
+
+	ArrayMember* pMember = &pArrayProp->aState[iPosition];
+
+	sharedlock_lock_shared(&pMember->SharedLock);
+	++pMember->aMarkerCount[Attribute];
+	sharedlock_unlock_shared(&pMember->SharedLock);
 }
 
-void RendererCwc_UpdateItem(
-	Visualizer_UpdateRequest* pUpdateRequest
+void RendererCwc_AddMarkerWithValue(
+	Visualizer_Handle hArray,
+	intptr_t iPosition,
+	Visualizer_MarkerAttribute Attribute,
+	isort_t Value
 ) {
-	RendererCwc_ArrayProp* pArrayProp = RendererCwc_aArrayProp + pUpdateRequest->iArray;
-	intptr_t iPosition = pUpdateRequest->iPosition;
+	assert(ValidateHandle(&ArrayPropPool, hArray));
+	pool_index Index = HandleToPoolIndex(hArray);
+	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
-	// Choose the correct value & attribute
+	ArrayMember* pMember = &pArrayProp->aState[iPosition];
+	
+	sharedlock_lock_shared(&pMember->SharedLock);
+	++pMember->aMarkerCount[Attribute];
+	pMember->Value = Value;
+	sharedlock_unlock_shared(&pMember->SharedLock);
+}
 
-	isort_t TargetValue;
-	if (pUpdateRequest->UpdateType & Visualizer_UpdateType_UpdateValue)
-		TargetValue = pUpdateRequest->Value;
-	else
-		TargetValue = pArrayProp->aState[iPosition];
+void RendererCwc_RemoveMarker(
+	Visualizer_Handle hArray,
+	intptr_t iPosition,
+	Visualizer_MarkerAttribute Attribute,
+	isort_t Value
+) {
+	assert(ValidateHandle(&ArrayPropPool, hArray));
+	pool_index Index = HandleToPoolIndex(hArray);
+	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
-	Visualizer_MarkerAttribute TargetAttr;
-	if (pUpdateRequest->UpdateType & Visualizer_UpdateType_UpdateAttr)
-		TargetAttr = pUpdateRequest->Attribute;
-	else
-		TargetAttr = pArrayProp->aAttribute[iPosition];
+	ArrayMember* pMember = &pArrayProp->aState[iPosition];
 
-	pArrayProp->aState[iPosition] = TargetValue;
-	pArrayProp->aAttribute[iPosition] = TargetAttr;
+	sharedlock_lock_shared(&pMember->SharedLock);
+	--pMember->aMarkerCount[Attribute];
+	sharedlock_unlock_shared(&pMember->SharedLock);
+}
+
+static const USHORT aWinConAttrTable[Visualizer_MarkerAttribute_EnumCount] = {
+	ATTR_WINCON_READ,
+	ATTR_WINCON_WRITE,
+	ATTR_WINCON_POINTER,
+	ATTR_WINCON_CORRECT,
+	ATTR_WINCON_INCORRECT
+};
+
+static void RendererCwc_UpdateCellCache(
+	ArrayProp* pArrayProp,
+	intptr_t iPosition
+) {
+	ArrayMember* pMember = &pArrayProp->aState[iPosition];
+
+	// Choose the correct attribute
+
+	uint16_t ConsoleAttr;
+	{
+		// Find the attribute that have the most occurrences
+		// TODO: SIMD
+
+		sharedlock_lock_exclusive(&pMember->SharedLock);
+		uint8_t MaxCount = pMember->aMarkerCount[0];
+		Visualizer_MarkerAttribute Attr = 0;
+		for (uint8_t i = 1; i < Visualizer_MarkerAttribute_EnumCount; ++i) {
+			uint8_t Count = pMember->aMarkerCount[i];
+			if (Count >= MaxCount) {
+				MaxCount = Count;
+				Attr = i;
+			}
+		}
+		sharedlock_unlock_exclusive(&pMember->SharedLock);
+
+		if (MaxCount == 0)
+			ConsoleAttr = ATTR_WINCON_BACKGROUND;
+		else
+			ConsoleAttr = aWinConAttrTable[Attr];
+	}
+
+	// Choose the correct value
+
+	isort_t Value = pMember->Value;
 
 	isort_t ValueMin = pArrayProp->ValueMin;
 	isort_t ValueMax = pArrayProp->ValueMax;
 
-	TargetValue -= ValueMin;
+	Value -= ValueMin;
 	ValueMax -= ValueMin; // FIXME: Underflow
 
-	if (TargetValue < 0) // TODO: Negative
-		TargetValue = 0;
-	if (TargetValue > ValueMax)
-		TargetValue = ValueMax;
+	if (Value < 0) // TODO: Negative
+		Value = 0;
+	if (Value > ValueMax)
+		Value = ValueMax;
 
 	// Scale the value to the corresponding screen height
 
-	double HeightFloat = (double)TargetValue * (double)BufferInfo.dwSize.Y / (double)ValueMax;
+	double HeightFloat = (double)Value * (double)BufferInfo.dwSize.Y / (double)ValueMax;
 	SHORT FloorHeight = (SHORT)HeightFloat;
 
-	// Convert Visualizer_MarkerAttribute to windows console attribute
+	// Update the buffer cache
 
-	USHORT TargetWinConAttr = RendererCwc_AttrToConAttr(TargetAttr);
-
-	// Initialize update buffer cache
-
-	SHORT TargetConsoleCol = (SHORT)iPosition;
-	if (TargetConsoleCol >= BufferInfo.dwSize.X)
-		TargetConsoleCol = BufferInfo.dwSize.X - 1;
+	SHORT ConsoleCol = (SHORT)iPosition;
+	if (ConsoleCol >= BufferInfo.dwSize.X)
+		ConsoleCol = BufferInfo.dwSize.X - 1;
 
 	{
 		intptr_t i = 0;
 		for (; i < (intptr_t)(BufferInfo.dwSize.Y - FloorHeight); ++i)
-			aBufferCache[BufferInfo.dwSize.X * i + TargetConsoleCol].Attributes = ATTR_WINCON_BACKGROUND;
+			aBufferCache[BufferInfo.dwSize.X * i + ConsoleCol].Attributes = ATTR_WINCON_BACKGROUND;
 		for (; i < BufferInfo.dwSize.Y; ++i)
-			aBufferCache[BufferInfo.dwSize.X * i + TargetConsoleCol].Attributes = TargetWinConAttr;
+			aBufferCache[BufferInfo.dwSize.X * i + ConsoleCol].Attributes = ConsoleAttr;
 	}
 
 	// Write to console
 
 	SMALL_RECT Rect = (SMALL_RECT){
-		TargetConsoleCol,
+		ConsoleCol,
 		0,
-		TargetConsoleCol,
+		ConsoleCol,
 		BufferInfo.dwSize.Y - 1,
 	};
 
@@ -363,7 +420,7 @@ void RendererCwc_UpdateItem(
 		hAltBuffer,
 		aBufferCache,
 		BufferInfo.dwSize,
-		(COORD){ TargetConsoleCol, 0 },
+		(COORD){ ConsoleCol, 0 },
 		&Rect
 	);
 

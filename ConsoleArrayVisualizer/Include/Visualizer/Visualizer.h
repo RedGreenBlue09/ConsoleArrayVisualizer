@@ -16,70 +16,12 @@ typedef uint32_t usort_t;
 typedef void* Visualizer_Handle;
 
 typedef uint8_t Visualizer_MarkerAttribute;
-#define Visualizer_MarkerAttribute_Background 0
-#define Visualizer_MarkerAttribute_Normal 1
-#define Visualizer_MarkerAttribute_Read 2
-#define Visualizer_MarkerAttribute_Write 3
-#define Visualizer_MarkerAttribute_Pointer 4
-#define Visualizer_MarkerAttribute_Correct 5
-#define Visualizer_MarkerAttribute_Incorrect 6
-#define Visualizer_MarkerAttribute_EnumCount 7
-
-typedef uint8_t Visualizer_UpdateType;
-#define Visualizer_UpdateType_NoUpdate 0
-#define Visualizer_UpdateType_UpdateAttr (1 << 0)
-#define Visualizer_UpdateType_UpdateValue (1 << 1)
-
-typedef struct {
-	llist_node Node;
-	pool_index iArray;
-	intptr_t iPosition;
-	Visualizer_MarkerAttribute Attribute;
-} Visualizer_MarkerNode;
-
-typedef struct {
-	bool bUpdated;
-	Visualizer_MarkerAttribute Attribute;
-	isort_t Value;
-} Visualizer_SharedArrayMember;
-
-typedef struct {
-	_Atomic Visualizer_SharedArrayMember Shared;
-	Visualizer_MarkerNode* pMarkerListTail; // Linked list
-} Visualizer_ArrayMember;
-
-// Array properties struct
-
-typedef struct {
-	intptr_t Size;
-	Visualizer_ArrayMember* aState;
-} Visualizer_ArrayProp;
-
-typedef struct {
-
-	void (*Initialize)(
-		intptr_t nMaxArray
-	);
-	void (*Uninitialize)();
-
-	void (*AddArray)(
-		pool_index ArrayIndex,
-		intptr_t Size,
-		isort_t* aArrayState,
-		isort_t ValueMin,
-		isort_t ValueMax
-	);
-	void (*RemoveArray)(
-		pool_index ArrayIndex
-	);
-	void (*UpdateArray)(
-		pool_index ArrayIndex,
-		intptr_t NewSize,
-		isort_t ValueMin,
-		isort_t ValueMax
-	);
-
-} AV_RENDERER_ENTRY;
+#define Visualizer_MarkerAttribute_Read 0
+#define Visualizer_MarkerAttribute_Write 1
+#define Visualizer_MarkerAttribute_Pointer 2
+#define Visualizer_MarkerAttribute_Correct 3
+#define Visualizer_MarkerAttribute_Incorrect 4
+#define Visualizer_MarkerAttribute_EnumCount 5
 
 // Visualizer.c
 

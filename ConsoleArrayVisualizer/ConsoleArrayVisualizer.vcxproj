@@ -45,6 +45,7 @@
     <ClCompile Include="Source\Visualizer\Visualizer.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Include\SharedLock.h" />
     <ClInclude Include="Include\Utils\GuardedMalloc.h" />
     <ClInclude Include="Include\Utils\LinkedList.h" />
     <ClInclude Include="Include\Utils\MemoryPool.h" />
