@@ -81,9 +81,6 @@
     <ClCompile Include="Source\Utils\MemoryPool.c">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Utils\LinkedList.c">
-      <Filter>Source Files\Utils</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Sorts.h">
@@ -119,7 +116,7 @@
     <ClInclude Include="Include\Utils\SpinLock.h">
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Include\SharedLock.h">
+    <ClInclude Include="Include\Utils\SharedLock.h">
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
   </ItemGroup>

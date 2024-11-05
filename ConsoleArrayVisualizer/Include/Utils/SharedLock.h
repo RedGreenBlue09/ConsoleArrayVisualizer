@@ -24,6 +24,8 @@ static inline void sharedlock_unlock_exclusive(sharedlock* pLock) {
 }
 
 static inline void sharedlock_lock_shared(sharedlock* pLock) {
+	// CAS version, is slower on x86 but might be faster on ARM
+	/*
 	uint8_t CachedLock;
 	do {
 		// Wait for exclusive lock
@@ -33,8 +35,25 @@ static inline void sharedlock_lock_shared(sharedlock* pLock) {
 		// If it's exclusively locked again or increased, retry
 		// Else increase shared lock count
 	} while (!atomic_compare_exchange_weak(pLock, &CachedLock, CachedLock + 1));
+	*/
+
+	// FAA version
+	while (true) {
+		// Wait for exclusive lock
+		while (*pLock >= (1 << 7));
+
+		// Increase shared lock count
+		++*pLock;
+
+		// If exclusively locked again, unlock and retry
+		if (*pLock >= (1 << 7))
+			--*pLock;
+		else
+			break;
+	};
 }
 
 static inline void sharedlock_unlock_shared(sharedlock* pLock) {
+	// Decrease shared lock count
 	--*pLock;
 }

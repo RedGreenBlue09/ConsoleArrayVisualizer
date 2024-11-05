@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <stdint.h>
 
 typedef struct llist_node_tag {
@@ -8,10 +9,35 @@ typedef struct llist_node_tag {
 } llist_node;
 
 // Create an alone node
-void LinkedList_InitializeNode(llist_node* pNode);
+static inline void LinkedList_InitializeNode(llist_node* pNode) {
+	assert(pNode);
+	pNode->pPreviousNode = NULL;
+	pNode->pNextNode = NULL;
+};
 
 // Insert another node after iNode
-void LinkedList_Insert(llist_node* pNode, llist_node* pNewNode);
+static inline void LinkedList_InsertAfter(llist_node* pNode, llist_node* pNewNode) {
+	assert(pNode);
+	assert(pNewNode);
+	pNewNode->pPreviousNode = pNode;
+	pNewNode->pNextNode = pNode->pNextNode;
+	pNode->pNextNode = pNewNode;
+}
+
+// Insert another node after iNode
+static inline void LinkedList_InsertBefore(llist_node* pNode, llist_node* pNewNode) {
+	assert(pNode);
+	assert(pNewNode);
+	pNewNode->pPreviousNode = pNode->pPreviousNode;
+	pNewNode->pNextNode = pNode;
+	pNode->pPreviousNode = pNewNode;
+}
 
 // Remove iNode from the list
-void LinkedList_Remove(llist_node* pNode);
+static inline void LinkedList_Remove(llist_node* pNode) {
+	assert(pNode);
+	if (pNode->pPreviousNode != NULL)
+		pNode->pPreviousNode->pNextNode = pNode->pNextNode;
+	if (pNode->pNextNode != NULL)
+		pNode->pNextNode->pPreviousNode = pNode->pPreviousNode;
+}

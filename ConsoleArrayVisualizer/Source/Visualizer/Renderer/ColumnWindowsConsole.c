@@ -1,13 +1,16 @@
 
+#include <threads.h>
+
 #include "Visualizer/Visualizer.h"
 #include "Utils/GuardedMalloc.h"
 #include "Utils/SharedLock.h"
+#include "Utils/LinkedList.h"
 
 #include <Windows.h>
 #include "Visualizer/Renderer/ColumnWindowsConsole.h"
 
 //
-#include <stdio.h>
+//#include <stdio.h>
 
 // Buffer stuff
 static HANDLE hAltBuffer = NULL;
@@ -47,6 +50,7 @@ typedef struct {
 } Marker;
 
 typedef struct {
+	llist_node   Node;
 	intptr_t     Size;
 	isort_t      ValueMin;
 	isort_t      ValueMax;
@@ -55,10 +59,50 @@ typedef struct {
 } ArrayProp;
 
 static pool ArrayPropPool;
-static pool MarkerPool;
+static pool MarkerPool; // TODO: Ditch this pool
+static ArrayProp* pArrayPropHead;
 
-static int ThreadMain(void* pData) {
-	// Initialize RendererCwc_aArrayProp
+thrd_t RenderThread;
+static bool bRun;
+
+static int RenderThreadMain(void* pData) {
+
+	while (bRun) {
+		// TODO: Multi array
+		// TODO: Handle array removal
+		if (!pArrayPropHead)
+			continue;
+
+		ArrayProp* pArrayProp = pArrayPropHead;
+		intptr_t Size = pArrayProp->Size;
+
+		// Update cell cache
+		for (intptr_t i = 0; i < Size; ++i) {
+			RendererCwc_UpdateCellCache(pArrayProp, i);
+		}
+
+		// Write to console
+		// TODO: Write only updated regions
+		SMALL_RECT Rect = {
+			0,
+			0,
+			BufferInfo.dwSize.X - 1,
+			BufferInfo.dwSize.Y - 1,
+		};
+		WriteConsoleOutputW(
+			hAltBuffer,
+			aBufferCache,
+			BufferInfo.dwSize,
+			(COORD) { 0, 0 },
+			&Rect
+		);
+	}
+
+	return 0;
+
+}
+
+void RendererCwc_Initialize() {
 
 	PoolInitialize(&ArrayPropPool, 16, sizeof(ArrayProp));
 	PoolInitialize(&MarkerPool, 256, sizeof(Marker));
@@ -83,6 +127,7 @@ static int ThreadMain(void* pData) {
 	);
 
 	// New buffer
+
 	hAltBuffer = CreateConsoleScreenBuffer(
 		GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -124,20 +169,24 @@ static int ThreadMain(void* pData) {
 		hAltBuffer,
 		aBufferCache,
 		BufferInfo.dwSize,
-		(COORD){ 0, 0 },
+		(COORD) { 0, 0 },
 		&Rect
 	);
-}
 
-void RendererCwc_Initialize() {
+	// Render thread
 
-	// Create thread
+	bRun = true;
+	thrd_create(&RenderThread, RenderThreadMain, NULL);
+
 }
 
 void RendererCwc_Uninitialize() {
-	
-	PoolDestroy(&MarkerPool);
-	PoolDestroy(&ArrayPropPool);
+
+	// Stop render thread
+
+	bRun = false;
+	int ThreadReturn;
+	thrd_join(RenderThread, &ThreadReturn);
 
 	// Free alternate buffer
 
@@ -151,6 +200,11 @@ void RendererCwc_Uninitialize() {
 	SetWindowPos(hWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOSIZE);
 
 	free(aBufferCache);
+
+	// Free arrays & markers
+
+	PoolDestroy(&MarkerPool);
+	PoolDestroy(&ArrayPropPool);
 
 }
 
@@ -393,7 +447,7 @@ static void RendererCwc_UpdateCellCache(
 	double HeightFloat = (double)Value * (double)BufferInfo.dwSize.Y / (double)ValueMax;
 	SHORT FloorHeight = (SHORT)HeightFloat;
 
-	// Update the buffer cache
+	// Update the cell cache
 
 	SHORT ConsoleCol = (SHORT)iPosition;
 	if (ConsoleCol >= BufferInfo.dwSize.X)
@@ -406,23 +460,4 @@ static void RendererCwc_UpdateCellCache(
 		for (; i < BufferInfo.dwSize.Y; ++i)
 			aBufferCache[BufferInfo.dwSize.X * i + ConsoleCol].Attributes = ConsoleAttr;
 	}
-
-	// Write to console
-
-	SMALL_RECT Rect = (SMALL_RECT){
-		ConsoleCol,
-		0,
-		ConsoleCol,
-		BufferInfo.dwSize.Y - 1,
-	};
-
-	WriteConsoleOutputW(
-		hAltBuffer,
-		aBufferCache,
-		BufferInfo.dwSize,
-		(COORD){ ConsoleCol, 0 },
-		&Rect
-	);
-
-	return;
 }

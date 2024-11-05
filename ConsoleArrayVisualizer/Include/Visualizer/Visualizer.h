@@ -5,7 +5,6 @@
 #define _Atomic
 #include <stdbool.h>
 #include "Utils/MemoryPool.h"
-#include "Utils/LinkedList.h"
 
 // TODO: Hide internal stuff
 // TODO: Make array resize work
