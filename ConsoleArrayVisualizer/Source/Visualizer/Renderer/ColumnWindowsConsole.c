@@ -402,55 +402,49 @@ static void RendererCwc_UpdateCellCache(
 ) {
 	ArrayMember* pMember = &pArrayProp->aState[iPosition];
 
-	// Choose the correct attribute
+	// Choose the correct value & attribute
 
 	uint16_t ConsoleAttr;
-	{
-		// Find the attribute that have the most occurrences
-		// TODO: SIMD
+	isort_t Value;
 
-		sharedlock_lock_exclusive(&pMember->SharedLock);
-		uint8_t MaxCount = pMember->aMarkerCount[0];
-		Visualizer_MarkerAttribute Attr = 0;
-		for (uint8_t i = 1; i < Visualizer_MarkerAttribute_EnumCount; ++i) {
-			uint8_t Count = pMember->aMarkerCount[i];
-			if (Count >= MaxCount) {
-				MaxCount = Count;
-				Attr = i;
-			}
+	sharedlock_lock_exclusive(&pMember->SharedLock);
+
+	// Find the attribute that have the most occurrences. TODO: SIMD
+	uint8_t MaxAttrCount = pMember->aMarkerCount[0];
+	Visualizer_MarkerAttribute Attr = 0;
+	for (uint8_t i = 1; i < Visualizer_MarkerAttribute_EnumCount; ++i) {
+		uint8_t Count = pMember->aMarkerCount[i];
+		if (Count >= MaxAttrCount) {
+			MaxAttrCount = Count;
+			Attr = i;
 		}
-		sharedlock_unlock_exclusive(&pMember->SharedLock);
-
-		if (MaxCount == 0)
-			ConsoleAttr = ATTR_WINCON_BACKGROUND;
-		else
-			ConsoleAttr = aWinConAttrTable[Attr];
 	}
 
-	// Choose the correct value
+	Value = pMember->Value;
 
-	isort_t Value = pMember->Value;
+	sharedlock_unlock_exclusive(&pMember->SharedLock);
 
-	isort_t ValueMin = pArrayProp->ValueMin;
-	isort_t ValueMax = pArrayProp->ValueMax;
+	if (MaxAttrCount == 0)
+		ConsoleAttr = ATTR_WINCON_BACKGROUND;
+	else
+		ConsoleAttr = aWinConAttrTable[Attr];
 
-	Value -= ValueMin;
-	ValueMax -= ValueMin; // FIXME: Underflow
-
-	if (Value < 0) // TODO: Negative
-		Value = 0;
-	if (Value > ValueMax)
-		Value = ValueMax;
+	// Use wrap around characteristic of unsigned integer
+	usort_t ValueMin = pArrayProp->ValueMin;
+	usort_t AbsoluteValue = (usort_t)Value - ValueMin;
+	usort_t AbsoluteValueMax = (usort_t)pArrayProp->ValueMax - ValueMin;
+	if (AbsoluteValue > AbsoluteValueMax)
+		AbsoluteValue = AbsoluteValueMax;
 
 	// Scale the value to the corresponding screen height
 
-	double HeightFloat = (double)Value * (double)BufferInfo.dwSize.Y / (double)ValueMax;
+	double HeightFloat = (double)AbsoluteValue * (double)BufferInfo.dwSize.Y / (double)AbsoluteValueMax;
 	SHORT FloorHeight = (SHORT)HeightFloat;
 
 	// Update the cell cache
 
 	SHORT ConsoleCol = (SHORT)iPosition;
-	if (ConsoleCol >= BufferInfo.dwSize.X)
+	if (ConsoleCol > BufferInfo.dwSize.X - 1)
 		ConsoleCol = BufferInfo.dwSize.X - 1;
 
 	{

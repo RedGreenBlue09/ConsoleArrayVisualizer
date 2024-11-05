@@ -15,7 +15,7 @@ static inline void LinkedList_InitializeNode(llist_node* pNode) {
 	pNode->pNextNode = NULL;
 };
 
-// Insert another node after iNode
+// Insert pNewNode after pNode
 static inline void LinkedList_InsertAfter(llist_node* pNode, llist_node* pNewNode) {
 	assert(pNode);
 	assert(pNewNode);
@@ -24,7 +24,7 @@ static inline void LinkedList_InsertAfter(llist_node* pNode, llist_node* pNewNod
 	pNode->pNextNode = pNewNode;
 }
 
-// Insert another node after iNode
+// Insert pNewNode before pNode
 static inline void LinkedList_InsertBefore(llist_node* pNode, llist_node* pNewNode) {
 	assert(pNode);
 	assert(pNewNode);
@@ -33,7 +33,7 @@ static inline void LinkedList_InsertBefore(llist_node* pNode, llist_node* pNewNo
 	pNode->pPreviousNode = pNewNode;
 }
 
-// Remove iNode from the list
+// Remove pNode from the list
 static inline void LinkedList_Remove(llist_node* pNode) {
 	assert(pNode);
 	if (pNode->pPreviousNode != NULL)
