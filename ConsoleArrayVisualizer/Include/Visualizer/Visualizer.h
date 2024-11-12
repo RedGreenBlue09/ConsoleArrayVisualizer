@@ -1,9 +1,8 @@
 #pragma once
 
 #include <inttypes.h>
-//#include <stdatomic.h>
-#define _Atomic
 #include <stdbool.h>
+
 #include "Utils/MemoryPool.h"
 
 // TODO: Hide internal stuff
@@ -101,16 +100,24 @@ void Visualizer_UpdateWriteMulti(
 	double fSleepMultiplier
 );
 
+typedef struct {
+	Visualizer_Handle hArray;
+	intptr_t iPosition;
+	Visualizer_MarkerAttribute Attribute;
+} Visualizer_Marker; // TODO: HEADER
+
+typedef Visualizer_Marker Visualizer_Pointer;
+
 // Pointer
-Visualizer_Handle Visualizer_CreatePointer(
+Visualizer_Pointer Visualizer_CreatePointer(
 	Visualizer_Handle hArray,
 	intptr_t iPosition
 );
 void Visualizer_RemovePointer(
-	Visualizer_Handle hPointer
+	Visualizer_Pointer Pointer
 );
 void Visualizer_MovePointer(
-	Visualizer_Handle hPointer,
+	Visualizer_Pointer Pointer,
 	intptr_t iNewPosition
 );
 

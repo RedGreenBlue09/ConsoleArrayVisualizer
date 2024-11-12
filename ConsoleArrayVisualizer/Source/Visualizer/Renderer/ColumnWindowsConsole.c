@@ -1,13 +1,12 @@
 
-#include <threads.h>
-
-#include "Visualizer/Visualizer.h"
-#include "Utils/GuardedMalloc.h"
-#include "Utils/SharedLock.h"
-#include "Utils/LinkedList.h"
-
-#include <Windows.h>
 #include "Visualizer/Renderer/ColumnWindowsConsole.h"
+#include <threads.h>
+#include <Windows.h>
+
+#include "Utils/GuardedMalloc.h"
+#include "Utils/LinkedList.h"
+#include "Utils/SharedLock.h"
+#include "Utils/Time.h"
 
 //
 //#include <stdio.h>
@@ -43,23 +42,23 @@ typedef struct {
 	sharedlock SharedLock;
 } ArrayMember;
 
-typedef struct {
-	pool_index iArray;
-	intptr_t iPosition;
-	Visualizer_MarkerAttribute Attribute;
-} Marker;
+typedef Visualizer_Marker Marker;
 
 typedef struct {
-	llist_node   Node;
-	intptr_t     Size;
-	isort_t      ValueMin;
-	isort_t      ValueMax;
-	ArrayMember* aState;
+	llist_node       Node;
+	_Atomic bool     bRemoved;
+	// _Atomic bool     bSizeUpdated;
+	_Atomic bool     bRangeUpdated;
+	_Atomic intptr_t Size;
+	_Atomic isort_t  ValueMin;
+	_Atomic isort_t  ValueMax;
+	ArrayMember*     aState;
 	// TODO: Horizontal scaling
 } ArrayProp;
 
 static pool ArrayPropPool;
-static pool MarkerPool; // TODO: Ditch this pool
+
+//static pool MarkerPool; // TODO: Ditch this pool
 static ArrayProp* pArrayPropHead;
 
 thrd_t RenderThread;
@@ -68,14 +67,22 @@ static bool bRun;
 static int RenderThreadMain(void* pData) {
 
 	while (bRun) {
+
+		sleep64(15625);
+
 		// TODO: Multi array
-		// TODO: Handle array removal
 		if (!pArrayPropHead)
 			continue;
 
 		ArrayProp* pArrayProp = pArrayPropHead;
-		intptr_t Size = pArrayProp->Size;
 
+		if (pArrayProp->bRemoved) {
+			PoolDeallocateAddress(&ArrayPropPool, pArrayProp);
+			pArrayPropHead = NULL;
+			continue;
+		}
+
+		intptr_t Size = pArrayProp->Size;
 		// Update cell cache
 		for (intptr_t i = 0; i < Size; ++i) {
 			RendererCwc_UpdateCellCache(pArrayProp, i);
@@ -105,7 +112,6 @@ static int RenderThreadMain(void* pData) {
 void RendererCwc_Initialize() {
 
 	PoolInitialize(&ArrayPropPool, 16, sizeof(ArrayProp));
-	PoolInitialize(&MarkerPool, 256, sizeof(Marker));
 
 	// New window style
 
@@ -146,7 +152,7 @@ void RendererCwc_Initialize() {
 	BufferInfo.wAttributes = ATTR_WINCON_BACKGROUND;
 	SetConsoleScreenBufferInfoEx(hAltBuffer, &BufferInfo);
 
-	GetConsoleScreenBufferInfoEx(hAltBuffer, &BufferInfo);
+	// GetConsoleScreenBufferInfoEx(hAltBuffer, &BufferInfo);
 
 	// Initialize buffer cache
 
@@ -203,7 +209,6 @@ void RendererCwc_Uninitialize() {
 
 	// Free arrays & markers
 
-	PoolDestroy(&MarkerPool);
 	PoolDestroy(&ArrayPropPool);
 
 }
@@ -247,7 +252,10 @@ Visualizer_Handle RendererCwc_AddArray(
 
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
+	pArrayProp->bRemoved = false;
 
+	if (!pArrayPropHead) // TODO: Multi array
+		pArrayPropHead = pArrayProp;
 	return Visualizer_PoolIndexToHandle(Index);
 }
 
@@ -258,9 +266,9 @@ void RendererCwc_RemoveArray(Visualizer_Handle hArray) {
 	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
 	free(pArrayProp->aState);
-	// FIXME: Dealloc markers
 
-	PoolDeallocate(&ArrayPropPool, Index);
+	pArrayProp->bRemoved = true;
+	//PoolDeallocate(&ArrayPropPool, Index);
 
 }
 
@@ -337,7 +345,7 @@ void RendererCwc_UpdateArray(
 }
 */
 
-void RendererCwc_AddMarker(
+Visualizer_Marker RendererCwc_AddMarker(
 	Visualizer_Handle hArray,
 	intptr_t iPosition,
 	Visualizer_MarkerAttribute Attribute
@@ -351,9 +359,11 @@ void RendererCwc_AddMarker(
 	sharedlock_lock_shared(&pMember->SharedLock);
 	++pMember->aMarkerCount[Attribute];
 	sharedlock_unlock_shared(&pMember->SharedLock);
+
+	return (Visualizer_Marker){ hArray , iPosition, Attribute };
 }
 
-void RendererCwc_AddMarkerWithValue(
+Visualizer_Marker RendererCwc_AddMarkerWithValue(
 	Visualizer_Handle hArray,
 	intptr_t iPosition,
 	Visualizer_MarkerAttribute Attribute,
@@ -369,22 +379,20 @@ void RendererCwc_AddMarkerWithValue(
 	++pMember->aMarkerCount[Attribute];
 	pMember->Value = Value;
 	sharedlock_unlock_shared(&pMember->SharedLock);
+
+	return (Visualizer_Marker) { hArray, iPosition, Attribute };
 }
 
-void RendererCwc_RemoveMarker(
-	Visualizer_Handle hArray,
-	intptr_t iPosition,
-	Visualizer_MarkerAttribute Attribute,
-	isort_t Value
-) {
-	assert(ValidateHandle(&ArrayPropPool, hArray));
-	pool_index Index = HandleToPoolIndex(hArray);
+
+void RendererCwc_RemoveMarker(Visualizer_Marker Marker) {
+	assert(ValidateHandle(&ArrayPropPool, Marker.hArray));
+	pool_index Index = HandleToPoolIndex(Marker.hArray);
 	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
-	ArrayMember* pMember = &pArrayProp->aState[iPosition];
+	ArrayMember* pMember = &pArrayProp->aState[Marker.iPosition];
 
 	sharedlock_lock_shared(&pMember->SharedLock);
-	--pMember->aMarkerCount[Attribute];
+	--pMember->aMarkerCount[Marker.Attribute];
 	sharedlock_unlock_shared(&pMember->SharedLock);
 }
 
