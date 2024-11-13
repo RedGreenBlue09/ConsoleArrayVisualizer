@@ -82,11 +82,11 @@ void SHS_ShellSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle, in
 
 		intptr_t gap = gaps[pass];
 
-		Visualizer_Handle pointerHandle = Visualizer_CreatePointer(arrayHandle, gap);
+		Visualizer_Pointer pointer = Visualizer_CreatePointer(arrayHandle, gap);
 		for (intptr_t i = gap; i < n; ++i) {
 			isort_t temp = array[i];
 			Visualizer_UpdateRead(arrayHandle, i, 0.25);
-			Visualizer_MovePointer(pointerHandle, i);
+			Visualizer_MovePointer(&pointer, i);
 			intptr_t j;
 
 			for (j = i; (j >= gap) && (array[j - gap] > temp); j -= gap) {
@@ -97,7 +97,7 @@ void SHS_ShellSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle, in
 			Visualizer_UpdateWrite(arrayHandle, j, temp, 0.25);
 			array[j] = temp;
 		}
-		Visualizer_RemovePointer(pointerHandle);
+		Visualizer_RemovePointer(pointer);
 		--pass;
 	}
 

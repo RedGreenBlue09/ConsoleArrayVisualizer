@@ -24,27 +24,6 @@ double myKahanSum(double* ax, size_t n) {
 
 }
 
-
-double log2fact(double x) {
-
-	double x1 = x + 1.0;
-	if (x <= 128.0) {
-		double gamma = tgamma(x1);
-		return log2(gamma);
-	} else {
-		double a[8];
-		a[0] = x1 * log(x1);
-		a[1] = -x1;
-		a[2] = -0.5 * log(x1);
-		a[3] = 0.5 * log(2 * M_PI);
-		a[4] = 1.0 / (12 * x1);
-		a[5] = -1.0 / (360 * pow(x1, 3.0));
-		a[6] = 1.0 / (1260 * pow(x1, 5.0));
-		a[7] = 0.0;
-		return (myKahanSum(a, 8) / 0.693147180559945309417);
-	}
-}
-
 void mainShuffle(isort_t* aArray, intptr_t N) {
 
 	// Dumb shuffle for testing
@@ -61,10 +40,6 @@ void mainShuffle(isort_t* aArray, intptr_t N) {
 
 }
 
-int intcmp(void* a, void* b) {
-	return *(int*)a - *(int*)b;
-}
-
 int main() {
 
 	intptr_t N = 512;
@@ -77,25 +52,25 @@ int main() {
 
 	//
 	mainShuffle(aArray, N);
-	Visualizer_UpdateWriteMulti(MainArrayHandle, 0, N, aArray, 0.0);
+	Visualizer_UpdateArrayState(MainArrayHandle, aArray);
 	BottomUpHeapSort(aArray, N, MainArrayHandle); // This has incorrect results
 	
 
-	Visualizer_UpdateArray(MainArrayHandle, N, 0, N);
+	//Visualizer_UpdateArray(MainArrayHandle, N, 0, N);
 	//sleep64(1500000);
 
 	//
 	mainShuffle(aArray, N);
-	Visualizer_UpdateWriteMulti(MainArrayHandle, 0, N, aArray, 0.0);
+	Visualizer_UpdateArrayState(MainArrayHandle, aArray);
 	LeftRightQuickSort(aArray, N, MainArrayHandle);
 
 
-	Visualizer_UpdateArray(MainArrayHandle, N, 0, N);
+	//Visualizer_UpdateArray(MainArrayHandle, N, 0, N);
 	//sleep64(1500000);
 
 	//
 	mainShuffle(aArray, N);
-	Visualizer_UpdateWriteMulti(MainArrayHandle, 0, N, aArray, 0.0);
+	Visualizer_UpdateArrayState(MainArrayHandle, aArray);
 	ShellSortCiura(aArray, N, MainArrayHandle);
 
 	//

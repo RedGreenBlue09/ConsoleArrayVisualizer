@@ -30,7 +30,7 @@ void Visualizer_Uninitialize() {
 
 void Visualizer_Sleep(double fSleepMultiplier) {
 	
-	sleep64((uint64_t)((double)Visualizer_TimeDefaultDelay * fSleepMultiplier));
+	sleep64((uint64_t)((double)DefaultDelay * fSleepMultiplier));
 	return;
 }
 
@@ -50,6 +50,11 @@ void Visualizer_RemoveArray(Visualizer_Handle hArray) {
 	Renderer_RemoveArray(hArray);
 }
 
+void Visualizer_UpdateArrayState(Visualizer_Handle hArray, isort_t* aState) {
+	Renderer_UpdateArrayState(hArray, aState);
+}
+
+/*
 void Visualizer_UpdateArray(
 	Visualizer_Handle hArray,
 	intptr_t NewSize,
@@ -62,7 +67,7 @@ void Visualizer_UpdateArray(
 		ValueMin,
 		ValueMax
 	);
-}
+}*/
 
 // Read & Write
 
@@ -155,8 +160,8 @@ void Visualizer_RemovePointer(Visualizer_Pointer Pointer) {
 	return;
 }
 
-void Visualizer_MovePointer(Visualizer_Pointer Pointer, intptr_t iNewPosition) {
-	Visualizer_MoveMarker(Pointer, iNewPosition);
+void Visualizer_MovePointer(Visualizer_Pointer* pPointer, intptr_t iNewPosition) {
+	Renderer_MoveMarker(pPointer, iNewPosition);
 	return;
 }
 

@@ -21,6 +21,8 @@ typedef uint8_t Visualizer_MarkerAttribute;
 #define Visualizer_MarkerAttribute_Incorrect 4
 #define Visualizer_MarkerAttribute_EnumCount 5
 
+#include "Visualizer/Renderer/ColumnWindowsConsole.h"
+
 // Visualizer.c
 
 #ifndef VISUALIZER_DISABLED
@@ -31,7 +33,7 @@ void Visualizer_Initialize();
 void Visualizer_Uninitialize();
 
 // Sleep
-#define VISUALIZER_DISABLE_SLEEP 1
+//#define VISUALIZER_DISABLE_SLEEP 1
 #ifdef VISUALIZER_DISABLE_SLEEP
 #define Visualizer_Sleep(X) 
 #else
@@ -49,13 +51,18 @@ Visualizer_Handle Visualizer_AddArray(
 void Visualizer_RemoveArray(
 	Visualizer_Handle hArray
 );
+void Visualizer_UpdateArrayState(
+	Visualizer_Handle hArray,
+	isort_t* aState
+);
+/*
 void Visualizer_UpdateArray(
 	Visualizer_Handle hArray,
 	intptr_t NewSize,
 	isort_t ValueMin,
 	isort_t ValueMax
 );
-
+*/
 // Read
 
 void Visualizer_UpdateRead(
@@ -100,12 +107,6 @@ void Visualizer_UpdateWriteMulti(
 	double fSleepMultiplier
 );
 
-typedef struct {
-	Visualizer_Handle hArray;
-	intptr_t iPosition;
-	Visualizer_MarkerAttribute Attribute;
-} Visualizer_Marker; // TODO: HEADER
-
 typedef Visualizer_Marker Visualizer_Pointer;
 
 // Pointer
@@ -117,7 +118,7 @@ void Visualizer_RemovePointer(
 	Visualizer_Pointer Pointer
 );
 void Visualizer_MovePointer(
-	Visualizer_Pointer Pointer,
+	Visualizer_Pointer* pPointer,
 	intptr_t iNewPosition
 );
 

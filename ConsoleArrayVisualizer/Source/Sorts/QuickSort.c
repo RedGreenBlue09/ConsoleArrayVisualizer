@@ -19,7 +19,7 @@ begin:
 	pivot = array[low + (high - low + 1) / 2];
 	left = low;
 	right = high;
-	Visualizer_Handle pointerHandle = Visualizer_CreatePointer(LRQS_arrayHandle, low + (high - low + 1) / 2);
+	Visualizer_Pointer pointer = Visualizer_CreatePointer(LRQS_arrayHandle, low + (high - low + 1) / 2);
 
 	while (left <= right) {
 		while (array[left] < pivot) {
@@ -39,7 +39,7 @@ begin:
 			--right;
 		}
 	}
-	Visualizer_RemovePointer(pointerHandle);
+	Visualizer_RemovePointer(pointer);
 
 	// Call tail optimization
 	// (prevents O(n) call stack in worst case)
