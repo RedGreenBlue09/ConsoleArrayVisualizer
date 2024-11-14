@@ -41,20 +41,28 @@ static LONG_PTR OldWindowStyle;
 typedef struct {
 	_Atomic isort_t Value;
 	_Atomic uint8_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
+	//_Atomic bool bUpdated;
+	//sharedlock SharedLock;
+} ArrayMember;
+
+typedef struct {
+	intptr_t MemberCount; // MAX is 2^24. This is overkill!
+	_Atomic long_isort_t ValueSum;
+	_Atomic uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 	_Atomic bool bUpdated;
 	sharedlock SharedLock;
-} ArrayMember;
+} ColumnInfo;
 
 typedef struct {
 	llist_node       Node;
 	_Atomic bool     bRemoved;
-	// _Atomic bool     bSizeUpdated;
-	_Atomic bool     bRangeUpdated;
+	_Atomic bool     bResized;
+	// _Atomic bool     bRangeUpdated;
 	_Atomic intptr_t Size;
 	_Atomic isort_t  ValueMin;
 	_Atomic isort_t  ValueMax;
 	ArrayMember*     aState;
-	// TODO: Horizontal scaling
+	ColumnInfo* _Atomic aColumn;
 } ArrayProp;
 
 static pool ArrayPropPool;
@@ -81,13 +89,62 @@ static bool ValidateHandle(pool* pPool, Visualizer_Handle hHandle) {
 	return ((pool_index)hHandle > 0) & ((pool_index)hHandle <= pPool->nBlock);
 }
 
+// Returns iB
+static inline intptr_t NearestNeighborScale(intptr_t iA, intptr_t nA, intptr_t nB) {
+	return (iA * nB + (nB / 2)) / nA;
+}
+
+// UNSUPPORTED: Multiple threads on the same member
+typedef uint8_t MemberUpdateType;
+#define MemberUpdateType_No              0 // Not used
+#define MemberUpdateType_Attribute      (1 << 0)
+#define MemberUpdateType_Value          (1 << 1)
+
+static inline void UpdateMember(
+	ArrayProp* pArrayProp,
+	intptr_t iPosition,
+	MemberUpdateType UpdateType,
+	bool bAddAttribute,
+	Visualizer_MarkerAttribute Attribute,
+	isort_t Value
+) {
+	if (UpdateType & MemberUpdateType_Attribute) {
+		if (bAddAttribute)
+			++pArrayProp->aState[iPosition].aMarkerCount[Attribute];
+		else
+			--pArrayProp->aState[iPosition].aMarkerCount[Attribute];
+	}
+
+	isort_t OldValue;
+	if (UpdateType & MemberUpdateType_Value)
+		OldValue = atomic_exchange(&pArrayProp->aState[iPosition].Value, Value);
+
+	if (!pArrayProp->aColumn)
+		return;
+
+	intptr_t iColumn = NearestNeighborScale(iPosition, pArrayProp->Size, BufferInfo.dwSize.X);
+	ColumnInfo* pColumnInfo = &pArrayProp->aColumn[iColumn];
+
+	sharedlock_lock_shared(&pColumnInfo->SharedLock);
+	if (UpdateType & MemberUpdateType_Value)
+		pColumnInfo->ValueSum += (long_isort_t)Value - OldValue;
+	if (UpdateType & MemberUpdateType_Attribute) {
+		if (bAddAttribute)
+			++pColumnInfo->aMarkerCount[Attribute];
+		else
+			--pColumnInfo->aMarkerCount[Attribute];
+	}
+	pColumnInfo->bUpdated = true;
+	sharedlock_unlock_shared(&pColumnInfo->SharedLock);
+};
+
 static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iPosition);
 
 static int RenderThreadMain(void* pData) {
 
 	while (bRun) {
 
-		//sleep64(15625); // 64 FPS
+		sleep64(15625); // 64 FPS
 
 		// TODO: Multi array
 		if (!pArrayPropHead)
@@ -95,6 +152,7 @@ static int RenderThreadMain(void* pData) {
 
 		ArrayProp* pArrayProp = pArrayPropHead;
 
+		// Remove
 		if (pArrayProp->bRemoved) {
 
 			free(pArrayProp->aState);
@@ -119,7 +177,60 @@ static int RenderThreadMain(void* pData) {
 			continue;
 		}
 
+		// TODO: Resize window
+
+		if (!pArrayProp->aColumn) {
+			size_t SizeBytes = BufferInfo.dwSize.X * sizeof(*pArrayProp->aColumn);
+			pArrayProp->aColumn = malloc_guarded(SizeBytes);
+			memset(pArrayProp->aColumn, 0, SizeBytes);
+		}
+
+		// Resize
 		intptr_t Size = pArrayProp->Size;
+		if (pArrayProp->bResized) {
+
+			for (intptr_t iColumn = 0; iColumn < BufferInfo.dwSize.X; ++iColumn)
+				pArrayProp->aColumn[iColumn].MemberCount = 0;
+
+			for (intptr_t iMember = 0; iMember < Size; ++iMember) {
+				intptr_t iColumn = NearestNeighborScale(iMember, Size, BufferInfo.dwSize.X);
+				++pArrayProp->aColumn[iColumn].MemberCount;
+			}
+
+			intptr_t iMember = 0;
+			for (intptr_t iColumn = 0; iColumn < BufferInfo.dwSize.X; ++iColumn) {
+
+				ColumnInfo* pColumnInfo = &pArrayProp->aColumn[iColumn];
+
+				sharedlock_lock_exclusive(&pColumnInfo->SharedLock);
+
+				// Reset values
+				pColumnInfo->ValueSum = 0;
+				memset(
+					(uint8_t*)pColumnInfo->aMarkerCount,
+					0,
+					Visualizer_MarkerAttribute_EnumCount * sizeof(*pColumnInfo->aMarkerCount)
+				);
+
+				// Regenerate values
+				intptr_t iFirstMember = iMember;
+				for (iMember; iMember < (iFirstMember + pColumnInfo->MemberCount); ++iMember) {
+					ArrayMember* pMember = &pArrayProp->aState[iMember];
+
+					pColumnInfo->ValueSum += pMember->Value;
+					for (uint8_t i = 0; i < Visualizer_MarkerAttribute_EnumCount; ++i)
+						pColumnInfo->aMarkerCount[i] += pMember->aMarkerCount[i]; // Doesn't have to be atomic
+					pColumnInfo->bUpdated = true;
+				}
+
+				sharedlock_unlock_exclusive(&pColumnInfo->SharedLock);
+
+			}
+
+			pArrayProp->bResized = false;
+
+		}
+
 		// Update cell cache
 		UpdatedRect = (SMALL_RECT){
 			BufferInfo.dwSize.X - 1,
@@ -127,7 +238,7 @@ static int RenderThreadMain(void* pData) {
 			0,
 			BufferInfo.dwSize.Y - 1
 		};
-		for (intptr_t i = 0; i < Size; ++i) {
+		for (intptr_t i = 0; i < BufferInfo.dwSize.X; ++i) {
 			UpdateCellCache(pArrayProp, i);
 		}
 
@@ -186,8 +297,6 @@ void RendererCwc_Initialize() {
 	BufferInfo.dwCursorPosition = (COORD){ 0, 0 };
 	BufferInfo.wAttributes = ATTR_WINCON_BACKGROUND;
 	SetConsoleScreenBufferInfoEx(hAltBuffer, &BufferInfo);
-
-	// GetConsoleScreenBufferInfoEx(hAltBuffer, &BufferInfo);
 
 	// Initialize buffer cache
 
@@ -261,17 +370,19 @@ Visualizer_Handle RendererCwc_AddArray(
 	if (Size < 1) return NULL; // TODO: Allow this
 
 	pArrayProp->Size = Size;
-	pArrayProp->aState = malloc_guarded(Size * sizeof(ArrayMember));
+	pArrayProp->aState = malloc_guarded(Size * sizeof(*pArrayProp->aState));
+	pArrayProp->aColumn = NULL; // Render thread will handle this
 	if (aArrayState)
 		for (intptr_t i = 0; i < Size; ++i)
-			pArrayProp->aState[i] = (ArrayMember){ aArrayState[i], { 0 }, true };
+			pArrayProp->aState[i] = (ArrayMember){ aArrayState[i], { 0 } };
 	else
 		for (intptr_t i = 0; i < Size; ++i)
-			pArrayProp->aState[i] = (ArrayMember){ 0, { 0 }, true };
+			pArrayProp->aState[i] = (ArrayMember){ 0, { 0 } };
 
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
 	pArrayProp->bRemoved = false;
+	pArrayProp->bResized = true;
 
 	if (!pArrayPropHead) // TODO: Multi array
 		pArrayPropHead = pArrayProp;
@@ -291,13 +402,8 @@ void RendererCwc_UpdateArrayState(Visualizer_Handle hArray, isort_t* aState) {
 	pool_index Index = HandleToPoolIndex(hArray);
 	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
-	for (intptr_t i = 0; i < pArrayProp->Size; ++i) {
-		ArrayMember* pMember = &pArrayProp->aState[i];
-		sharedlock_lock_shared(&pMember->SharedLock);
-		pMember->Value = aState[i];
-		pMember->bUpdated = true;
-		sharedlock_unlock_shared(&pMember->SharedLock);
-	}
+	for (intptr_t i = 0; i < pArrayProp->Size; ++i)
+		UpdateMember(pArrayProp, i, MemberUpdateType_Value, false, 0, aState[i]);
 }
 
 /*
@@ -382,12 +488,7 @@ Visualizer_Marker RendererCwc_AddMarker(
 	pool_index Index = HandleToPoolIndex(hArray);
 	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
-	ArrayMember* pMember = &pArrayProp->aState[iPosition];
-
-	sharedlock_lock_shared(&pMember->SharedLock);
-	++pMember->aMarkerCount[Attribute];
-	pMember->bUpdated = true;
-	sharedlock_unlock_shared(&pMember->SharedLock);
+	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, true, Attribute, 0);
 
 	return (Visualizer_Marker){ hArray , iPosition, Attribute };
 }
@@ -403,12 +504,15 @@ Visualizer_Marker RendererCwc_AddMarkerWithValue(
 	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
 	ArrayMember* pMember = &pArrayProp->aState[iPosition];
-	
-	sharedlock_lock_shared(&pMember->SharedLock);
-	++pMember->aMarkerCount[Attribute];
-	pMember->Value = Value;
-	pMember->bUpdated = true;
-	sharedlock_unlock_shared(&pMember->SharedLock);
+
+	UpdateMember(
+		pArrayProp,
+		iPosition,
+		MemberUpdateType_Attribute | MemberUpdateType_Value,
+		true,
+		Attribute,
+		Value
+	);
 
 	return (Visualizer_Marker) { hArray, iPosition, Attribute };
 }
@@ -418,12 +522,7 @@ void RendererCwc_RemoveMarker(Visualizer_Marker Marker) {
 	pool_index Index = HandleToPoolIndex(Marker.hArray);
 	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
-	ArrayMember* pMember = &pArrayProp->aState[Marker.iPosition];
-
-	sharedlock_lock_shared(&pMember->SharedLock);
-	--pMember->aMarkerCount[Marker.Attribute];
-	pMember->bUpdated = true;
-	sharedlock_unlock_shared(&pMember->SharedLock);
+	UpdateMember(pArrayProp, Marker.iPosition, MemberUpdateType_Attribute, false, Marker.Attribute, 0);
 }
 
 void RendererCwc_MoveMarker(Visualizer_Marker* pMarker, intptr_t iNewPosition) {
@@ -431,24 +530,9 @@ void RendererCwc_MoveMarker(Visualizer_Marker* pMarker, intptr_t iNewPosition) {
 	pool_index Index = HandleToPoolIndex(pMarker->hArray);
 	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
-	// Remove from old position
-
-	ArrayMember* pMember = &pArrayProp->aState[pMarker->iPosition];
-
-	sharedlock_lock_shared(&pMember->SharedLock);
-	--pMember->aMarkerCount[pMarker->Attribute];
-	pMember->bUpdated = true;
-	sharedlock_unlock_shared(&pMember->SharedLock);
-
-	// Add to new position
+	UpdateMember(pArrayProp, pMarker->iPosition, MemberUpdateType_Attribute, false, pMarker->Attribute, 0);
 	pMarker->iPosition = iNewPosition;
-
-	pMember = &pArrayProp->aState[pMarker->iPosition];
-
-	sharedlock_lock_shared(&pMember->SharedLock);
-	++pMember->aMarkerCount[pMarker->Attribute];
-	pMember->bUpdated = true;
-	sharedlock_unlock_shared(&pMember->SharedLock);
+	UpdateMember(pArrayProp, pMarker->iPosition, MemberUpdateType_Attribute, true, pMarker->Attribute, 0);
 }
 
 static const USHORT aWinConAttrTable[Visualizer_MarkerAttribute_EnumCount] = {
@@ -459,31 +543,31 @@ static const USHORT aWinConAttrTable[Visualizer_MarkerAttribute_EnumCount] = {
 	ATTR_WINCON_INCORRECT
 };
 
-static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iPosition) {
-	ArrayMember* pMember = &pArrayProp->aState[iPosition];
-	if (!pMember->bUpdated) return;
+static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iColumn) {
+	ColumnInfo* pColumn = &pArrayProp->aColumn[iColumn];
+	if (!pColumn->bUpdated) return;
 
 	// Choose the correct value & attribute
 
 	uint16_t ConsoleAttr;
 	isort_t Value;
 
-	sharedlock_lock_exclusive(&pMember->SharedLock);
+	sharedlock_lock_exclusive(&pColumn->SharedLock);
 
 	// Find the attribute that have the most occurrences. TODO: SIMD
-	uint8_t MaxAttrCount = pMember->aMarkerCount[0];
+	uint8_t MaxAttrCount = pColumn->aMarkerCount[0];
 	Visualizer_MarkerAttribute Attr = 0;
 	for (uint8_t i = 1; i < Visualizer_MarkerAttribute_EnumCount; ++i) {
-		uint8_t Count = pMember->aMarkerCount[i];
+		uint8_t Count = pColumn->aMarkerCount[i];
 		if (Count >= MaxAttrCount) {
 			MaxAttrCount = Count;
 			Attr = i;
 		}
 	}
-	Value = pMember->Value;
-	pMember->bUpdated = false;
+	Value = (isort_t)(pColumn->ValueSum / pColumn->MemberCount); // FIXME: Protential accuracy loss
+	pColumn->bUpdated = false;
 
-	sharedlock_unlock_exclusive(&pMember->SharedLock);
+	sharedlock_unlock_exclusive(&pColumn->SharedLock);
 
 	if (MaxAttrCount == 0)
 		ConsoleAttr = ATTR_WINCON_NORMAL;
@@ -499,24 +583,22 @@ static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iPosition) {
 
 	// Scale the value to the corresponding screen height
 
-	double HeightFloat = (double)AbsoluteValue * (double)BufferInfo.dwSize.Y / (double)AbsoluteValueMax;
-	SHORT FloorHeight = (SHORT)HeightFloat;
+	//double HeightFloat = (double)AbsoluteValue * (double)BufferInfo.dwSize.Y / (double)AbsoluteValueMax;
+	//SHORT FloorHeight = (SHORT)HeightFloat;
+	SHORT Height = (SHORT)((long_usort_t)AbsoluteValue * BufferInfo.dwSize.Y / AbsoluteValueMax);
 
 	// Update the cell cache
 
-	intptr_t ConsoleCol = iPosition;
-	if (ConsoleCol > BufferInfo.dwSize.X - 1)
-		ConsoleCol = BufferInfo.dwSize.X - 1;
-	if (ConsoleCol < UpdatedRect.Left)
-		UpdatedRect.Left = (SHORT)ConsoleCol;
-	if (ConsoleCol > UpdatedRect.Right)
-		UpdatedRect.Right = (SHORT)ConsoleCol;
+	if (iColumn < UpdatedRect.Left)
+		UpdatedRect.Left = (SHORT)iColumn;
+	if (iColumn > UpdatedRect.Right)
+		UpdatedRect.Right = (SHORT)iColumn;
 
 	{
 		intptr_t i = 0;
-		for (; i < (intptr_t)(BufferInfo.dwSize.Y - FloorHeight); ++i)
-			aBufferCache[BufferInfo.dwSize.X * i + ConsoleCol].Attributes = ATTR_WINCON_BACKGROUND;
+		for (; i < (intptr_t)(BufferInfo.dwSize.Y - Height); ++i)
+			aBufferCache[BufferInfo.dwSize.X * i + iColumn].Attributes = ATTR_WINCON_BACKGROUND;
 		for (; i < BufferInfo.dwSize.Y; ++i)
-			aBufferCache[BufferInfo.dwSize.X * i + ConsoleCol].Attributes = ConsoleAttr;
+			aBufferCache[BufferInfo.dwSize.X * i + iColumn].Attributes = ConsoleAttr;
 	}
 }
