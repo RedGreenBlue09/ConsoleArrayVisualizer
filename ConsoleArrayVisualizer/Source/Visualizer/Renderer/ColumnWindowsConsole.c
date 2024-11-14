@@ -15,6 +15,8 @@
 static HANDLE hAltBuffer = NULL;
 static CONSOLE_SCREEN_BUFFER_INFOEX BufferInfo = { 0 };
 static CHAR_INFO* aBufferCache;
+SMALL_RECT UpdatedRect;
+
 // Unicode support is not going to be added
 // as it's too slow with current limitations.
 // https://github.com/microsoft/terminal/discussions/13339
@@ -39,6 +41,7 @@ static LONG_PTR OldWindowStyle;
 typedef struct {
 	_Atomic isort_t Value;
 	_Atomic uint8_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
+	_Atomic bool bUpdated;
 	sharedlock SharedLock;
 } ArrayMember;
 
@@ -84,7 +87,7 @@ static int RenderThreadMain(void* pData) {
 
 	while (bRun) {
 
-		sleep64(15625);
+		//sleep64(15625); // 64 FPS
 
 		// TODO: Multi array
 		if (!pArrayPropHead)
@@ -93,31 +96,47 @@ static int RenderThreadMain(void* pData) {
 		ArrayProp* pArrayProp = pArrayPropHead;
 
 		if (pArrayProp->bRemoved) {
+
+			free(pArrayProp->aState);
 			PoolDeallocateAddress(&ArrayPropPool, pArrayProp);
 			pArrayPropHead = NULL;
+
+			// Clear screen
+			SMALL_RECT Rect = {
+				0,
+				0,
+				BufferInfo.dwSize.X - 1,
+				BufferInfo.dwSize.Y - 1,
+			};
+			WriteConsoleOutputW(
+				hAltBuffer,
+				aBufferCache,
+				BufferInfo.dwSize,
+				(COORD) { 0, 0 },
+				&Rect
+			);
+
 			continue;
 		}
 
 		intptr_t Size = pArrayProp->Size;
 		// Update cell cache
+		UpdatedRect = (SMALL_RECT){
+			BufferInfo.dwSize.X - 1,
+			0,
+			0,
+			BufferInfo.dwSize.Y - 1
+		};
 		for (intptr_t i = 0; i < Size; ++i) {
 			UpdateCellCache(pArrayProp, i);
 		}
 
-		// Write to console
-		// TODO: Write only updated regions
-		SMALL_RECT Rect = {
-			0,
-			0,
-			BufferInfo.dwSize.X - 1,
-			BufferInfo.dwSize.Y - 1,
-		};
 		WriteConsoleOutputW(
 			hAltBuffer,
 			aBufferCache,
 			BufferInfo.dwSize,
-			(COORD) { 0, 0 },
-			&Rect
+			(COORD){ UpdatedRect.Left , UpdatedRect.Top },
+			&UpdatedRect
 		);
 	}
 
@@ -245,10 +264,10 @@ Visualizer_Handle RendererCwc_AddArray(
 	pArrayProp->aState = malloc_guarded(Size * sizeof(ArrayMember));
 	if (aArrayState)
 		for (intptr_t i = 0; i < Size; ++i)
-			pArrayProp->aState[i] = (ArrayMember){ aArrayState[i] };
+			pArrayProp->aState[i] = (ArrayMember){ aArrayState[i], { 0 }, true };
 	else
 		for (intptr_t i = 0; i < Size; ++i)
-			pArrayProp->aState[i] = (ArrayMember){ 0 };
+			pArrayProp->aState[i] = (ArrayMember){ 0, { 0 }, true };
 
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
@@ -260,16 +279,11 @@ Visualizer_Handle RendererCwc_AddArray(
 }
 
 void RendererCwc_RemoveArray(Visualizer_Handle hArray) {
-
 	assert(ValidateHandle(&ArrayPropPool, hArray));
 	pool_index Index = HandleToPoolIndex(hArray);
 	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
 
-	free(pArrayProp->aState);
-
 	pArrayProp->bRemoved = true;
-	//PoolDeallocate(&ArrayPropPool, Index);
-
 }
 
 void RendererCwc_UpdateArrayState(Visualizer_Handle hArray, isort_t* aState) {
@@ -279,9 +293,10 @@ void RendererCwc_UpdateArrayState(Visualizer_Handle hArray, isort_t* aState) {
 
 	for (intptr_t i = 0; i < pArrayProp->Size; ++i) {
 		ArrayMember* pMember = &pArrayProp->aState[i];
-		//sharedlock_lock_shared(&pMember->SharedLock);
+		sharedlock_lock_shared(&pMember->SharedLock);
 		pMember->Value = aState[i];
-		//sharedlock_unlock_shared(&pMember->SharedLock);
+		pMember->bUpdated = true;
+		sharedlock_unlock_shared(&pMember->SharedLock);
 	}
 }
 
@@ -369,9 +384,10 @@ Visualizer_Marker RendererCwc_AddMarker(
 
 	ArrayMember* pMember = &pArrayProp->aState[iPosition];
 
-	//sharedlock_lock_shared(&pMember->SharedLock);
+	sharedlock_lock_shared(&pMember->SharedLock);
 	++pMember->aMarkerCount[Attribute];
-	//sharedlock_unlock_shared(&pMember->SharedLock);
+	pMember->bUpdated = true;
+	sharedlock_unlock_shared(&pMember->SharedLock);
 
 	return (Visualizer_Marker){ hArray , iPosition, Attribute };
 }
@@ -391,6 +407,7 @@ Visualizer_Marker RendererCwc_AddMarkerWithValue(
 	sharedlock_lock_shared(&pMember->SharedLock);
 	++pMember->aMarkerCount[Attribute];
 	pMember->Value = Value;
+	pMember->bUpdated = true;
 	sharedlock_unlock_shared(&pMember->SharedLock);
 
 	return (Visualizer_Marker) { hArray, iPosition, Attribute };
@@ -403,9 +420,10 @@ void RendererCwc_RemoveMarker(Visualizer_Marker Marker) {
 
 	ArrayMember* pMember = &pArrayProp->aState[Marker.iPosition];
 
-	//sharedlock_lock_shared(&pMember->SharedLock);
+	sharedlock_lock_shared(&pMember->SharedLock);
 	--pMember->aMarkerCount[Marker.Attribute];
-	//sharedlock_unlock_shared(&pMember->SharedLock);
+	pMember->bUpdated = true;
+	sharedlock_unlock_shared(&pMember->SharedLock);
 }
 
 void RendererCwc_MoveMarker(Visualizer_Marker* pMarker, intptr_t iNewPosition) {
@@ -417,18 +435,20 @@ void RendererCwc_MoveMarker(Visualizer_Marker* pMarker, intptr_t iNewPosition) {
 
 	ArrayMember* pMember = &pArrayProp->aState[pMarker->iPosition];
 
-	//sharedlock_lock_shared(&pMember->SharedLock);
+	sharedlock_lock_shared(&pMember->SharedLock);
 	--pMember->aMarkerCount[pMarker->Attribute];
-	//sharedlock_unlock_shared(&pMember->SharedLock);
+	pMember->bUpdated = true;
+	sharedlock_unlock_shared(&pMember->SharedLock);
 
 	// Add to new position
 	pMarker->iPosition = iNewPosition;
 
 	pMember = &pArrayProp->aState[pMarker->iPosition];
 
-	//sharedlock_lock_shared(&pMember->SharedLock);
+	sharedlock_lock_shared(&pMember->SharedLock);
 	++pMember->aMarkerCount[pMarker->Attribute];
-	//sharedlock_unlock_shared(&pMember->SharedLock);
+	pMember->bUpdated = true;
+	sharedlock_unlock_shared(&pMember->SharedLock);
 }
 
 static const USHORT aWinConAttrTable[Visualizer_MarkerAttribute_EnumCount] = {
@@ -441,6 +461,7 @@ static const USHORT aWinConAttrTable[Visualizer_MarkerAttribute_EnumCount] = {
 
 static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iPosition) {
 	ArrayMember* pMember = &pArrayProp->aState[iPosition];
+	if (!pMember->bUpdated) return;
 
 	// Choose the correct value & attribute
 
@@ -459,8 +480,8 @@ static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iPosition) {
 			Attr = i;
 		}
 	}
-
 	Value = pMember->Value;
+	pMember->bUpdated = false;
 
 	sharedlock_unlock_exclusive(&pMember->SharedLock);
 
@@ -483,9 +504,13 @@ static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iPosition) {
 
 	// Update the cell cache
 
-	SHORT ConsoleCol = (SHORT)iPosition;
+	intptr_t ConsoleCol = iPosition;
 	if (ConsoleCol > BufferInfo.dwSize.X - 1)
 		ConsoleCol = BufferInfo.dwSize.X - 1;
+	if (ConsoleCol < UpdatedRect.Left)
+		UpdatedRect.Left = (SHORT)ConsoleCol;
+	if (ConsoleCol > UpdatedRect.Right)
+		UpdatedRect.Right = (SHORT)ConsoleCol;
 
 	{
 		intptr_t i = 0;

@@ -14,7 +14,7 @@ NTSYSAPI NTSTATUS NTAPI NtQueryTimerResolution(
 	OUT PULONG CurrentResolution
 );
 
-static uint32_t _MinTickRes = 0;
+static ULONG _MinTickRes = 0;
 static uint64_t _ClockRes = 0;
 
 static void _sleep64_waitabletimer(int64_t Time) {
@@ -47,7 +47,7 @@ void sleep64(uint64_t time) {
 	uint64_t StartTime = clock64();
 	
 	if (_MinTickRes == 0) {
-		uint32_t Unused, Unused2;
+		ULONG Unused, Unused2;
 		NtQueryTimerResolution(
 			&_MinTickRes,
 			&Unused,

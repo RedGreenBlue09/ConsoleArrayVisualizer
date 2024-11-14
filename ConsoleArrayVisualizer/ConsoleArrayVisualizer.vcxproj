@@ -218,7 +218,7 @@
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/experimental:c11atomics -flto %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-flto %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -299,7 +299,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/experimental:c11atomics -flto %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-flto %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

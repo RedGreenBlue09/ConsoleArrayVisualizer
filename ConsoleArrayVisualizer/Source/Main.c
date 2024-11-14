@@ -42,8 +42,8 @@ void mainShuffle(isort_t* aArray, intptr_t N) {
 
 int main() {
 
-	intptr_t N = 512;
-	//intptr_t N = 256;
+	//intptr_t N = 512;
+	intptr_t N = 1 << 20;
 	isort_t* aArray = malloc_guarded(N * sizeof(isort_t));
 	//sleep64(5000000);
 
@@ -56,7 +56,6 @@ int main() {
 	BottomUpHeapSort(aArray, N, MainArrayHandle); // This has incorrect results
 	
 
-	//Visualizer_UpdateArray(MainArrayHandle, N, 0, N);
 	//sleep64(1500000);
 
 	//
@@ -64,8 +63,6 @@ int main() {
 	Visualizer_UpdateArrayState(MainArrayHandle, aArray);
 	LeftRightQuickSort(aArray, N, MainArrayHandle);
 
-
-	//Visualizer_UpdateArray(MainArrayHandle, N, 0, N);
 	//sleep64(1500000);
 
 	//

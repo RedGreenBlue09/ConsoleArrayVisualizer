@@ -29,9 +29,7 @@ void Visualizer_Uninitialize() {
 #ifndef VISUALIZER_DISABLE_SLEEP
 
 void Visualizer_Sleep(double fSleepMultiplier) {
-	
 	sleep64((uint64_t)((double)DefaultDelay * fSleepMultiplier));
-	return;
 }
 
 #endif
@@ -75,7 +73,6 @@ void Visualizer_UpdateRead(Visualizer_Handle hArray, intptr_t iPosition, double 
 	Visualizer_Marker Marker = Renderer_AddMarker(hArray, iPosition, Visualizer_MarkerAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
 	Renderer_RemoveMarker(Marker);
-	return;
 }
 
 // Update 2 items (used for comparisions).
@@ -85,7 +82,6 @@ void Visualizer_UpdateRead2(Visualizer_Handle hArray, intptr_t iPositionA, intpt
 	Visualizer_Sleep(fSleepMultiplier);
 	Renderer_RemoveMarker(MarkerA);
 	Renderer_RemoveMarker(MarkerB);
-	return;
 }
 
 void Visualizer_UpdateReadMulti(
@@ -102,7 +98,6 @@ void Visualizer_UpdateReadMulti(
 	Visualizer_Sleep(fSleepMultiplier);
 	for (intptr_t i = 0; i < Length; ++i)
 		Renderer_RemoveMarker(aMarker[i]);
-	return;
 }
 
 // For time precision, the sort will need to do the write(s) by itself.
@@ -110,7 +105,6 @@ void Visualizer_UpdateWrite(Visualizer_Handle hArray, intptr_t iPosition, isort_
 	Visualizer_Marker Marker = Renderer_AddMarkerWithValue(hArray, iPosition, Visualizer_MarkerAttribute_Write, NewValue);
 	Visualizer_Sleep(fSleepMultiplier);
 	Renderer_RemoveMarker(Marker);
-	return;
 }
 
 void Visualizer_UpdateWrite2(
@@ -126,7 +120,6 @@ void Visualizer_UpdateWrite2(
 	Visualizer_Sleep(fSleepMultiplier);
 	Renderer_RemoveMarker(MarkerA);
 	Renderer_RemoveMarker(MarkerB);
-	return;
 }
 
 void Visualizer_UpdateWriteMulti(
@@ -144,9 +137,6 @@ void Visualizer_UpdateWriteMulti(
 	Visualizer_Sleep(fSleepMultiplier);
 	for (intptr_t i = 0; i < Length; ++i)
 		Renderer_RemoveMarker(aMarker[i]);
-
-	free(aMarker);
-	return;
 }
 
 // Pointer
@@ -157,7 +147,6 @@ Visualizer_Pointer Visualizer_CreatePointer(Visualizer_Handle hArray, intptr_t i
 
 void Visualizer_RemovePointer(Visualizer_Pointer Pointer) {
 	Renderer_RemoveMarker(Pointer);
-	return;
 }
 
 void Visualizer_MovePointer(Visualizer_Pointer* pPointer, intptr_t iNewPosition) {
