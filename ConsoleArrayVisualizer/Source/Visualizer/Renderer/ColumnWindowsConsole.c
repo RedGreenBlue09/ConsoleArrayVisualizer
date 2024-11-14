@@ -46,7 +46,9 @@ typedef struct {
 } ArrayMember;
 
 typedef struct {
-	intptr_t MemberCount; // MAX is 2^24. This is overkill!
+	// Worst case: 2^24 members each containing 2^8 repeated attributes
+	// This will break rendering but will still work due to unsigned integer wrapping.
+	intptr_t MemberCount;
 	_Atomic long_isort_t ValueSum;
 	_Atomic uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 	_Atomic bool bUpdated;
@@ -214,7 +216,7 @@ static int RenderThreadMain(void* pData) {
 
 				// Regenerate values
 				intptr_t iFirstMember = iMember;
-				for (iMember; iMember < (iFirstMember + pColumnInfo->MemberCount); ++iMember) {
+				for (; iMember < (iFirstMember + pColumnInfo->MemberCount); ++iMember) {
 					ArrayMember* pMember = &pArrayProp->aState[iMember];
 
 					pColumnInfo->ValueSum += pMember->Value;
@@ -502,8 +504,6 @@ Visualizer_Marker RendererCwc_AddMarkerWithValue(
 	assert(ValidateHandle(&ArrayPropPool, hArray));
 	pool_index Index = HandleToPoolIndex(hArray);
 	ArrayProp* pArrayProp = PoolIndexToAddress(&ArrayPropPool, Index);
-
-	ArrayMember* pMember = &pArrayProp->aState[iPosition];
 
 	UpdateMember(
 		pArrayProp,
