@@ -93,7 +93,8 @@ static bool ValidateHandle(pool* pPool, Visualizer_Handle hHandle) {
 
 // Returns iB
 static inline intptr_t NearestNeighborScale(intptr_t iA, intptr_t nA, intptr_t nB) {
-	return (iA * nB + (nB / 2)) / nA;
+	// Worst case: If nB = 2^15 then nA can only be 2^48
+	return ((int64_t)iA * nB + (nB / 2)) / nA;
 }
 
 // UNSUPPORTED: Multiple threads on the same member
@@ -142,6 +143,8 @@ static inline void UpdateMember(
 
 static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iPosition);
 
+// TEST
+#include <stdio.h>
 static int RenderThreadMain(void* pData) {
 
 	while (bRun) {
@@ -182,12 +185,11 @@ static int RenderThreadMain(void* pData) {
 		// TODO: Resize window
 
 		if (!pArrayProp->aColumn) {
-			size_t SizeBytes = BufferInfo.dwSize.X * sizeof(*pArrayProp->aColumn);
-			pArrayProp->aColumn = malloc_guarded(SizeBytes);
-			memset(pArrayProp->aColumn, 0, SizeBytes);
+			pArrayProp->aColumn = calloc_guarded(BufferInfo.dwSize.X, sizeof(*pArrayProp->aColumn));
 		}
 
 		// Resize
+
 		intptr_t Size = pArrayProp->Size;
 		if (pArrayProp->bResized) {
 
@@ -204,7 +206,7 @@ static int RenderThreadMain(void* pData) {
 
 				ColumnInfo* pColumnInfo = &pArrayProp->aColumn[iColumn];
 
-				sharedlock_lock_exclusive(&pColumnInfo->SharedLock);
+				sharedlock_lock_exclusive(&pColumnInfo->SharedLock); // FIXME: This doesn't lock the members
 
 				// Reset values
 				pColumnInfo->ValueSum = 0;
@@ -215,15 +217,15 @@ static int RenderThreadMain(void* pData) {
 				);
 
 				// Regenerate values
-				intptr_t iFirstMember = iMember;
-				for (; iMember < (iFirstMember + pColumnInfo->MemberCount); ++iMember) {
+				intptr_t iEndMember = iMember + pColumnInfo->MemberCount;
+				for (; iMember < iEndMember; ++iMember) {
 					ArrayMember* pMember = &pArrayProp->aState[iMember];
 
 					pColumnInfo->ValueSum += pMember->Value;
 					for (uint8_t i = 0; i < Visualizer_MarkerAttribute_EnumCount; ++i)
 						pColumnInfo->aMarkerCount[i] += pMember->aMarkerCount[i]; // Doesn't have to be atomic
-					pColumnInfo->bUpdated = true;
 				}
+				pColumnInfo->bUpdated = true;
 
 				sharedlock_unlock_exclusive(&pColumnInfo->SharedLock);
 
@@ -321,7 +323,7 @@ void RendererCwc_Initialize() {
 		hAltBuffer,
 		aBufferCache,
 		BufferInfo.dwSize,
-		(COORD) { 0, 0 },
+		(COORD){ 0, 0 },
 		&Rect
 	);
 
@@ -376,10 +378,10 @@ Visualizer_Handle RendererCwc_AddArray(
 	pArrayProp->aColumn = NULL; // Render thread will handle this
 	if (aArrayState)
 		for (intptr_t i = 0; i < Size; ++i)
-			pArrayProp->aState[i] = (ArrayMember){ aArrayState[i], { 0 } };
+			pArrayProp->aState[i] = (ArrayMember){ aArrayState[i] };
 	else
 		for (intptr_t i = 0; i < Size; ++i)
-			pArrayProp->aState[i] = (ArrayMember){ 0, { 0 } };
+			pArrayProp->aState[i] = (ArrayMember){ 0 };
 
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
