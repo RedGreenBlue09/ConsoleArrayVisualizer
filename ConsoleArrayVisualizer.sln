@@ -3,35 +3,44 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32210.238
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConsoleArrayVisualizer", "ConsoleArrayVisualizer\ConsoleArrayVisualizer.vcxproj", "{D4885744-067A-4EF3-A0F9-B6CB66A3735A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConsoleArrayVisualizer", "ConsoleArrayVisualizer.vcxproj", "{D4885744-067A-4EF3-A0F9-B6CB66A3735A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
+		Debug|ARM64 = Debug|ARM64
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
 		Release|ARM = Release|ARM
+		Release|ARM64 = Release|ARM64
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 		ReleaseClang|ARM = ReleaseClang|ARM
+		ReleaseClang|ARM64 = ReleaseClang|ARM64
 		ReleaseClang|x64 = ReleaseClang|x64
 		ReleaseClang|x86 = ReleaseClang|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Debug|ARM.ActiveCfg = Debug|ARM
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Debug|ARM.Build.0 = Debug|ARM
+		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Debug|ARM64.Build.0 = Debug|ARM64
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Debug|x64.ActiveCfg = Debug|x64
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Debug|x64.Build.0 = Debug|x64
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Debug|x86.ActiveCfg = Debug|Win32
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Debug|x86.Build.0 = Debug|Win32
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Release|ARM.ActiveCfg = Release|ARM
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Release|ARM.Build.0 = Release|ARM
+		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Release|ARM64.ActiveCfg = Release|ARM64
+		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Release|ARM64.Build.0 = Release|ARM64
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Release|x64.ActiveCfg = Release|x64
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Release|x64.Build.0 = Release|x64
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Release|x86.ActiveCfg = Release|Win32
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.Release|x86.Build.0 = Release|Win32
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.ReleaseClang|ARM.ActiveCfg = ReleaseClang|ARM
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.ReleaseClang|ARM.Build.0 = ReleaseClang|ARM
+		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.ReleaseClang|ARM64.ActiveCfg = ReleaseClang|ARM64
+		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.ReleaseClang|ARM64.Build.0 = ReleaseClang|ARM64
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.ReleaseClang|x64.ActiveCfg = ReleaseClang|x64
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.ReleaseClang|x64.Build.0 = ReleaseClang|x64
 		{D4885744-067A-4EF3-A0F9-B6CB66A3735A}.ReleaseClang|x86.ActiveCfg = ReleaseClang|Win32
