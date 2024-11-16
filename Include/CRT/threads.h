@@ -11,8 +11,8 @@ whatever.
 
 Main project site: https://github.com/jtsiomb/c11threads
 */
-#ifndef C11THREADS_H_
-#define C11THREADS_H_
+#ifndef THREADS_H_
+#define THREADS_H_
 
 /* If you wish to use this with pthread-win32 (i.e. use the POSIX threads wrapper
  * instead of the native win32 API implementation of C11 threads), then just
@@ -530,4 +530,4 @@ static C11THREADS_INLINE int timespec_get(struct timespec *ts, int base)
 }
 #endif
 
-#endif	/* C11THREADS_H_ */
+#endif	/* THREADS_H_ */
