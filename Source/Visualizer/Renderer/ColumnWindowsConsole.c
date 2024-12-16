@@ -6,6 +6,7 @@
 #include "Utils/GuardedMalloc.h"
 #include "Utils/LinkedList.h"
 #include "Utils/SharedLock.h"
+#include "Utils/SpinLock.h"
 #include "Utils/Time.h"
 
 //
@@ -41,8 +42,6 @@ static LONG_PTR OldWindowStyle;
 typedef struct {
 	_Atomic isort_t Value;
 	_Atomic uint8_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
-	//_Atomic bool bUpdated;
-	//sharedlock SharedLock;
 } ArrayMember;
 
 typedef struct {
@@ -111,40 +110,58 @@ static inline void UpdateMember(
 	Visualizer_MarkerAttribute Attribute,
 	isort_t Value
 ) {
-	if (UpdateType & MemberUpdateType_Attribute) {
-		if (bAddAttribute)
-			++pArrayProp->aState[iPosition].aMarkerCount[Attribute];
-		else
-			--pArrayProp->aState[iPosition].aMarkerCount[Attribute];
+	ArrayMember* pArrayMember = &pArrayProp->aState[iPosition];
+	
+	// Most branches are known at compile time and can be optimized
+	if (pArrayProp->aColumn) {
+
+		intptr_t iColumn = NearestNeighborScale(iPosition, pArrayProp->Size, BufferInfo.dwSize.X);
+		ColumnInfo* pColumnInfo = &pArrayProp->aColumn[iColumn];
+
+		// This lock is put up here for the render thread to handle window resize
+		sharedlock_lock_shared(&pColumnInfo->SharedLock);
+
+		if (UpdateType & MemberUpdateType_Attribute) {
+			if (bAddAttribute)
+				++pArrayMember->aMarkerCount[Attribute];
+			else
+				--pArrayMember->aMarkerCount[Attribute];
+		}
+
+		isort_t OldValue;
+		if (UpdateType & MemberUpdateType_Value)
+			OldValue = atomic_exchange(&pArrayMember->Value, Value);
+
+		if (UpdateType & MemberUpdateType_Value)
+			pColumnInfo->ValueSum += (long_isort_t)Value - OldValue;
+		if (UpdateType & MemberUpdateType_Attribute) {
+			if (bAddAttribute)
+				++pColumnInfo->aMarkerCount[Attribute];
+			else
+				--pColumnInfo->aMarkerCount[Attribute];
+		}
+		pColumnInfo->bUpdated = true;
+
+		sharedlock_unlock_shared(&pColumnInfo->SharedLock);
+
+	} else {
+
+		if (UpdateType & MemberUpdateType_Attribute) {
+			if (bAddAttribute)
+				++pArrayMember->aMarkerCount[Attribute];
+			else
+				--pArrayMember->aMarkerCount[Attribute];
+		}
+
+		isort_t OldValue;
+		if (UpdateType & MemberUpdateType_Value)
+			OldValue = atomic_exchange(&pArrayMember->Value, Value);
+
 	}
-
-	isort_t OldValue;
-	if (UpdateType & MemberUpdateType_Value)
-		OldValue = atomic_exchange(&pArrayProp->aState[iPosition].Value, Value);
-
-	if (!pArrayProp->aColumn)
-		return;
-
-	intptr_t iColumn = NearestNeighborScale(iPosition, pArrayProp->Size, BufferInfo.dwSize.X);
-	ColumnInfo* pColumnInfo = &pArrayProp->aColumn[iColumn];
-
-	sharedlock_lock_shared(&pColumnInfo->SharedLock);
-	if (UpdateType & MemberUpdateType_Value)
-		pColumnInfo->ValueSum += (long_isort_t)Value - OldValue;
-	if (UpdateType & MemberUpdateType_Attribute) {
-		if (bAddAttribute)
-			++pColumnInfo->aMarkerCount[Attribute];
-		else
-			--pColumnInfo->aMarkerCount[Attribute];
-	}
-	pColumnInfo->bUpdated = true;
-	sharedlock_unlock_shared(&pColumnInfo->SharedLock);
 };
 
 static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iPosition);
 
-// TEST
-#include <stdio.h>
 static int RenderThreadMain(void* pData) {
 
 	while (bRun) {
