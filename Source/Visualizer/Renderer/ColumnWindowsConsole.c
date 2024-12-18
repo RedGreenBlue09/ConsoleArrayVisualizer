@@ -1,5 +1,6 @@
 
 #include "Visualizer/Visualizer.h"
+
 #include <threads.h>
 #include <Windows.h>
 
@@ -8,9 +9,6 @@
 #include "Utils/SharedLock.h"
 #include "Utils/SpinLock.h"
 #include "Utils/Time.h"
-
-//
-//#include <stdio.h>
 
 // Buffer stuff
 static HANDLE hAltBuffer = NULL;
@@ -45,13 +43,13 @@ typedef struct {
 } ArrayMember;
 
 typedef struct {
+	_Atomic bool bUpdated;
+	sharedlock SharedLock;
 	// Worst case: 2^24 members each containing 2^8 repeated attributes
 	// This will break rendering but will still work due to unsigned integer wrapping.
 	intptr_t MemberCount;
 	_Atomic long_isort_t ValueSum;
 	_Atomic uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
-	_Atomic bool bUpdated;
-	sharedlock SharedLock;
 } ColumnInfo;
 
 typedef struct {
@@ -68,7 +66,6 @@ typedef struct {
 
 static pool ArrayPropPool;
 
-//static pool MarkerPool; // TODO: Ditch this pool
 static ArrayProp* pArrayPropHead;
 
 thrd_t RenderThread;
@@ -93,7 +90,7 @@ static bool ValidateHandle(pool* pPool, Visualizer_Handle hHandle) {
 // Returns iB
 static inline intptr_t NearestNeighborScale(intptr_t iA, intptr_t nA, intptr_t nB) {
 	// Worst case: If nB = 2^15 then nA can only be 2^48
-	return ((int64_t)iA * nB + (nB / 2)) / nA;
+	return ((int64_t)iA * nB + ((uintptr_t)nB / 2)) / nA;
 }
 
 // UNSUPPORTED: Multiple threads on the same member
@@ -152,15 +149,14 @@ static inline void UpdateMember(
 			else
 				--pArrayMember->aMarkerCount[Attribute];
 		}
-
-		isort_t OldValue;
 		if (UpdateType & MemberUpdateType_Value)
-			OldValue = atomic_exchange(&pArrayMember->Value, Value);
+			pArrayMember->Value = Value;
 
 	}
 };
 
-static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iPosition);
+static void UpdateCellCacheRow(intptr_t iRow, int16_t nText, const char* aText);
+static void UpdateCellCacheColumn(ArrayProp* pArrayProp, intptr_t iPosition);
 
 static int RenderThreadMain(void* pData) {
 
@@ -252,16 +248,19 @@ static int RenderThreadMain(void* pData) {
 
 		}
 
-		// Update cell cache
+		// Update cell cache columns
 		UpdatedRect = (SMALL_RECT){
 			BufferInfo.dwSize.X - 1,
+			BufferInfo.dwSize.Y - 1,
 			0,
-			0,
-			BufferInfo.dwSize.Y - 1
+			0
 		};
 		for (intptr_t i = 0; i < BufferInfo.dwSize.X; ++i) {
-			UpdateCellCache(pArrayProp, i);
+			UpdateCellCacheColumn(pArrayProp, i);
 		}
+		// Update cell text rows
+		UpdateCellCacheRow(0, sizeof("Algorithm name") - 1, "Algorithm name");
+		UpdateCellCacheRow(1, sizeof("TEST") - 1, "TEST");
 
 		WriteConsoleOutputW(
 			hAltBuffer,
@@ -555,39 +554,64 @@ void RendererCwc_MoveMarker(Visualizer_Marker* pMarker, intptr_t iNewPosition) {
 }
 
 static const USHORT aWinConAttrTable[Visualizer_MarkerAttribute_EnumCount] = {
+	ATTR_WINCON_POINTER,
 	ATTR_WINCON_READ,
 	ATTR_WINCON_WRITE,
-	ATTR_WINCON_POINTER,
 	ATTR_WINCON_CORRECT,
 	ATTR_WINCON_INCORRECT
 };
 
-static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iColumn) {
+
+static void UpdateCellCacheRow(intptr_t iRow, int16_t nText, const char* aText) {
+	if (nText > BufferInfo.dwSize.X)
+		nText = BufferInfo.dwSize.X;
+	// Use wide char to avoid conversion
+	int16_t i = 0;
+	for (; i < nText; ++i)
+		aBufferCache[BufferInfo.dwSize.X * iRow + i].Char.UnicodeChar = (wchar_t)aText[i];
+	for (; i < BufferInfo.dwSize.X; ++i)
+		aBufferCache[BufferInfo.dwSize.X * iRow + i].Char.UnicodeChar = L' ';
+
+	if (iRow < UpdatedRect.Top)
+		UpdatedRect.Top = (int16_t)iRow;
+	UpdatedRect.Left = 0;
+	if (iRow > UpdatedRect.Bottom)
+		UpdatedRect.Bottom = (int16_t)iRow;
+	if (nText > UpdatedRect.Right)
+		UpdatedRect.Right = nText;
+}
+
+static void UpdateCellCacheColumn(ArrayProp* pArrayProp, intptr_t iColumn) {
 	ColumnInfo* pColumn = &pArrayProp->aColumn[iColumn];
 	if (!pColumn->bUpdated) return;
 
 	// Choose the correct value & attribute
 
-	uint16_t ConsoleAttr;
-	isort_t Value;
+	long_isort_t ValueSum;
+	uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 
 	sharedlock_lock_exclusive(&pColumn->SharedLock);
 
+	pColumn->bUpdated = false;
+	ValueSum = pColumn->ValueSum;
+	memcpy(aMarkerCount, (uint32_t*)&pColumn->aMarkerCount, sizeof(aMarkerCount));
+
+	sharedlock_unlock_exclusive(&pColumn->SharedLock);
+
+	isort_t Value = (isort_t)(ValueSum / pColumn->MemberCount);
+
 	// Find the attribute that have the most occurrences. TODO: SIMD
-	uint8_t MaxAttrCount = pColumn->aMarkerCount[0];
+	uint8_t MaxAttrCount = aMarkerCount[0];
 	Visualizer_MarkerAttribute Attr = 0;
 	for (uint8_t i = 1; i < Visualizer_MarkerAttribute_EnumCount; ++i) {
-		uint8_t Count = pColumn->aMarkerCount[i];
+		uint8_t Count = aMarkerCount[i];
 		if (Count >= MaxAttrCount) {
 			MaxAttrCount = Count;
 			Attr = i;
 		}
 	}
-	Value = (isort_t)(pColumn->ValueSum / pColumn->MemberCount); // FIXME: Protential accuracy loss
-	pColumn->bUpdated = false;
 
-	sharedlock_unlock_exclusive(&pColumn->SharedLock);
-
+	uint16_t ConsoleAttr;
 	if (MaxAttrCount == 0)
 		ConsoleAttr = ATTR_WINCON_NORMAL;
 	else
@@ -602,14 +626,14 @@ static void UpdateCellCache(ArrayProp* pArrayProp, intptr_t iColumn) {
 
 	// Scale the value to the corresponding screen height
 
-	//double HeightFloat = (double)AbsoluteValue * (double)BufferInfo.dwSize.Y / (double)AbsoluteValueMax;
-	//SHORT FloorHeight = (SHORT)HeightFloat;
 	SHORT Height = (SHORT)((long_usort_t)AbsoluteValue * BufferInfo.dwSize.Y / AbsoluteValueMax);
 
 	// Update the cell cache
 
+	UpdatedRect.Top = 0;
 	if (iColumn < UpdatedRect.Left)
 		UpdatedRect.Left = (SHORT)iColumn;
+	UpdatedRect.Bottom = BufferInfo.dwSize.Y - 1;
 	if (iColumn > UpdatedRect.Right)
 		UpdatedRect.Right = (SHORT)iColumn;
 

@@ -17,9 +17,9 @@ typedef uint64_t long_usort_t;
 typedef void* Visualizer_Handle;
 
 typedef uint8_t Visualizer_MarkerAttribute;
-#define Visualizer_MarkerAttribute_Read 0
-#define Visualizer_MarkerAttribute_Write 1
-#define Visualizer_MarkerAttribute_Pointer 2
+#define Visualizer_MarkerAttribute_Pointer 0
+#define Visualizer_MarkerAttribute_Read 1
+#define Visualizer_MarkerAttribute_Write 2
 #define Visualizer_MarkerAttribute_Correct 3
 #define Visualizer_MarkerAttribute_Incorrect 4
 #define Visualizer_MarkerAttribute_EnumCount 5
