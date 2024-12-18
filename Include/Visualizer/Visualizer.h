@@ -110,8 +110,6 @@ void Visualizer_UpdateWriteMulti(
 	double fSleepMultiplier
 );
 
-typedef Visualizer_Marker Visualizer_Pointer;
-
 // Pointer
 Visualizer_Pointer Visualizer_CreatePointer(
 	Visualizer_Handle hArray,
@@ -127,7 +125,7 @@ void Visualizer_MovePointer(
 
 #else
 
-// Define fake functions
+// Define fake functions. TODO: Fix
 #define Visualizer_Initialize()
 #define Visualizer_Uninitialize()
 #define Visualizer_Sleep(A)
