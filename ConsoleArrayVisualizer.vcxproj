@@ -64,7 +64,6 @@
     <ClCompile Include="Source\Utils\Time.c" />
     <ClCompile Include="Source\Utils\Random.c" />
     <ClCompile Include="Source\Visualizer\Renderer\ColumnWindowsConsole.c" />
-    <ClCompile Include="Source\Visualizer\Visualizer.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Utils\GuardedMalloc.h" />
@@ -76,8 +75,9 @@
     <ClInclude Include="Include\Utils\Time.h" />
     <ClInclude Include="Include\Utils\Machine.h" />
     <ClInclude Include="Include\Sorts.h" />
+    <ClInclude Include="Include\Visualizer.h" />
+    <ClInclude Include="Include\Visualizer\Common.h" />
     <ClInclude Include="Include\Visualizer\Renderer\ColumnWindowsConsole.h" />
-    <ClInclude Include="Include\Visualizer\Visualizer.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

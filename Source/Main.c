@@ -1,6 +1,5 @@
 
 #include "Sorts.h"
-#include "Visualizer/Visualizer.h"
 
 #define _USE_MATH_DEFINES
 

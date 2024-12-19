@@ -1,6 +1,5 @@
 
 #include "Sorts.h"
-#include "Visualizer/Visualizer.h"
 
 
 int NTQS_isortCompare(const isort_t* a, const isort_t* b) {

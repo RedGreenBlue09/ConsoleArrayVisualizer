@@ -1,6 +1,5 @@
 
 #include "Sorts.h"
-#include "Visualizer/Visualizer.h"
 
 #include "Utils/GuardedMalloc.h"
 

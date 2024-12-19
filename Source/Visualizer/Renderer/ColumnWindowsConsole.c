@@ -1,13 +1,14 @@
 
-#include "Visualizer/Visualizer.h"
+#include "Visualizer/Renderer/ColumnWindowsConsole.h"
 
 #include <threads.h>
 #include <Windows.h>
 
 #include "Utils/GuardedMalloc.h"
 #include "Utils/LinkedList.h"
+#include "Utils/MemoryPool.h"
 #include "Utils/SharedLock.h"
-#include "Utils/SpinLock.h"
+//#include "Utils/SpinLock.h"
 #include "Utils/Time.h"
 
 // Buffer stuff
