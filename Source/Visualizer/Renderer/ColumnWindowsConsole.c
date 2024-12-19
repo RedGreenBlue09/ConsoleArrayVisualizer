@@ -2,6 +2,7 @@
 #include "Visualizer/Renderer/ColumnWindowsConsole.h"
 
 #include <threads.h>
+#include <string.h>
 #include <Windows.h>
 
 #include "Utils/GuardedMalloc.h"
@@ -63,14 +64,20 @@ typedef struct {
 	_Atomic isort_t  ValueMax;
 	ArrayMember*     aState;
 	ColumnInfo* _Atomic aColumn;
+
+	// Statistics
+	// Using global counters makes the renderer prone to desync
+	// and also increases contention but that saves a lot of memory
+	_Atomic uint64_t ReadCount;
+	_Atomic uint64_t WriteCount;
 } ArrayProp;
 
 static pool ArrayPropPool;
-
 static ArrayProp* pArrayPropHead;
 
 thrd_t RenderThread;
 static _Atomic bool bRun;
+char* _Atomic sAlgorithmName; // NULL terminated
 
 static Visualizer_Handle PoolIndexToHandle(pool_index PoolIndex) {
 	return (Visualizer_Handle)(PoolIndex + 1);
@@ -94,13 +101,13 @@ static inline intptr_t NearestNeighborScale(intptr_t iA, intptr_t nA, intptr_t n
 	return ((int64_t)iA * nB + ((uintptr_t)nB / 2)) / nA;
 }
 
-static void UpdateCellCacheRow(intptr_t iRow, int16_t nText, const char* aText) {
+static void UpdateCellCacheRow(intptr_t iRow, const char* sText, intptr_t nText) {
 	if (nText > BufferInfo.dwSize.X)
 		nText = BufferInfo.dwSize.X;
 	// Use wide char to avoid conversion
 	int16_t i = 0;
 	for (; i < nText; ++i)
-		aBufferCache[BufferInfo.dwSize.X * iRow + i].Char.UnicodeChar = (wchar_t)aText[i];
+		aBufferCache[BufferInfo.dwSize.X * iRow + i].Char.UnicodeChar = (wchar_t)sText[i];
 	for (; i < BufferInfo.dwSize.X; ++i)
 		aBufferCache[BufferInfo.dwSize.X * iRow + i].Char.UnicodeChar = L' ';
 
@@ -110,7 +117,7 @@ static void UpdateCellCacheRow(intptr_t iRow, int16_t nText, const char* aText) 
 	if (iRow > UpdatedRect.Bottom)
 		UpdatedRect.Bottom = (int16_t)iRow;
 	if (nText > UpdatedRect.Right)
-		UpdatedRect.Right = nText;
+		UpdatedRect.Right = (int16_t)nText;
 }
 
 static const USHORT aWinConAttrTable[Visualizer_MarkerAttribute_EnumCount] = {
@@ -186,6 +193,56 @@ static void UpdateCellCacheColumn(ArrayProp* pArrayProp, intptr_t iColumn) {
 	}
 }
 
+static void ClearScreen() {
+	LONG BufferSize = BufferInfo.dwSize.X * BufferInfo.dwSize.Y;
+	for (intptr_t i = 0; i < BufferSize; ++i) {
+		aBufferCache[i].Char.UnicodeChar = ' ';
+		aBufferCache[i].Attributes = ATTR_WINCON_BACKGROUND;
+	}
+	SMALL_RECT Rect = {
+		0,
+		0,
+		BufferInfo.dwSize.X - 1,
+		BufferInfo.dwSize.Y - 1,
+	};
+	WriteConsoleOutputW(
+		hAltBuffer,
+		aBufferCache,
+		BufferInfo.dwSize,
+		(COORD){ 0, 0 },
+		&Rect
+	);
+}
+
+static_assert(sizeof(uintptr_t) <= 8);
+
+// Length of sString must be as least 20
+static intptr_t Uint64ToString(uint64_t X, char* sString) {
+	if (X == 0) {
+		sString[0] = '0';
+		return 1;
+	}
+
+	intptr_t i = 0;
+	for (; X > 0; X /= 10)
+		sString[i++] = '0' + (X % 10);
+	intptr_t Length = i;
+
+	intptr_t ii = 0;
+	--i;
+	while (ii < i) {
+		char Temp = sString[ii];
+		sString[ii] = sString[i];
+		sString[i] = Temp;
+		++ii;
+		--i;
+	}
+
+	return Length;
+}
+
+#define strlen_literal(X) (sizeof(X) / sizeof(*(X)) - 1)
+
 static int RenderThreadMain(void* pData) {
 
 	while (bRun) {
@@ -193,33 +250,19 @@ static int RenderThreadMain(void* pData) {
 		sleep64(15625); // 64 FPS
 
 		// TODO: Multi array
-		if (!pArrayPropHead)
+		if (!pArrayPropHead) {
 			continue;
+		}
 
 		ArrayProp* pArrayProp = pArrayPropHead;
 
 		// Remove
 		if (pArrayProp->bRemoved) {
-
 			free(pArrayProp->aState);
 			PoolDeallocateAddress(&ArrayPropPool, pArrayProp);
 			pArrayPropHead = NULL;
 
-			// Clear screen
-			SMALL_RECT Rect = {
-				0,
-				0,
-				BufferInfo.dwSize.X - 1,
-				BufferInfo.dwSize.Y - 1,
-			};
-			WriteConsoleOutputW(
-				hAltBuffer,
-				aBufferCache,
-				BufferInfo.dwSize,
-				(COORD) { 0, 0 },
-				&Rect
-			);
-
+			ClearScreen();
 			continue;
 		}
 
@@ -247,7 +290,7 @@ static int RenderThreadMain(void* pData) {
 
 				ColumnInfo* pColumnInfo = &pArrayProp->aColumn[iColumn];
 
-				sharedlock_lock_exclusive(&pColumnInfo->SharedLock); // FIXME: This doesn't lock the members
+				sharedlock_lock_exclusive(&pColumnInfo->SharedLock);
 
 				// Reset values
 				pColumnInfo->ValueSum = 0;
@@ -264,7 +307,8 @@ static int RenderThreadMain(void* pData) {
 
 					pColumnInfo->ValueSum += pMember->Value;
 					for (uint8_t i = 0; i < Visualizer_MarkerAttribute_EnumCount; ++i)
-						pColumnInfo->aMarkerCount[i] += pMember->aMarkerCount[i]; // Doesn't have to be atomic
+						pColumnInfo->aMarkerCount[i] += pMember->aMarkerCount[i]; // FIXME: Doesn't have to be atomic
+					// TODO: Add non-atomic ArrayProp
 				}
 				pColumnInfo->bUpdated = true;
 
@@ -277,6 +321,7 @@ static int RenderThreadMain(void* pData) {
 		}
 
 		// Update cell cache columns
+
 		UpdatedRect = (SMALL_RECT){
 			BufferInfo.dwSize.X - 1,
 			BufferInfo.dwSize.Y - 1,
@@ -286,9 +331,43 @@ static int RenderThreadMain(void* pData) {
 		for (intptr_t i = 0; i < BufferInfo.dwSize.X; ++i) {
 			UpdateCellCacheColumn(pArrayProp, i);
 		}
+
 		// Update cell text rows
-		UpdateCellCacheRow(0, sizeof("Algorithm name") - 1, "Algorithm name");
-		UpdateCellCacheRow(1, sizeof("TEST") - 1, "TEST");
+
+		char* sAlgorithmNameTemp = sAlgorithmName; // Atomic load
+		if (sAlgorithmNameTemp == NULL)
+			sAlgorithmNameTemp = "";
+		UpdateCellCacheRow(0, sAlgorithmNameTemp, strlen(sAlgorithmNameTemp));
+
+		intptr_t Length;
+		intptr_t NumberLength;
+
+		char aArrayIndexString[48] = "Array #";
+		Length = strlen_literal("Array #");
+		NumberLength = Uint64ToString(
+			PoolAddressToIndex(&ArrayPropPool, pArrayProp),
+			aArrayIndexString + Length
+		);
+		Length += NumberLength;
+		UpdateCellCacheRow(2, aArrayIndexString, Length);
+
+		char aSizeString[48] = "Size: ";
+		Length = strlen_literal("Size: ");
+		NumberLength = Uint64ToString(pArrayProp->Size, aSizeString + Length);
+		Length += NumberLength;
+		UpdateCellCacheRow(4, aSizeString, Length);
+
+		char aReadCountString[48] = "Reads: ";
+		Length = strlen_literal("Reads: ");
+		NumberLength = Uint64ToString(pArrayProp->ReadCount, aReadCountString + Length);
+		Length += NumberLength;
+		UpdateCellCacheRow(5, aReadCountString, Length);
+
+		char aWriteCountString[48] = "Writes: ";
+		Length = strlen_literal("Writes: ");
+		NumberLength = Uint64ToString(pArrayProp->WriteCount, aWriteCountString + Length);
+		Length += NumberLength;
+		UpdateCellCacheRow(6, aWriteCountString, Length);
 
 		WriteConsoleOutputW(
 			hAltBuffer,
@@ -306,6 +385,7 @@ static int RenderThreadMain(void* pData) {
 void RendererCwc_Initialize() {
 
 	PoolInitialize(&ArrayPropPool, 16, sizeof(ArrayProp));
+	sAlgorithmName = NULL;
 
 	// New window style
 
@@ -350,26 +430,7 @@ void RendererCwc_Initialize() {
 
 	LONG BufferSize = BufferInfo.dwSize.X * BufferInfo.dwSize.Y;
 	aBufferCache = malloc_guarded(BufferSize * sizeof(*aBufferCache));
-	for (intptr_t i = 0; i < BufferSize; ++i) {
-		aBufferCache[i].Char.UnicodeChar = ' ';
-		aBufferCache[i].Attributes = ATTR_WINCON_BACKGROUND;
-	}
-
-	// Clear screen
-
-	SMALL_RECT Rect = {
-		0,
-		0,
-		BufferInfo.dwSize.X - 1,
-		BufferInfo.dwSize.Y - 1,
-	};
-	WriteConsoleOutputW(
-		hAltBuffer,
-		aBufferCache,
-		BufferInfo.dwSize,
-		(COORD){ 0, 0 },
-		&Rect
-	);
+	ClearScreen();
 
 	// Render thread
 
@@ -431,6 +492,9 @@ Visualizer_Handle RendererCwc_AddArray(
 	pArrayProp->ValueMax = ValueMax;
 	pArrayProp->bRemoved = false;
 	pArrayProp->bResized = true;
+
+	pArrayProp->ReadCount = 0;
+	pArrayProp->WriteCount = 0;
 
 	if (!pArrayPropHead) // TODO: Multi array
 		pArrayPropHead = pArrayProp;
@@ -600,9 +664,9 @@ typedef struct {
 	ArrayProp* pArrayProp;
 	intptr_t iPosition;
 	Visualizer_MarkerAttribute Attribute;
-} MarkerT;
+} MarkerProp;
 
-static MarkerT AddMarker(
+static MarkerProp AddMarker(
 	ArrayProp* pArrayProp,
 	intptr_t iPosition,
 	Visualizer_MarkerAttribute Attribute
@@ -610,10 +674,10 @@ static MarkerT AddMarker(
 
 	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, true, Attribute, 0);
 
-	return (MarkerT){ pArrayProp, iPosition, Attribute };
+	return (MarkerProp){ pArrayProp, iPosition, Attribute };
 }
 
-static MarkerT AddMarkerWithValue(
+static MarkerProp AddMarkerWithValue(
 	ArrayProp* pArrayProp,
 	intptr_t iPosition,
 	Visualizer_MarkerAttribute Attribute,
@@ -627,17 +691,17 @@ static MarkerT AddMarkerWithValue(
 		Attribute,
 		Value
 	);
-	return (MarkerT){ pArrayProp, iPosition, Attribute };
+	return (MarkerProp){ pArrayProp, iPosition, Attribute };
 }
 
-static void RemoveMarker(MarkerT Marker) {
+static void RemoveMarker(MarkerProp Marker) {
 	UpdateMember(Marker.pArrayProp, Marker.iPosition, MemberUpdateType_Attribute, false, Marker.Attribute, 0);
 }
 
 // It does not update the iPosition member
-static void MoveMarker(MarkerT Marker, intptr_t iNewPosition) {
+static void MoveMarker(MarkerProp Marker, intptr_t iNewPosition) {
 	UpdateMember(Marker.pArrayProp, Marker.iPosition, MemberUpdateType_Attribute, false, Marker.Attribute, 0);
-	UpdateMember(Marker.pArrayProp, Marker.iPosition, MemberUpdateType_Attribute, true, Marker.Attribute, 0);
+	UpdateMember(Marker.pArrayProp, iNewPosition, MemberUpdateType_Attribute, true, Marker.Attribute, 0);
 }
 
 #ifndef VISUALIZER_DISABLE_SLEEP
@@ -657,7 +721,8 @@ static void SleepByMultiplier(double fSleepMultiplier) {
 void RendererCwc_UpdateRead(Visualizer_Handle hArray, intptr_t iPosition, double fSleepMultiplier) {
 	ArrayProp* pArrayProp = GetArrayProp(hArray);
 
-	MarkerT Marker = AddMarker(pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
+	pArrayProp->ReadCount += 1;
+	MarkerProp Marker = AddMarker(pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
 	SleepByMultiplier(fSleepMultiplier);
 	RemoveMarker(Marker);
 }
@@ -666,8 +731,9 @@ void RendererCwc_UpdateRead(Visualizer_Handle hArray, intptr_t iPosition, double
 void RendererCwc_UpdateRead2(Visualizer_Handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
 	ArrayProp* pArrayProp = GetArrayProp(hArray);
 
-	MarkerT MarkerA = AddMarker(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
-	MarkerT MarkerB = AddMarker(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
+	pArrayProp->ReadCount += 2;
+	MarkerProp MarkerA = AddMarker(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
+	MarkerProp MarkerB = AddMarker(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
 	SleepByMultiplier(fSleepMultiplier);
 	RemoveMarker(MarkerA);
 	RemoveMarker(MarkerB);
@@ -683,7 +749,8 @@ void RendererCwc_UpdateReadMulti(
 
 	assert(Length <= 16);
 
-	MarkerT aMarker[16];
+	pArrayProp->ReadCount += Length;
+	MarkerProp aMarker[16];
 	for (intptr_t i = 0; i < Length; ++i)
 		aMarker[i] = AddMarker(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Read);
 	SleepByMultiplier(fSleepMultiplier);
@@ -694,7 +761,8 @@ void RendererCwc_UpdateReadMulti(
 void RendererCwc_UpdateWrite(Visualizer_Handle hArray, intptr_t iPosition, isort_t NewValue, double fSleepMultiplier) {
 	ArrayProp* pArrayProp = GetArrayProp(hArray);
 
-	MarkerT Marker = AddMarkerWithValue(pArrayProp, iPosition, Visualizer_MarkerAttribute_Write, NewValue);
+	pArrayProp->WriteCount += 1;
+	MarkerProp Marker = AddMarkerWithValue(pArrayProp, iPosition, Visualizer_MarkerAttribute_Write, NewValue);
 	SleepByMultiplier(fSleepMultiplier);
 	RemoveMarker(Marker);
 }
@@ -709,8 +777,9 @@ void RendererCwc_UpdateWrite2(
 ) {
 	ArrayProp* pArrayProp = GetArrayProp(hArray);
 
-	MarkerT MarkerA = AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
-	MarkerT MarkerB = AddMarkerWithValue(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write, NewValueB);
+	pArrayProp->WriteCount += 2;
+	MarkerProp MarkerA = AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
+	MarkerProp MarkerB = AddMarkerWithValue(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write, NewValueB);
 	SleepByMultiplier(fSleepMultiplier);
 	RemoveMarker(MarkerA);
 	RemoveMarker(MarkerB);
@@ -727,7 +796,8 @@ void RendererCwc_UpdateWriteMulti(
 
 	assert(Length <= 16);
 
-	MarkerT aMarker[16];
+	pArrayProp->WriteCount += Length;
+	MarkerProp aMarker[16];
 	for (intptr_t i = 0; i < Length; ++i)
 		aMarker[i] = AddMarkerWithValue(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Write, aNewValue[i]);
 	SleepByMultiplier(fSleepMultiplier);
@@ -739,16 +809,29 @@ void RendererCwc_UpdateWriteMulti(
 
 Visualizer_Pointer RendererCwc_CreatePointer(Visualizer_Handle hArray, intptr_t iPosition) {
 	ArrayProp* pArrayProp = GetArrayProp(hArray);
-	MarkerT Marker = AddMarker(pArrayProp, iPosition, Visualizer_MarkerAttribute_Pointer);
+	MarkerProp Marker = AddMarker(pArrayProp, iPosition, Visualizer_MarkerAttribute_Pointer);
 	return (Visualizer_Pointer){ hArray, Marker.iPosition, Marker.Attribute };
 }
 
 void RendererCwc_RemovePointer(Visualizer_Pointer Pointer) {
-	RemoveMarker((MarkerT){ GetArrayProp(Pointer.hArray), Pointer.iPosition, Pointer.Attribute });
+	RemoveMarker((MarkerProp){ GetArrayProp(Pointer.hArray), Pointer.iPosition, Pointer.Attribute });
 }
 
 void RendererCwc_MovePointer(Visualizer_Pointer* pPointer, intptr_t iNewPosition) {
-	MarkerT Marker = (MarkerT){ GetArrayProp(pPointer->hArray), pPointer->iPosition, pPointer->Attribute };
+	MarkerProp Marker = (MarkerProp){ GetArrayProp(pPointer->hArray), pPointer->iPosition, pPointer->Attribute };
 	MoveMarker(Marker, iNewPosition);
 	pPointer->iPosition = iNewPosition;
+}
+
+void RendererCwc_SetAlgorithmName(char* sAlgorithmNameArg) {
+	intptr_t Size = strlen(sAlgorithmNameArg) + 1;
+	char* sAlgorithmNameTemp = malloc_guarded(Size * sizeof(*sAlgorithmNameArg));
+	memcpy(sAlgorithmNameTemp, sAlgorithmNameArg, Size * sizeof(*sAlgorithmNameArg));
+	free(atomic_exchange(&sAlgorithmName, sAlgorithmNameTemp));
+}
+
+void RendererCwc_ClearReadWriteCounter(Visualizer_Handle hArray) {
+	ArrayProp* pArrayProp = GetArrayProp(hArray);
+	pArrayProp->ReadCount = 0;
+	pArrayProp->WriteCount = 0;
 }

@@ -80,6 +80,9 @@ void RendererCwc_MovePointer(
 	intptr_t iNewPosition
 );
 
+void RendererCwc_SetAlgorithmName(char* sAlgorithmNameArg);
+void RendererCwc_ClearReadWriteCounter(Visualizer_Handle hArray);
+
 #define Visualizer_Initialize() RendererCwc_Initialize()
 #define Visualizer_Uninitialize() RendererCwc_Uninitialize()
 
@@ -109,4 +112,9 @@ void RendererCwc_MovePointer(
 	RendererCwc_RemovePointer(Pointer)
 #define Visualizer_MovePointer(pPointer, iNewPosition) \
 	RendererCwc_MovePointer(pPointer, iNewPosition)
+
+#define Visualizer_SetAlgorithmName(sAlgorithmName) \
+	RendererCwc_SetAlgorithmName(sAlgorithmName)
+#define Visualizer_ClearReadWriteCounter(hArray) \
+	RendererCwc_ClearReadWriteCounter(hArray)
 

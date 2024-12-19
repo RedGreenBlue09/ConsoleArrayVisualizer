@@ -42,35 +42,44 @@ void mainShuffle(isort_t* aArray, intptr_t N) {
 int main() {
 
 	//intptr_t N = 16384;
-	intptr_t N = 1 << 24;
+	intptr_t N = 1 << 20;
 	isort_t* aArray = malloc_guarded(N * sizeof(isort_t));
 	//sleep64(5000000);
 
 	Visualizer_Initialize();
-	Visualizer_Handle MainArrayHandle = Visualizer_AddArray(N, aArray, 0, (isort_t)N - 1);
+	Visualizer_Handle hArray = Visualizer_AddArray(N, aArray, 0, (isort_t)N - 1);
 
 	//
+	Visualizer_ClearReadWriteCounter(hArray);
+	Visualizer_SetAlgorithmName("Shuffling ...");
 	mainShuffle(aArray, N);
-	Visualizer_UpdateArrayState(MainArrayHandle, aArray);
-	BottomUpHeapSort(aArray, N, MainArrayHandle); // This has incorrect results
+	Visualizer_UpdateArrayState(hArray, aArray);
+	Visualizer_SetAlgorithmName("Bottom-up Heapsort");
+	BottomUpHeapSort(aArray, N, hArray); // FIXME: This has incorrect results
 	
 
 	//sleep64(1500000);
 
 	//
+	Visualizer_ClearReadWriteCounter(hArray);
+	Visualizer_SetAlgorithmName("Shuffling ...");
 	mainShuffle(aArray, N);
-	Visualizer_UpdateArrayState(MainArrayHandle, aArray);
-	LeftRightQuickSort(aArray, N, MainArrayHandle);
+	Visualizer_UpdateArrayState(hArray, aArray);
+	Visualizer_SetAlgorithmName("Left-right Quicksort");
+	LeftRightQuickSort(aArray, N, hArray);
 
 	//sleep64(1500000);
 
 	//
+	Visualizer_ClearReadWriteCounter(hArray);
+	Visualizer_SetAlgorithmName("Shuffling ...");
 	mainShuffle(aArray, N);
-	Visualizer_UpdateArrayState(MainArrayHandle, aArray);
-	ShellSortCiura(aArray, N, MainArrayHandle);
+	Visualizer_UpdateArrayState(hArray, aArray);
+	Visualizer_SetAlgorithmName("Shellsort (Ciura's gaps)");
+	ShellSortCiura(aArray, N, hArray);
 
 	//
-	Visualizer_RemoveArray(MainArrayHandle);
+	Visualizer_RemoveArray(hArray);
 
 	Visualizer_Uninitialize();
 
