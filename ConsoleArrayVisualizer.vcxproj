@@ -66,6 +66,7 @@
     <ClCompile Include="Source\Visualizer\Renderer\ColumnWindowsConsole.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Include\Utils\Common.h" />
     <ClInclude Include="Include\Utils\GuardedMalloc.h" />
     <ClInclude Include="Include\Utils\LinkedList.h" />
     <ClInclude Include="Include\Utils\MemoryPool.h" />

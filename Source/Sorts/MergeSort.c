@@ -82,7 +82,7 @@ void IMS_iterativeMergeSort(isort_t* a, size_t n) {
 	{
 		IMS_mergePass(a, b2, s, n); // merge from a to b
 		s += s;                    // double the segment size
-		PTR_SWAP(a, b2);
+		swap(&a, &b2);
 
 		/*
 		if (s >= n)

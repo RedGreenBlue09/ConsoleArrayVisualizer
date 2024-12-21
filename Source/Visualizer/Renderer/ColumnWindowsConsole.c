@@ -5,11 +5,12 @@
 #include <string.h>
 #include <Windows.h>
 
+#include "Utils/Common.h"
 #include "Utils/GuardedMalloc.h"
 #include "Utils/LinkedList.h"
 #include "Utils/MemoryPool.h"
 #include "Utils/SharedLock.h"
-//#include "Utils/SpinLock.h"
+#include "Utils/SpinLock.h"
 #include "Utils/Time.h"
 
 // Buffer stuff
@@ -77,7 +78,9 @@ static ArrayProp* pArrayPropHead;
 
 thrd_t RenderThread;
 static _Atomic bool bRun;
-char* _Atomic sAlgorithmName; // NULL terminated
+
+spinlock AlgorithmNameLock;
+char* sAlgorithmName; // NULL terminated
 
 static Visualizer_Handle PoolIndexToHandle(pool_index PoolIndex) {
 	return (Visualizer_Handle)(PoolIndex + 1);
@@ -241,8 +244,6 @@ static intptr_t Uint64ToString(uint64_t X, char* sString) {
 	return Length;
 }
 
-#define strlen_literal(X) (sizeof(X) / sizeof(*(X)) - 1)
-
 static int RenderThreadMain(void* pData) {
 
 	while (bRun) {
@@ -334,10 +335,14 @@ static int RenderThreadMain(void* pData) {
 
 		// Update cell text rows
 
-		char* sAlgorithmNameTemp = sAlgorithmName; // Atomic load
+		spinlock_lock(&AlgorithmNameLock);
+
+		char* sAlgorithmNameTemp = sAlgorithmName;
 		if (sAlgorithmNameTemp == NULL)
 			sAlgorithmNameTemp = "";
 		UpdateCellCacheRow(0, sAlgorithmNameTemp, strlen(sAlgorithmNameTemp));
+
+		spinlock_unlock(&AlgorithmNameLock);
 
 		intptr_t Length;
 		intptr_t NumberLength;
@@ -827,7 +832,11 @@ void RendererCwc_SetAlgorithmName(char* sAlgorithmNameArg) {
 	intptr_t Size = strlen(sAlgorithmNameArg) + 1;
 	char* sAlgorithmNameTemp = malloc_guarded(Size * sizeof(*sAlgorithmNameArg));
 	memcpy(sAlgorithmNameTemp, sAlgorithmNameArg, Size * sizeof(*sAlgorithmNameArg));
-	free(atomic_exchange(&sAlgorithmName, sAlgorithmNameTemp));
+
+	spinlock_lock(&AlgorithmNameLock);
+	swap(&sAlgorithmName, &sAlgorithmNameTemp);
+	spinlock_unlock(&AlgorithmNameLock);
+	free(sAlgorithmNameTemp);
 }
 
 void RendererCwc_ClearReadWriteCounter(Visualizer_Handle hArray) {

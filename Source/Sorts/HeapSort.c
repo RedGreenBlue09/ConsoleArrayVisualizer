@@ -27,13 +27,13 @@ void WHS_weakHeapSort(isort_t* array, intptr_t n) {
 
 			bits[i >> 3] = flag;
 
-			ISORT_SWAP(array[Gparent], array[i]);
+			swap(&array[Gparent], &array[i]);
 		}
 	}
 
 	for (i = n - 1; i >= 2; --i) {
 
-		ISORT_SWAP(array[0], array[i]);
+		swap(&array[0], &array[i]);
 
 		x = 1;
 		while (1) {
@@ -51,13 +51,13 @@ void WHS_weakHeapSort(isort_t* array, intptr_t n) {
 
 				bits[x >> 3] = flag;
 
-				ISORT_SWAP(array[0], array[x]);
+				swap(&array[0], &array[x]);
 			}
 			x >>= 1;
 		}
 	}
 
-	ISORT_SWAP(array[0], array[1]);
+	swap(&array[0], &array[1]);
 	free(bits);
 }
 
@@ -95,7 +95,7 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 
 	while (j > i) {
 		Visualizer_UpdateWrite2(BUFS_arrayHandle, i, j, array[j], array[i], 0.25);
-		ISORT_SWAP(array[i], array[j]);
+		swap(&array[i], &array[j]);
 		j = (j - 1) / 2;
 	}
 }
@@ -120,7 +120,7 @@ void BottomUpHeapSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle)
 
 	for (intptr_t i = length - 1; i > 0; --i) {
 		Visualizer_UpdateWrite2(BUFS_arrayHandle, 0, i, array[i], array[0], 0.25);
-		ISORT_SWAP(array[0], array[i]);
+		swap(&array[0], &array[i]);
 		BUHS_SiftDown(array, 0, i);
 	}
 

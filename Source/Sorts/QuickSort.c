@@ -33,7 +33,7 @@ begin:
 
 		if (left <= right) {
 			Visualizer_UpdateWrite2(LRQS_arrayHandle, left, right, array[right], array[left], 0.625);
-			ISORT_SWAP(array[left], array[right]);
+			swap(&array[left], &array[right]);
 			++left;
 			--right;
 		}

@@ -67,7 +67,7 @@ void FS_flashSort(usort_t* array, intptr_t n) {
 	for (k = 2; k <= M; ++k)
 		L[k] += L[k - 1];
 
-	USORT_SWAP(array[maxIndex], array[0]);
+	swap(&array[maxIndex], &array[0]);
 
 	k = M;
 	intptr_t j = 0;
@@ -87,7 +87,7 @@ void FS_flashSort(usort_t* array, intptr_t n) {
 			k = (evicted - min) * m1 / range + 1;
 			intptr_t location = (intptr_t)L[k] - 1;
 
-			USORT_SWAP(array[location], evicted);
+			swap(&array[location], &evicted);
 
 			L[k] -= 1;
 			++numMoves;
