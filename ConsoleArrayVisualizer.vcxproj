@@ -378,7 +378,7 @@
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
-      <AdditionalOptions>-flto %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -404,7 +404,7 @@
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
-      <AdditionalOptions>-flto %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -539,7 +539,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
-      <AdditionalOptions>-flto %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -566,7 +566,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
-      <AdditionalOptions>-flto %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

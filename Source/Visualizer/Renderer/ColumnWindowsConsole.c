@@ -234,9 +234,7 @@ static intptr_t Uint64ToString(uint64_t X, char* sString) {
 	intptr_t ii = 0;
 	--i;
 	while (ii < i) {
-		char Temp = sString[ii];
-		sString[ii] = sString[i];
-		sString[i] = Temp;
+		swap(&sString[ii], &sString[i]);
 		++ii;
 		--i;
 	}
@@ -246,10 +244,19 @@ static intptr_t Uint64ToString(uint64_t X, char* sString) {
 
 static int RenderThreadMain(void* pData) {
 
+	// microseconds
+	uint64_t ClockResolution = clock64_resolution();
+	uint64_t ThreadTimeStart = clock64();
+	uint64_t UpdateInterval = 15625; // 64 FPS
+
+	uint64_t FpsUpdateInterval = 500000; // FPS counter interval
+	uint64_t FpsUpdateCount = 0;
+	uint64_t FramesRendered = 0;
+
 	while (bRun) {
-
-		sleep64(15625); // 64 FPS
-
+		uint64_t ThreadDuration = (clock64() - ThreadTimeStart) * 1000000 / ClockResolution;
+		sleep64(UpdateInterval - (ThreadDuration % UpdateInterval)); // FIXME: It always sleep at first pass
+		
 		// TODO: Multi array
 		if (!pArrayPropHead) {
 			continue;
@@ -335,6 +342,7 @@ static int RenderThreadMain(void* pData) {
 
 		// Update cell text rows
 
+		// Algorithm name
 		spinlock_lock(&AlgorithmNameLock);
 
 		char* sAlgorithmNameTemp = sAlgorithmName;
@@ -347,6 +355,27 @@ static int RenderThreadMain(void* pData) {
 		intptr_t Length;
 		intptr_t NumberLength;
 
+		// FPS
+		uint64_t NewFpsUpdateCount = ThreadDuration / FpsUpdateInterval;
+		if (NewFpsUpdateCount > FpsUpdateCount) {
+
+			char aFpsString[48] = "FPS: ";
+			Length = strlen_literal("FPS: ");
+			NumberLength = Uint64ToString(
+				// NOTE: This math is for FpsUpdateInterval < 1s
+				// FIXME: Doesn't work if UpdateInterval > 500ms
+				FramesRendered * ((NewFpsUpdateCount - FpsUpdateCount) * 1000000 / FpsUpdateInterval),
+				aFpsString + Length
+			);
+			Length += NumberLength;
+			UpdateCellCacheRow(1, aFpsString, Length);
+
+			FpsUpdateCount = NewFpsUpdateCount;
+			FramesRendered = 0;
+
+		}
+
+		// Array
 		char aArrayIndexString[48] = "Array #";
 		Length = strlen_literal("Array #");
 		NumberLength = Uint64ToString(
@@ -354,25 +383,28 @@ static int RenderThreadMain(void* pData) {
 			aArrayIndexString + Length
 		);
 		Length += NumberLength;
-		UpdateCellCacheRow(2, aArrayIndexString, Length);
+		UpdateCellCacheRow(3, aArrayIndexString, Length);
 
+		// Size
 		char aSizeString[48] = "Size: ";
 		Length = strlen_literal("Size: ");
 		NumberLength = Uint64ToString(pArrayProp->Size, aSizeString + Length);
 		Length += NumberLength;
-		UpdateCellCacheRow(4, aSizeString, Length);
+		UpdateCellCacheRow(5, aSizeString, Length);
 
+		// Reads
 		char aReadCountString[48] = "Reads: ";
 		Length = strlen_literal("Reads: ");
 		NumberLength = Uint64ToString(pArrayProp->ReadCount, aReadCountString + Length);
 		Length += NumberLength;
-		UpdateCellCacheRow(5, aReadCountString, Length);
+		UpdateCellCacheRow(6, aReadCountString, Length);
 
+		// Writee
 		char aWriteCountString[48] = "Writes: ";
 		Length = strlen_literal("Writes: ");
 		NumberLength = Uint64ToString(pArrayProp->WriteCount, aWriteCountString + Length);
 		Length += NumberLength;
-		UpdateCellCacheRow(6, aWriteCountString, Length);
+		UpdateCellCacheRow(7, aWriteCountString, Length);
 
 		WriteConsoleOutputW(
 			hAltBuffer,
@@ -381,6 +413,7 @@ static int RenderThreadMain(void* pData) {
 			(COORD){ UpdatedRect.Left , UpdatedRect.Top },
 			&UpdatedRect
 		);
+		++FramesRendered;
 	}
 
 	return 0;
@@ -577,15 +610,8 @@ static inline void UpdateMember(
 	}
 };
 
-static ArrayProp* GetArrayProp(Visualizer_Handle hArray) {
-	assert(ValidateHandle(&ArrayPropPool, hArray));
-	pool_index Index = HandleToPoolIndex(hArray);
-	return PoolIndexToAddress(&ArrayPropPool, Index);
-}
-
 void RendererCwc_UpdateArrayState(Visualizer_Handle hArray, isort_t* aState) {
-	ArrayProp* pArrayProp = GetArrayProp(hArray);
-
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 	for (intptr_t i = 0; i < pArrayProp->Size; ++i)
 		UpdateMember(pArrayProp, i, MemberUpdateType_Value, false, 0, aState[i]);
 }
@@ -724,7 +750,7 @@ static void SleepByMultiplier(double fSleepMultiplier) {
 // Read & Write
 
 void RendererCwc_UpdateRead(Visualizer_Handle hArray, intptr_t iPosition, double fSleepMultiplier) {
-	ArrayProp* pArrayProp = GetArrayProp(hArray);
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 
 	pArrayProp->ReadCount += 1;
 	MarkerProp Marker = AddMarker(pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
@@ -734,7 +760,7 @@ void RendererCwc_UpdateRead(Visualizer_Handle hArray, intptr_t iPosition, double
 
 // Update 2 items (used for comparisions).
 void RendererCwc_UpdateRead2(Visualizer_Handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
-	ArrayProp* pArrayProp = GetArrayProp(hArray);
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 
 	pArrayProp->ReadCount += 2;
 	MarkerProp MarkerA = AddMarker(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
@@ -750,7 +776,7 @@ void RendererCwc_UpdateReadMulti(
 	intptr_t Length,
 	double fSleepMultiplier
 ) {
-	ArrayProp* pArrayProp = GetArrayProp(hArray);
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 
 	assert(Length <= 16);
 
@@ -764,7 +790,7 @@ void RendererCwc_UpdateReadMulti(
 }
 
 void RendererCwc_UpdateWrite(Visualizer_Handle hArray, intptr_t iPosition, isort_t NewValue, double fSleepMultiplier) {
-	ArrayProp* pArrayProp = GetArrayProp(hArray);
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 
 	pArrayProp->WriteCount += 1;
 	MarkerProp Marker = AddMarkerWithValue(pArrayProp, iPosition, Visualizer_MarkerAttribute_Write, NewValue);
@@ -780,7 +806,7 @@ void RendererCwc_UpdateWrite2(
 	isort_t NewValueB,
 	double fSleepMultiplier
 ) {
-	ArrayProp* pArrayProp = GetArrayProp(hArray);
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 
 	pArrayProp->WriteCount += 2;
 	MarkerProp MarkerA = AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
@@ -797,7 +823,7 @@ void RendererCwc_UpdateWriteMulti(
 	isort_t* aNewValue,
 	double fSleepMultiplier
 ) {
-	ArrayProp* pArrayProp = GetArrayProp(hArray);
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 
 	assert(Length <= 16);
 
@@ -813,17 +839,19 @@ void RendererCwc_UpdateWriteMulti(
 // Pointer
 
 Visualizer_Pointer RendererCwc_CreatePointer(Visualizer_Handle hArray, intptr_t iPosition) {
-	ArrayProp* pArrayProp = GetArrayProp(hArray);
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 	MarkerProp Marker = AddMarker(pArrayProp, iPosition, Visualizer_MarkerAttribute_Pointer);
 	return (Visualizer_Pointer){ hArray, Marker.iPosition, Marker.Attribute };
 }
 
 void RendererCwc_RemovePointer(Visualizer_Pointer Pointer) {
-	RemoveMarker((MarkerProp){ GetArrayProp(Pointer.hArray), Pointer.iPosition, Pointer.Attribute });
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, Pointer.hArray);
+	RemoveMarker((MarkerProp){ pArrayProp, Pointer.iPosition, Pointer.Attribute });
 }
 
 void RendererCwc_MovePointer(Visualizer_Pointer* pPointer, intptr_t iNewPosition) {
-	MarkerProp Marker = (MarkerProp){ GetArrayProp(pPointer->hArray), pPointer->iPosition, pPointer->Attribute };
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, pPointer->hArray);
+	MarkerProp Marker = (MarkerProp){ pArrayProp, pPointer->iPosition, pPointer->Attribute };
 	MoveMarker(Marker, iNewPosition);
 	pPointer->iPosition = iNewPosition;
 }
@@ -840,7 +868,7 @@ void RendererCwc_SetAlgorithmName(char* sAlgorithmNameArg) {
 }
 
 void RendererCwc_ClearReadWriteCounter(Visualizer_Handle hArray) {
-	ArrayProp* pArrayProp = GetArrayProp(hArray);
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 	pArrayProp->ReadCount = 0;
 	pArrayProp->WriteCount = 0;
 }

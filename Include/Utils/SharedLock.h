@@ -26,7 +26,7 @@ static inline void sharedlock_unlock_exclusive(sharedlock* pLock) {
 }
 
 static inline void sharedlock_lock_shared(sharedlock* pLock) {
-#if defined(MACHINE_ARM32) || defined(MACHINE_ARM64)
+#if defined(MACHINE_ARM32) || defined(MACHINE_ARM64) /* TODO: Handle ARMv8.1 */
 	// CAS version, is slower on x86 but might be faster on ARM
 	uint8_t CachedLock;
 	do {
@@ -44,10 +44,10 @@ static inline void sharedlock_lock_shared(sharedlock* pLock) {
 		while (*pLock >= (1 << 7));
 
 		// Increase shared lock count
-		++*pLock;
+		uint8_t CachedLock = (*pLock)++;
 
-		// If exclusively locked again, unlock and retry
-		if (*pLock >= (1 << 7))
+		// If already exclusively locked, unlock and retry
+		if (CachedLock >= (1 << 7))
 			--*pLock;
 		else
 			break;
