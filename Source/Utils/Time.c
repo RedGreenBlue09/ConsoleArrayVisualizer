@@ -48,13 +48,13 @@ static void waitabletimer(int64_t Time) {
 
 void sleep64(uint64_t time) {
 
+	uint64_t StartTime = clock64();
+
 	if (ClockRes == 0) {
 		LARGE_INTEGER li;
 		QueryPerformanceFrequency(&li);
 		ClockRes = li.QuadPart;
 	}
-
-	uint64_t StartTime = clock64();
 	
 	if (MinTickRes == 0) {
 		ULONG Unused, Unused2;

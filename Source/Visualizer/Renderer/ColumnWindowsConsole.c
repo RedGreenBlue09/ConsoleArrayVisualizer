@@ -255,7 +255,6 @@ static int RenderThreadMain(void* pData) {
 
 	while (bRun) {
 		uint64_t ThreadDuration = (clock64() - ThreadTimeStart) * 1000000 / ClockResolution;
-		sleep64(UpdateInterval - (ThreadDuration % UpdateInterval)); // FIXME: It always sleep at first pass
 		
 		// TODO: Multi array
 		if (!pArrayPropHead) {
@@ -362,9 +361,7 @@ static int RenderThreadMain(void* pData) {
 			char aFpsString[48] = "FPS: ";
 			Length = strlen_literal("FPS: ");
 			NumberLength = Uint64ToString(
-				// NOTE: This math is for FpsUpdateInterval < 1s
-				// FIXME: Doesn't work if UpdateInterval > 500ms
-				FramesRendered * ((NewFpsUpdateCount - FpsUpdateCount) * 1000000 / FpsUpdateInterval),
+				FramesRendered * 1000000 / ((NewFpsUpdateCount - FpsUpdateCount) * FpsUpdateInterval),
 				aFpsString + Length
 			);
 			Length += NumberLength;
@@ -414,6 +411,9 @@ static int RenderThreadMain(void* pData) {
 			&UpdatedRect
 		);
 		++FramesRendered;
+
+		ThreadDuration = (clock64() - ThreadTimeStart) * 1000000 / ClockResolution;
+		sleep64(UpdateInterval - (ThreadDuration % UpdateInterval));
 	}
 
 	return 0;
