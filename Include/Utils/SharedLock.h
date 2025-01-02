@@ -6,11 +6,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "Utils/Common.h"
 #include "Utils/Machine.h"
 
 // Last bit for exclusive lock, the rest is shared lock count
 // Max number of shared locks: 128
-typedef _Atomic uint8_t sharedlock;
+typedef atomic uint8_t sharedlock;
 
 static inline void sharedlock_init(sharedlock* pLock) {
 	pLock = 0;
@@ -44,13 +45,11 @@ static inline void sharedlock_lock_shared(sharedlock* pLock) {
 		while (*pLock >= (1 << 7));
 
 		// Increase shared lock count
-		uint8_t CachedLock = (*pLock)++;
+		if ((*pLock)++ < (1 << 7))
+			break;
 
 		// If already exclusively locked, unlock and retry
-		if (CachedLock >= (1 << 7))
-			--*pLock;
-		else
-			break;
+		--(*pLock);
 	};
 #endif
 }

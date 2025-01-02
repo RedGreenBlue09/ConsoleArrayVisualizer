@@ -39,45 +39,66 @@ SMALL_RECT UpdatedRect;
 static HANDLE hOldBuffer;
 static LONG_PTR OldWindowStyle;
 
+// Abuse two's complement's addition property to prevent overflow
+static_assert(-123456789 == ~123456789 + 1);
+
 // Array
 typedef struct {
-	_Atomic isort_t Value;
-	_Atomic uint8_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
+	isort_t Value;
+	uint8_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 } ArrayMember;
 
 typedef struct {
-	_Atomic bool bUpdated;
+	atomic bool bUpdated;
 	sharedlock SharedLock;
 	// Worst case: 2^24 members each containing 2^8 repeated attributes
 	// This will break rendering but will still work due to unsigned integer wrapping.
 	intptr_t MemberCount;
-	_Atomic long_isort_t ValueSum;
-	_Atomic uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
-} ColumnInfo;
+	atomic long_isort_t ValueSum;
+	atomic uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
+} ColumnInfoAtomic;
 
 typedef struct {
-	llist_node       Node;
-	_Atomic bool     bRemoved;
-	_Atomic bool     bResized;
-	// _Atomic bool     bRangeUpdated;
-	_Atomic intptr_t Size;
-	_Atomic isort_t  ValueMin;
-	_Atomic isort_t  ValueMax;
-	ArrayMember*     aState;
-	ColumnInfo* _Atomic aColumn;
+	non_atomic(bool) bUpdated;
+	sharedlock SharedLock;
+
+	intptr_t MemberCount;
+	non_atomic(long_isort_t) ValueSum;
+	non_atomic(uint32_t) aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
+} ColumnInfoNonAtomic;
+
+typedef union {
+	ColumnInfoAtomic Atomic;
+	ColumnInfoNonAtomic NonAtomic;
+} ColumnInfo;
+
+static_assert(sizeof(ColumnInfo) == sizeof(ColumnInfoNonAtomic));
+
+typedef struct {
+	llist_node      Node;
+	atomic bool     bRemoved;
+	atomic bool     bResized;
+	// atomic bool     bRangeUpdated;
+	atomic intptr_t Size;
+	atomic isort_t  ValueMin;
+	atomic isort_t  ValueMax;
+	ArrayMember*    aState;
+
+	intptr_t        ColumnCount;
+	ColumnInfo*     aColumn;
 
 	// Statistics
 	// Using global counters makes the renderer prone to desync
 	// and also increases contention but that saves a lot of memory
-	_Atomic uint64_t ReadCount;
-	_Atomic uint64_t WriteCount;
+	atomic uint64_t ReadCount;
+	atomic uint64_t WriteCount;
 } ArrayProp;
 
 static pool ArrayPropPool;
 static ArrayProp* pArrayPropHead;
 
 thrd_t RenderThread;
-static _Atomic bool bRun;
+static atomic bool bRun;
 
 spinlock AlgorithmNameLock;
 char* sAlgorithmName; // NULL terminated
@@ -131,12 +152,12 @@ static const USHORT aWinConAttrTable[Visualizer_MarkerAttribute_EnumCount] = {
 	ATTR_WINCON_INCORRECT
 };
 
-static void UpdateCellCacheColumn(ArrayProp* pArrayProp, intptr_t iColumn) {
-	ColumnInfo* pColumn = &pArrayProp->aColumn[iColumn];
-	if (!pColumn->bUpdated) return;
+static void UpdateCellCacheColumn(ArrayProp* pArrayProp, intptr_t iColumn, int16_t iConsoleColumn) {
+	if (!pArrayProp->aColumn[iColumn].Atomic.bUpdated) return;
 
 	// Choose the correct value & attribute
 
+	ColumnInfoNonAtomic* pColumn = &pArrayProp->aColumn[iColumn].NonAtomic;
 	long_isort_t ValueSum;
 	uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 
@@ -148,6 +169,8 @@ static void UpdateCellCacheColumn(ArrayProp* pArrayProp, intptr_t iColumn) {
 
 	sharedlock_unlock_exclusive(&pColumn->SharedLock);
 
+	// NOTE: Precision loss: This force it to have a precision = range
+	// Fix is possible but does it worth it?
 	isort_t Value = (isort_t)(ValueSum / pColumn->MemberCount);
 
 	// Find the attribute that have the most occurrences. TODO: SIMD
@@ -181,19 +204,17 @@ static void UpdateCellCacheColumn(ArrayProp* pArrayProp, intptr_t iColumn) {
 	// Update the cell cache
 
 	UpdatedRect.Top = 0;
-	if (iColumn < UpdatedRect.Left)
-		UpdatedRect.Left = (SHORT)iColumn;
+	if (iConsoleColumn < UpdatedRect.Left)
+		UpdatedRect.Left = (SHORT)iConsoleColumn;
 	UpdatedRect.Bottom = BufferInfo.dwSize.Y - 1;
-	if (iColumn > UpdatedRect.Right)
-		UpdatedRect.Right = (SHORT)iColumn;
+	if (iConsoleColumn > UpdatedRect.Right)
+		UpdatedRect.Right = (SHORT)iConsoleColumn;
 
-	{
-		intptr_t i = 0;
-		for (; i < (intptr_t)(BufferInfo.dwSize.Y - Height); ++i)
-			aBufferCache[BufferInfo.dwSize.X * i + iColumn].Attributes = ATTR_WINCON_BACKGROUND;
-		for (; i < BufferInfo.dwSize.Y; ++i)
-			aBufferCache[BufferInfo.dwSize.X * i + iColumn].Attributes = ConsoleAttr;
-	}
+	intptr_t i = 0;
+	for (; i < (intptr_t)(BufferInfo.dwSize.Y - Height); ++i)
+		aBufferCache[BufferInfo.dwSize.X * i + iConsoleColumn].Attributes = ATTR_WINCON_BACKGROUND;
+	for (; i < BufferInfo.dwSize.Y; ++i)
+		aBufferCache[BufferInfo.dwSize.X * i + iConsoleColumn].Attributes = ConsoleAttr;
 }
 
 static void ClearScreen() {
@@ -274,52 +295,47 @@ static int RenderThreadMain(void* pData) {
 		}
 
 		// TODO: Resize window
-
-		if (!pArrayProp->aColumn) {
-			pArrayProp->aColumn = calloc_guarded(BufferInfo.dwSize.X, sizeof(*pArrayProp->aColumn));
-		}
-
-		// Resize
+		// Resize array
 
 		intptr_t Size = pArrayProp->Size;
 		if (pArrayProp->bResized) {
 
-			for (intptr_t iColumn = 0; iColumn < BufferInfo.dwSize.X; ++iColumn)
-				pArrayProp->aColumn[iColumn].MemberCount = 0;
+			for (intptr_t iColumn = 0; iColumn < pArrayProp->ColumnCount; ++iColumn)
+				pArrayProp->aColumn[iColumn].NonAtomic.MemberCount = 0;
 
 			for (intptr_t iMember = 0; iMember < Size; ++iMember) {
-				intptr_t iColumn = NearestNeighborScale(iMember, Size, BufferInfo.dwSize.X);
-				++pArrayProp->aColumn[iColumn].MemberCount;
+				intptr_t iColumn = NearestNeighborScale(iMember, Size, pArrayProp->ColumnCount);
+				++pArrayProp->aColumn[iColumn].NonAtomic.MemberCount;
 			}
 
 			intptr_t iMember = 0;
-			for (intptr_t iColumn = 0; iColumn < BufferInfo.dwSize.X; ++iColumn) {
+			for (intptr_t iColumn = 0; iColumn < pArrayProp->ColumnCount; ++iColumn) {
 
-				ColumnInfo* pColumnInfo = &pArrayProp->aColumn[iColumn];
+				ColumnInfoNonAtomic* pColumn = &pArrayProp->aColumn[iColumn].NonAtomic;
 
-				sharedlock_lock_exclusive(&pColumnInfo->SharedLock);
+				sharedlock_lock_exclusive(&pColumn->SharedLock);
 
 				// Reset values
-				pColumnInfo->ValueSum = 0;
+				pColumn->ValueSum = 0;
 				memset(
-					(uint8_t*)pColumnInfo->aMarkerCount,
+					(uint8_t*)pColumn->aMarkerCount,
 					0,
-					Visualizer_MarkerAttribute_EnumCount * sizeof(*pColumnInfo->aMarkerCount)
+					Visualizer_MarkerAttribute_EnumCount * sizeof(*pColumn->aMarkerCount)
 				);
 
 				// Regenerate values
-				intptr_t iEndMember = iMember + pColumnInfo->MemberCount;
+				intptr_t iEndMember = iMember + pColumn->MemberCount;
 				for (; iMember < iEndMember; ++iMember) {
 					ArrayMember* pMember = &pArrayProp->aState[iMember];
 
-					pColumnInfo->ValueSum += pMember->Value;
+					pColumn->ValueSum += pMember->Value;
 					for (uint8_t i = 0; i < Visualizer_MarkerAttribute_EnumCount; ++i)
-						pColumnInfo->aMarkerCount[i] += pMember->aMarkerCount[i]; // FIXME: Doesn't have to be atomic
+						pColumn->aMarkerCount[i] += pMember->aMarkerCount[i]; // FIXME: Doesn't have to be atomic
 					// TODO: Add non-atomic ArrayProp
 				}
-				pColumnInfo->bUpdated = true;
+				pColumn->bUpdated = true;
 
-				sharedlock_unlock_exclusive(&pColumnInfo->SharedLock);
+				sharedlock_unlock_exclusive(&pColumn->SharedLock);
 
 			}
 
@@ -335,8 +351,10 @@ static int RenderThreadMain(void* pData) {
 			0,
 			0
 		};
-		for (intptr_t i = 0; i < BufferInfo.dwSize.X; ++i) {
-			UpdateCellCacheColumn(pArrayProp, i);
+		for (int16_t i = 0; i < BufferInfo.dwSize.X; ++i) {
+			// FIXME: Desync
+			intptr_t iColumn = NearestNeighborScale(i, BufferInfo.dwSize.X, pArrayProp->ColumnCount);
+			UpdateCellCacheColumn(pArrayProp, iColumn, i);
 		}
 
 		// Update cell text rows
@@ -518,7 +536,8 @@ Visualizer_Handle RendererCwc_AddArray(
 
 	pArrayProp->Size = Size;
 	pArrayProp->aState = malloc_guarded(Size * sizeof(*pArrayProp->aState));
-	pArrayProp->aColumn = NULL; // Render thread will handle this
+	pArrayProp->ColumnCount = min2(Size, BufferInfo.dwSize.X);
+	pArrayProp->aColumn = calloc_guarded(pArrayProp->ColumnCount, sizeof(*pArrayProp->aColumn));
 	if (aArrayState)
 		for (intptr_t i = 0; i < Size; ++i)
 			pArrayProp->aState[i] = (ArrayMember){ aArrayState[i] };
@@ -564,50 +583,35 @@ static inline void UpdateMember(
 	ArrayMember* pArrayMember = &pArrayProp->aState[iPosition];
 
 	// Most branches are known at compile time and can be optimized
-	if (pArrayProp->aColumn) {
 
-		intptr_t iColumn = NearestNeighborScale(iPosition, pArrayProp->Size, BufferInfo.dwSize.X);
-		ColumnInfo* pColumnInfo = &pArrayProp->aColumn[iColumn];
+	intptr_t iColumn = NearestNeighborScale(iPosition, pArrayProp->Size, pArrayProp->ColumnCount);
+	ColumnInfoAtomic* pColumn = &pArrayProp->aColumn[iColumn].Atomic;
 
-		// This lock is put up here for the render thread to handle window resize
-		sharedlock_lock_shared(&pColumnInfo->SharedLock);
+	// This lock is put up here for the render thread to handle window resize
+	sharedlock_lock_shared(&pColumn->SharedLock);
 
-		if (UpdateType & MemberUpdateType_Attribute) {
-			if (bAddAttribute)
-				++pArrayMember->aMarkerCount[Attribute];
-			else
-				--pArrayMember->aMarkerCount[Attribute];
-		}
-
-		isort_t OldValue;
-		if (UpdateType & MemberUpdateType_Value)
-			OldValue = atomic_exchange(&pArrayMember->Value, Value);
-
-		if (UpdateType & MemberUpdateType_Value)
-			pColumnInfo->ValueSum += (long_isort_t)Value - OldValue;
-		if (UpdateType & MemberUpdateType_Attribute) {
-			if (bAddAttribute)
-				++pColumnInfo->aMarkerCount[Attribute];
-			else
-				--pColumnInfo->aMarkerCount[Attribute];
-		}
-		pColumnInfo->bUpdated = true;
-
-		sharedlock_unlock_shared(&pColumnInfo->SharedLock);
-
+	if (UpdateType & MemberUpdateType_Attribute) {
+		if (bAddAttribute)
+			++pArrayMember->aMarkerCount[Attribute];
+		else
+			--pArrayMember->aMarkerCount[Attribute];
 	}
-	else {
 
-		if (UpdateType & MemberUpdateType_Attribute) {
-			if (bAddAttribute)
-				++pArrayMember->aMarkerCount[Attribute];
-			else
-				--pArrayMember->aMarkerCount[Attribute];
-		}
-		if (UpdateType & MemberUpdateType_Value)
-			pArrayMember->Value = Value;
+	isort_t OldValue = Value;
+	if (UpdateType & MemberUpdateType_Value)
+		swap(&pArrayMember->Value, &OldValue);
 
+	if (UpdateType & MemberUpdateType_Value)
+		pColumn->ValueSum += (long_isort_t)Value - OldValue;
+	if (UpdateType & MemberUpdateType_Attribute) {
+		if (bAddAttribute)
+			++pColumn->aMarkerCount[Attribute];
+		else
+			--pColumn->aMarkerCount[Attribute];
 	}
+	pColumn->bUpdated = true;
+
+	sharedlock_unlock_shared(&pColumn->SharedLock);
 };
 
 void RendererCwc_UpdateArrayState(Visualizer_Handle hArray, isort_t* aState) {
