@@ -27,7 +27,7 @@
 		#define MACHINE_IA32
 	#elif __x86_64__
 		#define MACHINE_AMD64
-	#elif __ARM_ARCH_7A__
+	#elif __arm__
 		#define MACHINE_ARM32
 	#elif __aarch64__
 		#define MACHINE_ARM64

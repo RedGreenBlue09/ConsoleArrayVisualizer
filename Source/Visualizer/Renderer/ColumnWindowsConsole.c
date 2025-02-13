@@ -152,8 +152,15 @@ static const USHORT aWinConAttrTable[Visualizer_MarkerAttribute_EnumCount] = {
 	ATTR_WINCON_INCORRECT
 };
 
-static void UpdateCellCacheColumn(ArrayProp* pArrayProp, intptr_t iColumn, int16_t iConsoleColumn) {
-	if (!pArrayProp->aColumn[iColumn].Atomic.bUpdated) return;
+typedef struct {
+	bool bNeedUpdate;
+	uint16_t ConsoleAttr;
+	int16_t Height;
+} ColumnUpdateParam;
+
+static ColumnUpdateParam GetColumnUpdateParam(ArrayProp* pArrayProp, intptr_t iColumn) {
+	if (!pArrayProp->aColumn[iColumn].Atomic.bUpdated)
+		return (ColumnUpdateParam){ false, 0, 0 };
 
 	// Choose the correct value & attribute
 
@@ -201,7 +208,12 @@ static void UpdateCellCacheColumn(ArrayProp* pArrayProp, intptr_t iColumn, int16
 
 	SHORT Height = (SHORT)((long_usort_t)AbsoluteValue * BufferInfo.dwSize.Y / AbsoluteValueMax);
 
-	// Update the cell cache
+	return (ColumnUpdateParam){ true, ConsoleAttr, Height };
+}
+
+static void UpdateCellCacheColumn(int16_t iConsoleColumn, ColumnUpdateParam Parameter) {
+	if (!Parameter.bNeedUpdate)
+		return;
 
 	UpdatedRect.Top = 0;
 	if (iConsoleColumn < UpdatedRect.Left)
@@ -211,10 +223,10 @@ static void UpdateCellCacheColumn(ArrayProp* pArrayProp, intptr_t iColumn, int16
 		UpdatedRect.Right = (SHORT)iConsoleColumn;
 
 	intptr_t i = 0;
-	for (; i < (intptr_t)(BufferInfo.dwSize.Y - Height); ++i)
+	for (; i < (intptr_t)(BufferInfo.dwSize.Y - Parameter.Height); ++i)
 		aBufferCache[BufferInfo.dwSize.X * i + iConsoleColumn].Attributes = ATTR_WINCON_BACKGROUND;
 	for (; i < BufferInfo.dwSize.Y; ++i)
-		aBufferCache[BufferInfo.dwSize.X * i + iConsoleColumn].Attributes = ConsoleAttr;
+		aBufferCache[BufferInfo.dwSize.X * i + iConsoleColumn].Attributes = Parameter.ConsoleAttr;
 }
 
 static void ClearScreen() {
@@ -351,10 +363,18 @@ static int RenderThreadMain(void* pData) {
 			0,
 			0
 		};
-		for (int16_t i = 0; i < BufferInfo.dwSize.X; ++i) {
-			// FIXME: Desync
-			intptr_t iColumn = NearestNeighborScale(i, BufferInfo.dwSize.X, pArrayProp->ColumnCount);
-			UpdateCellCacheColumn(pArrayProp, iColumn, i);
+
+		{
+			ColumnUpdateParam UpdateParam = { false, 0, 0 };
+			intptr_t iColumnOld = -1;
+			for (int16_t i = 0; i < BufferInfo.dwSize.X; ++i) {
+				intptr_t iColumn = NearestNeighborScale(i, BufferInfo.dwSize.X, pArrayProp->ColumnCount);
+				if (iColumn > iColumnOld) {
+					UpdateParam = GetColumnUpdateParam(pArrayProp, iColumn);
+					iColumnOld = iColumn;
+				}
+				UpdateCellCacheColumn(i, UpdateParam);
+			}
 		}
 
 		// Update cell text rows
@@ -739,6 +759,7 @@ static void MoveMarker(MarkerProp Marker, intptr_t iNewPosition) {
 	UpdateMember(Marker.pArrayProp, iNewPosition, MemberUpdateType_Attribute, true, Marker.Attribute, 0);
 }
 
+#define VISUALIZER_DISABLE_SLEEP
 #ifndef VISUALIZER_DISABLE_SLEEP
 
 static const uint64_t DefaultDelay = 10000; // microseconds

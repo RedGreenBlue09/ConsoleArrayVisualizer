@@ -41,8 +41,8 @@ void mainShuffle(isort_t* aArray, intptr_t N) {
 
 int main() {
 
-	intptr_t N = 16;
-	//intptr_t N = 1 << 24;
+	//intptr_t N = 64;
+	intptr_t N = 1 << 20;
 	isort_t* aArray = malloc_guarded(N * sizeof(isort_t));
 	//sleep64(5000000);
 
