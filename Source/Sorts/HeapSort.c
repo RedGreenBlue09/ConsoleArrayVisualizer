@@ -1,9 +1,10 @@
 
-#include "Sorts.h"
+#include "Utils/Common.h"
+#include "Visualizer.h"
 
 #include "Utils/GuardedMalloc.h"
 
-void WHS_weakHeapSort(isort_t* array, intptr_t n) {
+static void weakHeapSort(isort_t* array, intptr_t n) {
 
 	intptr_t i, j, x, y, Gparent;
 	intptr_t bitsLength = (n + 7) / 8;
@@ -61,9 +62,7 @@ void WHS_weakHeapSort(isort_t* array, intptr_t n) {
 	free(bits);
 }
 
-Visualizer_Handle BUFS_arrayHandle;
-
-void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
+void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end, Visualizer_Handle arrayHandle) {
 
 	intptr_t j = i;
 
@@ -74,7 +73,7 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 
 		if (right < end) {
 
-			Visualizer_UpdateRead2(BUFS_arrayHandle, right, left, 0.25);
+			Visualizer_UpdateRead2(arrayHandle, right, left, 0.25);
 			if ((array[right] > array[left])) {
 				j = right;
 			} else {
@@ -89,12 +88,12 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 	}
 
 	while (array[i] > array[j]) {
-		Visualizer_UpdateRead2(BUFS_arrayHandle, i, j, 0.25);
+		Visualizer_UpdateRead2(arrayHandle, i, j, 0.25);
 		j = (j - 1) / 2;
 	}
 
 	while (j > i) {
-		Visualizer_UpdateWrite2(BUFS_arrayHandle, i, j, array[j], array[i], 0.25);
+		Visualizer_UpdateWrite2(arrayHandle, i, j, array[j], array[i], 0.25);
 		swap(&array[i], &array[j]);
 		j = (j - 1) / 2;
 	}
@@ -113,15 +112,14 @@ void BUHS_SiftDown(isort_t* array, intptr_t i, intptr_t end) {
 void BottomUpHeapSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 
 	intptr_t length = n;
-	BUFS_arrayHandle = arrayHandle;
 
 	for (intptr_t i = (length - 1) / 2; i >= 0; --i)
-		BUHS_SiftDown(array, i, length);
+		BUHS_SiftDown(array, i, length, arrayHandle);
 
 	for (intptr_t i = length - 1; i > 0; --i) {
-		Visualizer_UpdateWrite2(BUFS_arrayHandle, 0, i, array[i], array[0], 0.25);
+		Visualizer_UpdateWrite2(arrayHandle, 0, i, array[i], array[0], 0.25);
 		swap(&array[0], &array[i]);
-		BUHS_SiftDown(array, 0, i);
+		BUHS_SiftDown(array, 0, i, arrayHandle);
 	}
 
 	return;
@@ -138,7 +136,7 @@ void BottomUpHeapSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle)
 void WeakHeapSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
 
 	if (n < 2) return;
-	WHS_weakHeapSort(array, n);
+	weakHeapSort(array, n);
 	return;
 
 }

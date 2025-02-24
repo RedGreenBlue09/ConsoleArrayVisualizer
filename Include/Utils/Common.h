@@ -1,7 +1,7 @@
 #pragma once
-#include <stdalign.h>
 
-#define strlen_literal(X) (sizeof(X) / sizeof(*(X)) - 1)
+#define static_arrlen(X) (sizeof(X) / sizeof(*(X)))
+#define static_strlen(X) (static_arrlen(X) - 1)
 
 #define swap(X, Y) {typeof(*(X)) Temp = *(X); *(X) = *(Y); *(Y) = Temp;}
 

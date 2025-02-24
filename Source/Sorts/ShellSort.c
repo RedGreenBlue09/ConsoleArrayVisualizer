@@ -1,5 +1,6 @@
 
-#include "Sorts.h"
+#include "Visualizer.h"
+#include "Utils/Common.h"
 #include "Utils/Machine.h"
 
 /*
@@ -27,13 +28,7 @@ intptr_t gapsTokuda[] = {
 #endif
 };
 
-intptr_t gapsCiura[] = {
-	1, 4, 10, 23, 57, 132, 301, 701, 1750, 3937, 8859,
-	19933, 44850, 100913, 227056, 510876, 1149471, 2586310,
-	5819199, 13093198, 29459696, 66284316, 149139712, 335564353
-};
-
-void SHS_ShellSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle, intptr_t* gaps, intptr_t nGaps) {
+static void shellSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle, intptr_t* gaps, intptr_t nGaps) {
 
 	if (n < 2) return;
 
@@ -71,11 +66,7 @@ void SHS_ShellSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle, in
 // Exports:
 
 void ShellSortTokuda(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
-	SHS_ShellSort(array, n, arrayHandle, gapsTokuda, sizeof(gapsTokuda) / sizeof(*gapsTokuda));
+	shellSort(array, n, arrayHandle, gapsTokuda, static_arrlen(gapsTokuda));
 	return;
 }
 
-void ShellSortCiura(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
-	SHS_ShellSort(array, n, arrayHandle, gapsCiura, sizeof(gapsCiura) / sizeof(*gapsCiura));
-	return;
-}

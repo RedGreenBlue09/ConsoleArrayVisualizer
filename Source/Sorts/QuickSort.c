@@ -1,14 +1,13 @@
 
-#include "Sorts.h"
+#include "Utils/Common.h"
+#include "Visualizer.h"
 
 
-int NTQS_isortCompare(const isort_t* a, const isort_t* b) {
+static int isortCompare(const isort_t* a, const isort_t* b) {
 	return (*a > *b) - (*a < *b);
 }
 
-Visualizer_Handle LRQS_arrayHandle;
-
-void LRQS_Partition(isort_t* array, intptr_t low, intptr_t high) {
+static void partition(isort_t* array, intptr_t low, intptr_t high, Visualizer_Handle arrayHandle) {
 
 	isort_t pivot;
 	intptr_t left;
@@ -18,21 +17,21 @@ begin:
 	pivot = array[low + (high - low + 1) / 2];
 	left = low;
 	right = high;
-	Visualizer_Pointer pointer = Visualizer_CreatePointer(LRQS_arrayHandle, low + (high - low + 1) / 2);
+	Visualizer_Pointer pointer = Visualizer_CreatePointer(arrayHandle, low + (high - low + 1) / 2);
 
 	while (left <= right) {
 		while (array[left] < pivot) {
-			Visualizer_UpdateRead2(LRQS_arrayHandle, left, right, 0.625);
+			Visualizer_UpdateRead2(arrayHandle, left, right, 0.625);
 			++left;
 
 		}
 		while (array[right] > pivot) {
-			Visualizer_UpdateRead2(LRQS_arrayHandle, left, right, 0.625);
+			Visualizer_UpdateRead2(arrayHandle, left, right, 0.625);
 			--right;
 		}
 
 		if (left <= right) {
-			Visualizer_UpdateWrite2(LRQS_arrayHandle, left, right, array[right], array[left], 0.625);
+			Visualizer_UpdateWrite2(arrayHandle, left, right, array[right], array[left], 0.625);
 			swap(&array[left], &array[right]);
 			++left;
 			--right;
@@ -59,7 +58,7 @@ begin:
 		bigRight = right;
 	}
 
-	if (bigLeft < bigRight) LRQS_Partition(array, bigLeft, bigRight);
+	if (bigLeft < bigRight) partition(array, bigLeft, bigRight, arrayHandle);
 	if (smallLeft < smallRight) {
 		low = smallLeft;
 		high = smallRight;
@@ -85,8 +84,7 @@ void LeftRightQuickSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandl
 
 	if (n < 2) return;
 
-	LRQS_arrayHandle = arrayHandle;
-	LRQS_Partition(array, 0, n - 1);
+	partition(array, 0, n - 1, arrayHandle);
 
 	return;
 }

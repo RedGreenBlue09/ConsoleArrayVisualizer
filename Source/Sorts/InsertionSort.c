@@ -1,7 +1,7 @@
 
-#include "Sorts.h"
+#include "Visualizer.h"
 
-void BIS_BinaryInsertion(isort_t* array, intptr_t start, intptr_t end) {
+void BinaryInsertion(isort_t* array, intptr_t start, intptr_t end) {
 
 	intptr_t start2 = start;
 	intptr_t end2 = end;

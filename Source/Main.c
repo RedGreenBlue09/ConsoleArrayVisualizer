@@ -1,5 +1,5 @@
 
-#include "Sorts.h"
+#include "Visualizer.h"
 
 #define _USE_MATH_DEFINES
 
@@ -39,6 +39,23 @@ void mainShuffle(isort_t* aArray, intptr_t N) {
 
 }
 
+// TODO: HEADER
+// ShellSort.c
+
+void ShellSortTokuda(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle);
+
+// QuickSort.c
+
+void LeftRightQuickSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle);
+
+// MergeSort.c
+
+void IterativeMergeSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle);
+
+// HeapSort.c
+
+void BottomUpHeapSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle);
+
 int main() {
 
 	//intptr_t N = 64;
@@ -76,7 +93,7 @@ int main() {
 	mainShuffle(aArray, N);
 	Visualizer_UpdateArrayState(hArray, aArray);
 	Visualizer_SetAlgorithmName("Shellsort (Ciura's gaps)");
-	ShellSortCiura(aArray, N, hArray);
+	ShellSortTokuda(aArray, N, hArray);
 
 	//
 	Visualizer_RemoveArray(hArray);

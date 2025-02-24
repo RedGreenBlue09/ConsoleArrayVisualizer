@@ -52,7 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Main.c" />
-    <ClCompile Include="Source\Sorts.c" />
+    <ClCompile Include="Source\RunSorts.c" />
     <ClCompile Include="Source\Sorts\FlashSort.c" />
     <ClCompile Include="Source\Sorts\HeapSort.c" />
     <ClCompile Include="Source\Sorts\InsertionSort.c" />
@@ -75,7 +75,7 @@
     <ClInclude Include="Include\Utils\SpinLock.h" />
     <ClInclude Include="Include\Utils\Time.h" />
     <ClInclude Include="Include\Utils\Machine.h" />
-    <ClInclude Include="Include\Sorts.h" />
+    <ClInclude Include="Include\RunSorts.h" />
     <ClInclude Include="Include\Visualizer.h" />
     <ClInclude Include="Include\Visualizer\Common.h" />
     <ClInclude Include="Include\Visualizer\Renderer\ColumnWindowsConsole.h" />

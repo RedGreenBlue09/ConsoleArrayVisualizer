@@ -2,6 +2,7 @@
 #include "Visualizer/Renderer/ColumnWindowsConsole.h"
 
 #include <threads.h>
+#include <stdalign.h>
 #include <string.h>
 #include <Windows.h>
 
@@ -126,6 +127,8 @@ static inline intptr_t NearestNeighborScale(intptr_t iA, intptr_t nA, intptr_t n
 }
 
 static void UpdateCellCacheRow(intptr_t iRow, const char* sText, intptr_t nText) {
+	if (iRow >= BufferInfo.dwSize.Y)
+		return;
 	if (nText > BufferInfo.dwSize.X)
 		nText = BufferInfo.dwSize.X;
 	// Use wide char to avoid conversion
@@ -397,7 +400,7 @@ static int RenderThreadMain(void* pData) {
 		if (NewFpsUpdateCount > FpsUpdateCount) {
 
 			char aFpsString[48] = "FPS: ";
-			Length = strlen_literal("FPS: ");
+			Length = static_strlen("FPS: ");
 			NumberLength = Uint64ToString(
 				FramesRendered * 1000000 / ((NewFpsUpdateCount - FpsUpdateCount) * FpsUpdateInterval),
 				aFpsString + Length
@@ -412,7 +415,7 @@ static int RenderThreadMain(void* pData) {
 
 		// Array
 		char aArrayIndexString[48] = "Array #";
-		Length = strlen_literal("Array #");
+		Length = static_strlen("Array #");
 		NumberLength = Uint64ToString(
 			PoolAddressToIndex(&ArrayPropPool, pArrayProp),
 			aArrayIndexString + Length
@@ -422,21 +425,21 @@ static int RenderThreadMain(void* pData) {
 
 		// Size
 		char aSizeString[48] = "Size: ";
-		Length = strlen_literal("Size: ");
+		Length = static_strlen("Size: ");
 		NumberLength = Uint64ToString(pArrayProp->Size, aSizeString + Length);
 		Length += NumberLength;
 		UpdateCellCacheRow(5, aSizeString, Length);
 
 		// Reads
 		char aReadCountString[48] = "Reads: ";
-		Length = strlen_literal("Reads: ");
+		Length = static_strlen("Reads: ");
 		NumberLength = Uint64ToString(pArrayProp->ReadCount, aReadCountString + Length);
 		Length += NumberLength;
 		UpdateCellCacheRow(6, aReadCountString, Length);
 
 		// Writee
 		char aWriteCountString[48] = "Writes: ";
-		Length = strlen_literal("Writes: ");
+		Length = static_strlen("Writes: ");
 		NumberLength = Uint64ToString(pArrayProp->WriteCount, aWriteCountString + Length);
 		Length += NumberLength;
 		UpdateCellCacheRow(7, aWriteCountString, Length);

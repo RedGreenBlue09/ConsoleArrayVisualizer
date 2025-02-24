@@ -1,9 +1,9 @@
 
-#include "Sorts.h"
+#include "Visualizer.h"
 
 #include "Utils/GuardedMalloc.h"
 
-void PGHS_pigeonholeSort(isort_t* array, intptr_t n) {
+static void pigeonholeSort(isort_t* array, intptr_t n) {
 
 	intptr_t i;
 
@@ -58,6 +58,6 @@ void PGHS_pigeonholeSort(isort_t* array, intptr_t n) {
 
 
 void PigeonholeSort(isort_t* array, intptr_t N, Visualizer_Handle arrayHandle) {
-	PGHS_pigeonholeSort(array, (intptr_t)N);
+	pigeonholeSort(array, (intptr_t)N);
 	return;
 }

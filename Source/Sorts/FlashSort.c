@@ -1,9 +1,12 @@
 
-#include "Sorts.h"
+#include "Utils/Common.h"
+#include "Visualizer.h"
 
 #include "Utils/GuardedMalloc.h"
 
-void FS_flashSort(usort_t* array, intptr_t n) {
+void InsertionSort(isort_t* array, intptr_t n);
+
+static void flashSort(usort_t* array, intptr_t n) {
 
 	if (n < 2) return;
 
@@ -101,7 +104,7 @@ void FS_flashSort(usort_t* array, intptr_t n) {
 
 		intptr_t classSize = L[k + 1] - L[k];
 		if ((classSize > threshold) && (classSize > minElements))
-			FS_flashSort(array + L[k], classSize);
+			flashSort(array + L[k], classSize);
 	}
 	free(L);
 	InsertionSort((isort_t*)array, n);
@@ -120,7 +123,7 @@ void FS_flashSort(usort_t* array, intptr_t n) {
 void FlashSort(isort_t* array, intptr_t n) {
 
 	if (n < 2) return;
-	FS_flashSort((usort_t*)array, n);
+	flashSort((usort_t*)array, n);
 	return;
 
 }
