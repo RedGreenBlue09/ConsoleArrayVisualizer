@@ -51,6 +51,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Machine.c" />
     <ClCompile Include="Source\Main.c" />
     <ClCompile Include="Source\RunSorts.c" />
     <ClCompile Include="Source\Sorts\FlashSort.c" />

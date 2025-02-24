@@ -23,7 +23,6 @@ static inline uint64_t rotl(const uint64_t x, int k) {
 	return (x << k) | (x >> (64 - k));
 }
 
-
 static uint64_t s[4];
 
 uint64_t next() {
@@ -42,67 +41,6 @@ uint64_t next() {
 
 	return result;
 }
-
-
-/* This is the jump function for the generator. It is equivalent
-   to 2^128 calls to next(); it can be used to generate 2^128
-   non-overlapping subsequences for parallel computations. */
-
-void jump() {
-	static const uint64_t JUMP[] = { 0x180ec6d33cfd0aba, 0xd5a61266f0c9392c, 0xa9582618e03fc9aa, 0x39abdc4529b1661c };
-
-	uint64_t s0 = 0;
-	uint64_t s1 = 0;
-	uint64_t s2 = 0;
-	uint64_t s3 = 0;
-	for(int i = 0; i < sizeof JUMP / sizeof *JUMP; i++)
-		for(int b = 0; b < 64; b++) {
-			if (JUMP[i] & UINT64_C(1) << b) {
-				s0 ^= s[0];
-				s1 ^= s[1];
-				s2 ^= s[2];
-				s3 ^= s[3];
-			}
-			next();	
-		}
-		
-	s[0] = s0;
-	s[1] = s1;
-	s[2] = s2;
-	s[3] = s3;
-}
-
-
-
-/* This is the long-jump function for the generator. It is equivalent to
-   2^192 calls to next(); it can be used to generate 2^64 starting points,
-   from each of which jump() will generate 2^64 non-overlapping
-   subsequences for parallel distributed computations. */
-
-void long_jump() {
-	static const uint64_t LONG_JUMP[] = { 0x76e15d3efefdcbbf, 0xc5004e441c522fb3, 0x77710069854ee241, 0x39109bb02acbe635 };
-
-	uint64_t s0 = 0;
-	uint64_t s1 = 0;
-	uint64_t s2 = 0;
-	uint64_t s3 = 0;
-	for(int i = 0; i < sizeof LONG_JUMP / sizeof *LONG_JUMP; i++)
-		for(int b = 0; b < 64; b++) {
-			if (LONG_JUMP[i] & UINT64_C(1) << b) {
-				s0 ^= s[0];
-				s1 ^= s[1];
-				s2 ^= s[2];
-				s3 ^= s[3];
-			}
-			next();	
-		}
-		
-	s[0] = s0;
-	s[1] = s1;
-	s[2] = s2;
-	s[3] = s3;
-}
-
 
 /*  Written in 2015 by Sebastiano Vigna (vigna@acm.org)
 
@@ -123,8 +61,9 @@ uint64_t sm_next_int() {
 	return z ^ (z >> 31);                      /* return the variable xored with itself right bit shifted 31 */
 }
 
-
 /* Wrapper */
+
+#include "Utils/Machine.h"
 
 void srand64(uint64_t seed) {
 	sm_state = seed;
@@ -136,4 +75,16 @@ void srand64(uint64_t seed) {
 
 uint64_t rand64() {
 	return next();
+}
+
+// Source: https://www.pcg-random.org/posts/bounded-rands.html
+
+uint64_t rand64_bounded(uint64_t range) {
+	--range;
+	uint64_t mask = UINT64_MAX >> (63 - log2_u64(range | 1));
+	uint64_t x;
+	do {
+		x = rand64() & mask;
+	} while (x > range);
+	return x;
 }

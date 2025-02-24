@@ -437,7 +437,7 @@ static int RenderThreadMain(void* pData) {
 		Length += NumberLength;
 		UpdateCellCacheRow(6, aReadCountString, Length);
 
-		// Writee
+		// Write
 		char aWriteCountString[48] = "Writes: ";
 		Length = static_strlen("Writes: ");
 		NumberLength = Uint64ToString(pArrayProp->WriteCount, aWriteCountString + Length);
@@ -762,7 +762,6 @@ static void MoveMarker(MarkerProp Marker, intptr_t iNewPosition) {
 	UpdateMember(Marker.pArrayProp, iNewPosition, MemberUpdateType_Attribute, true, Marker.Attribute, 0);
 }
 
-#define VISUALIZER_DISABLE_SLEEP
 #ifndef VISUALIZER_DISABLE_SLEEP
 
 static const uint64_t DefaultDelay = 10000; // microseconds
@@ -899,4 +898,23 @@ void RendererCwc_ClearReadWriteCounter(Visualizer_Handle hArray) {
 	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 	pArrayProp->ReadCount = 0;
 	pArrayProp->WriteCount = 0;
+}
+
+// FIXME: Proper impl
+void RendererCwc_UpdateCorrectness(Visualizer_Handle hArray, intptr_t iPosition, bool bCorrect) {
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
+	Visualizer_MarkerAttribute Attribute =
+		bCorrect ?
+		Visualizer_MarkerAttribute_Correct : 
+		Visualizer_MarkerAttribute_Incorrect;
+	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, true, Attribute, 0);
+}
+
+void RendererCwc_ClearCorrectness(Visualizer_Handle hArray, intptr_t iPosition, bool bCorrect) {
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
+	Visualizer_MarkerAttribute Attribute =
+		bCorrect ?
+		Visualizer_MarkerAttribute_Correct :
+		Visualizer_MarkerAttribute_Incorrect;
+	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
 }

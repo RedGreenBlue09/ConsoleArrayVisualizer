@@ -57,7 +57,7 @@ static void pigeonholeSort(isort_t* array, intptr_t n) {
 */
 
 
-void PigeonholeSort(isort_t* array, intptr_t N, Visualizer_Handle arrayHandle) {
-	pigeonholeSort(array, (intptr_t)N);
+void PigeonholeSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n) {
+	pigeonholeSort(array, (intptr_t)n);
 	return;
 }

@@ -28,7 +28,7 @@ intptr_t gapsTokuda[] = {
 #endif
 };
 
-static void shellSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle, intptr_t* gaps, intptr_t nGaps) {
+static void shellSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n, intptr_t* gaps, intptr_t nGaps) {
 
 	if (n < 2) return;
 
@@ -65,8 +65,8 @@ static void shellSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle,
 
 // Exports:
 
-void ShellSortTokuda(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
-	shellSort(array, n, arrayHandle, gapsTokuda, static_arrlen(gapsTokuda));
+void ShellSortTokuda(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n) {
+	shellSort(arrayHandle, array, n, gapsTokuda, static_arrlen(gapsTokuda));
 	return;
 }
 

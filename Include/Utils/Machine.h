@@ -4,9 +4,9 @@
 
 // Machine pointer size detection
 
-#if (UINTPTR_MAX <= UINT32_MAX)
+#if (UINTPTR_MAX == UINT32_MAX)
 	#define MACHINE_PTR32 1
-#elif (UINTPTR_MAX <= UINT64_MAX)
+#elif (UINTPTR_MAX == UINT64_MAX)
 	#define MACHINE_PTR64 1
 #endif
 
@@ -33,3 +33,5 @@
 		#define MACHINE_ARM64
 	#endif
 #endif
+
+uint8_t log2_u64(uint64_t X);

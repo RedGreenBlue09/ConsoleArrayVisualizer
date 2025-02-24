@@ -100,7 +100,7 @@ static void iterativeMergeSort(isort_t* a, size_t n) {
 
 // Exports:
 
-void IterativeMergeSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
+void IterativeMergeSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n) {
 
 	if (n < 2) return;
 	iterativeMergeSort(array, n);

@@ -75,6 +75,9 @@
     <ClCompile Include="Source\Utils\MemoryPool.c">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Machine.c">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\RunSorts.h">

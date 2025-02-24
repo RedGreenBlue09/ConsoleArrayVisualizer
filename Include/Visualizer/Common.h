@@ -18,4 +18,4 @@ typedef uint8_t Visualizer_MarkerAttribute;
 #define Visualizer_MarkerAttribute_Incorrect 4
 #define Visualizer_MarkerAttribute_EnumCount 5
 
-//#define VISUALIZER_DISABLE_SLEEP 1
+#define VISUALIZER_DISABLE_SLEEP 1

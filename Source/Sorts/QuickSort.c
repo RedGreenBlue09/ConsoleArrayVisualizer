@@ -7,7 +7,7 @@ static int isortCompare(const isort_t* a, const isort_t* b) {
 	return (*a > *b) - (*a < *b);
 }
 
-static void partition(isort_t* array, intptr_t low, intptr_t high, Visualizer_Handle arrayHandle) {
+static void partition(Visualizer_Handle arrayHandle, isort_t* array, intptr_t low, intptr_t high) {
 
 	isort_t pivot;
 	intptr_t left;
@@ -58,7 +58,7 @@ begin:
 		bigRight = right;
 	}
 
-	if (bigLeft < bigRight) partition(array, bigLeft, bigRight, arrayHandle);
+	if (bigLeft < bigRight) partition(arrayHandle, array, bigLeft, bigRight);
 	if (smallLeft < smallRight) {
 		low = smallLeft;
 		high = smallRight;
@@ -80,11 +80,11 @@ begin:
 * Negative integer support     : Yes
 */
 
-void LeftRightQuickSort(isort_t* array, intptr_t n, Visualizer_Handle arrayHandle) {
+void LeftRightQuickSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n) {
 
 	if (n < 2) return;
 
-	partition(array, 0, n - 1, arrayHandle);
+	partition(arrayHandle, array, 0, n - 1);
 
 	return;
 }
