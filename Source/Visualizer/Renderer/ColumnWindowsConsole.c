@@ -283,7 +283,7 @@ static int RenderThreadMain(void* pData) {
 	// microseconds
 	uint64_t ClockResolution = clock64_resolution();
 	uint64_t ThreadTimeStart = clock64();
-	uint64_t UpdateInterval = 15625; // 64 FPS
+	uint64_t UpdateInterval = 16666; // 60 FPS
 
 	uint64_t FpsUpdateInterval = 500000; // FPS counter interval
 	uint64_t FpsUpdateCount = 0;
@@ -785,7 +785,6 @@ void RendererCwc_UpdateRead(Visualizer_Handle hArray, intptr_t iPosition, double
 	RemoveMarker(Marker);
 }
 
-// Update 2 items (used for comparisions).
 void RendererCwc_UpdateRead2(Visualizer_Handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
 	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 
@@ -825,17 +824,36 @@ void RendererCwc_UpdateWrite(Visualizer_Handle hArray, intptr_t iPosition, isort
 	RemoveMarker(Marker);
 }
 
-void RendererCwc_UpdateWrite2(
+void RendererCwc_UpdateReadWrite(
 	Visualizer_Handle hArray,
 	intptr_t iPositionA,
 	intptr_t iPositionB,
-	isort_t NewValueA,
-	isort_t NewValueB,
 	double fSleepMultiplier
 ) {
 	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
 
+	pArrayProp->ReadCount += 1;
+	pArrayProp->WriteCount += 1;
+	isort_t NewValueA = pArrayProp->aState[iPositionB].Value;
+	MarkerProp MarkerA = AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
+	MarkerProp MarkerB = AddMarker(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
+	SleepByMultiplier(fSleepMultiplier);
+	RemoveMarker(MarkerA);
+	RemoveMarker(MarkerB);
+}
+
+void RendererCwc_UpdateSwap(
+	Visualizer_Handle hArray,
+	intptr_t iPositionA,
+	intptr_t iPositionB,
+	double fSleepMultiplier
+) {
+	ArrayProp* pArrayProp = GetHandleData(&ArrayPropPool, hArray);
+
+	pArrayProp->ReadCount += 2;
 	pArrayProp->WriteCount += 2;
+	isort_t NewValueA = pArrayProp->aState[iPositionB].Value;
+	isort_t NewValueB = pArrayProp->aState[iPositionA].Value;
 	MarkerProp MarkerA = AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
 	MarkerProp MarkerB = AddMarkerWithValue(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write, NewValueB);
 	SleepByMultiplier(fSleepMultiplier);

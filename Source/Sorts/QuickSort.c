@@ -9,35 +9,37 @@ static int isortCompare(const isort_t* a, const isort_t* b) {
 
 static void partition(Visualizer_Handle arrayHandle, isort_t* array, intptr_t low, intptr_t high) {
 
-	isort_t pivot;
+	intptr_t pivot;
+	isort_t pivotValue;
 	intptr_t left;
 	intptr_t right;
 
 begin:
-	pivot = array[low + (high - low + 1) / 2];
+	pivot = low + (high - low + 1) / 2;
+	pivotValue = array[pivot];
 	left = low;
 	right = high;
-	Visualizer_Pointer pointer = Visualizer_CreatePointer(arrayHandle, low + (high - low + 1) / 2);
 
 	while (left <= right) {
-		while (array[left] < pivot) {
-			Visualizer_UpdateRead2(arrayHandle, left, right, 0.625);
+		// Visualizer_UpdateRead is more accurate here
+		// but in the real world, we can't just cache the pivot value
+		while (array[left] < pivotValue) {
+			Visualizer_UpdateRead2(arrayHandle, left, pivot, 0.625);
 			++left;
 
 		}
-		while (array[right] > pivot) {
-			Visualizer_UpdateRead2(arrayHandle, left, right, 0.625);
+		while (array[right] > pivotValue) {
+			Visualizer_UpdateRead2(arrayHandle, right, pivot, 0.625);
 			--right;
 		}
 
 		if (left <= right) {
-			Visualizer_UpdateWrite2(arrayHandle, left, right, array[right], array[left], 0.625);
+			Visualizer_UpdateSwap(arrayHandle, left, right, 0.625);
 			swap(&array[left], &array[right]);
 			++left;
 			--right;
 		}
 	}
-	Visualizer_RemovePointer(pointer);
 
 	// Call tail optimization
 	// (prevents O(n) call stack in worst case)

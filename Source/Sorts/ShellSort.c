@@ -48,8 +48,7 @@ static void shellSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n,
 			intptr_t j;
 
 			for (j = i; (j >= gap) && (array[j - gap] > temp); j -= gap) {
-				Visualizer_UpdateRead(arrayHandle, j - gap, 0.25);
-				Visualizer_UpdateWrite(arrayHandle, j, array[j - gap], 0.25);
+				Visualizer_UpdateReadWrite(arrayHandle, j, j - gap, 0.25);
 				array[j] = array[j - gap];
 			}
 			Visualizer_UpdateWrite(arrayHandle, j, temp, 0.25);

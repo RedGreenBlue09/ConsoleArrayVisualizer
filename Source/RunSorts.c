@@ -46,15 +46,16 @@ uintptr_t RunSorts_nSort = static_arrlen(RunSorts_aSortList);
 
 static void Shuffle(Visualizer_Handle hArray, isort_t* aArray, intptr_t Length) {
 	// Linear
-	for (intptr_t i = 0; i < Length; ++i)
+	for (intptr_t i = 0; i < Length; ++i) {
+		Visualizer_UpdateWrite(hArray, i, (isort_t)i, 0.125);
 		aArray[i] = (isort_t)i;
-	Visualizer_UpdateArrayState(hArray, aArray);
+	}
 
 	// Fisher-Yates shuffle
 	srand64(clock64());
 	for (intptr_t i = Length - 1; i >= 1; --i) {
-		intptr_t iRandom = rand64_bounded(i + 1);
-		Visualizer_UpdateWrite2(hArray, i, iRandom, aArray[iRandom], aArray[i], 1.0);
+		intptr_t iRandom = (intptr_t)rand64_bounded(i + 1);
+		Visualizer_UpdateSwap(hArray, i, iRandom, 1.0);
 		swap(&aArray[i], &aArray[iRandom]);
 	}
 }
@@ -70,7 +71,8 @@ void RunSorts_RunSort(
 	Shuffle(hArray, aArray, Length);
 	Visualizer_SetAlgorithmName("");
 	sleep64(1000000);
+	Visualizer_ClearReadWriteCounter(hArray);
 	Visualizer_SetAlgorithmName(pSortInfo->sName);
 	pSortInfo->SortFunction(hArray, aArray, Length);
-	sleep64(1000000);
+	sleep64(2000000);
 }

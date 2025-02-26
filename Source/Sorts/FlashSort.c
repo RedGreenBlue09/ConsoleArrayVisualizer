@@ -12,7 +12,8 @@ static void flashSort(usort_t* array, intptr_t n) {
 
 	intptr_t M = (n / 5) + 2;
 
-	intptr_t min, max, maxIndex;
+	usort_t min, max;
+	intptr_t maxIndex;
 	max = array[0];
 	min = max;
 	maxIndex = 0;
@@ -73,7 +74,7 @@ static void flashSort(usort_t* array, intptr_t n) {
 	swap(&array[maxIndex], &array[0]);
 
 	k = M;
-	intptr_t j = 0;
+	uintptr_t j = 0;
 	intptr_t numMoves = 0;
 
 	while (numMoves < n) {

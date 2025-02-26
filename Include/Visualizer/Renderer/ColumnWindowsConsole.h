@@ -50,12 +50,16 @@ void RendererCwc_UpdateWrite(
 	isort_t NewValue,
 	double fSleepMultiplier
 );
-void RendererCwc_UpdateWrite2(
+void RendererCwc_UpdateSwap(
 	Visualizer_Handle hArray,
 	intptr_t iPositionA,
 	intptr_t iPositionB,
-	isort_t NewValueA,
-	isort_t NewValueB,
+	double fSleepMultiplier
+);
+void RendererCwc_UpdateReadWrite(
+	Visualizer_Handle hArray,
+	intptr_t iPositionA,
+	intptr_t iPositionB,
 	double fSleepMultiplier
 );
 void RendererCwc_UpdateWriteMulti(
@@ -91,17 +95,26 @@ void RendererCwc_ClearReadWriteCounter(Visualizer_Handle hArray);
 #define Visualizer_RemoveArray(hArray) RendererCwc_RemoveArray(hArray)
 #define Visualizer_UpdateArrayState(hArray, aState) RendererCwc_UpdateArrayState(hArray, aState)
 
+// Read 1 element
 #define Visualizer_UpdateRead(hArray, iPosition, fSleepMultiplier) \
 	RendererCwc_UpdateRead(hArray, iPosition, fSleepMultiplier)
+// Read 2 elements (usually comparisions).
 #define Visualizer_UpdateRead2(hArray, iPositionA, iPositionB, fSleepMultiplier) \
 	RendererCwc_UpdateRead2(hArray, iPositionA, iPositionB, fSleepMultiplier)
+// SIMD load. Max: 512 bits
 #define Visualizer_UpdateReadMulti(hArray, iStartPosition, Length, fSleepMultiplier) \
 	RendererCwc_UpdateReadMulti(hArray, iStartPosition, Length, fSleepMultiplier)
 
+// a[iPosition] = NewValue
 #define Visualizer_UpdateWrite(hArray, iPosition, NewValue, fSleepMultiplier) \
 	RendererCwc_UpdateWrite(hArray, iPosition, NewValue, fSleepMultiplier)
-#define Visualizer_UpdateWrite2(hArray, iPositionA, iPositionB, NewValueA, NewValueB, fSleepMultiplier) \
-	RendererCwc_UpdateWrite2(hArray, iPositionA, iPositionB, NewValueA, NewValueB, fSleepMultiplier)
+// a[iPositionA] = a[iPositionB]
+#define Visualizer_UpdateReadWrite(hArray, iPositionA, iPositionB, fSleepMultiplier) \
+	RendererCwc_UpdateReadWrite(hArray, iPositionA, iPositionB, fSleepMultiplier)
+// swap(&a[iPositionA], &a[iPositionB])
+#define Visualizer_UpdateSwap(hArray, iPositionA, iPositionB, fSleepMultiplier) \
+	RendererCwc_UpdateSwap(hArray, iPositionA, iPositionB, fSleepMultiplier)
+// SIMD store. Max: 512 bits
 #define Visualizer_UpdateWriteMulti(hArray, iStartPosition, Length, aNewValue, fSleepMultiplier) \
 	RendererCwc_UpdateWriteMulti(hArray, iStartPosition, Length, aNewValue, fSleepMultiplier)
 
