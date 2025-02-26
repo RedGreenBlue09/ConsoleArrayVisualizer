@@ -11,12 +11,12 @@ typedef uint64_t visualizer_ulong;
 typedef void* visualizer_array_handle;
 
 typedef uint8_t visualizer_marker_attribute;
-#define visualizer_marker_attribute_Pointer 0
-#define visualizer_marker_attribute_Read 1
-#define visualizer_marker_attribute_Write 2
-#define visualizer_marker_attribute_Correct 3
-#define visualizer_marker_attribute_Incorrect 4
-#define visualizer_marker_attribute_EnumCount 5
+#define Visualizer_MarkerAttribute_Pointer 0
+#define Visualizer_MarkerAttribute_Read 1
+#define Visualizer_MarkerAttribute_Write 2
+#define Visualizer_MarkerAttribute_Correct 3
+#define Visualizer_MarkerAttribute_Incorrect 4
+#define Visualizer_MarkerAttribute_EnumCount 5
 
 #define VISUALIZER_DISABLE_SLEEP 1
 

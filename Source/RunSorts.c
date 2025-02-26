@@ -64,16 +64,16 @@ static void Verify(visualizer_array_handle hArray, visualizer_int* aArray, intpt
 	// Linear
 	for (intptr_t i = 0; i < Length; ++i) {
 		if (aArray[i] == (visualizer_int)i)
-			Visualizer_CreateMarker(hArray, i, visualizer_marker_attribute_Correct);
+			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Correct);
 		else
-			Visualizer_CreateMarker(hArray, i, visualizer_marker_attribute_Incorrect);
+			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Incorrect);
 	}
 	sleep64(2000000);
 	for (intptr_t i = 0; i < Length; ++i) {
 		if (aArray[i] == (visualizer_int)i)
-			Visualizer_RemoveMarker((visualizer_marker){ hArray, i, visualizer_marker_attribute_Correct });
+			Visualizer_RemoveMarker((visualizer_marker){ hArray, i, Visualizer_MarkerAttribute_Correct });
 		else
-			Visualizer_RemoveMarker((visualizer_marker){ hArray, i, visualizer_marker_attribute_Incorrect });
+			Visualizer_RemoveMarker((visualizer_marker){ hArray, i, Visualizer_MarkerAttribute_Incorrect });
 	}
 }
 

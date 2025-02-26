@@ -18,7 +18,7 @@
 static HANDLE ghAltBuffer = NULL;
 static CONSOLE_SCREEN_BUFFER_INFOEX gBufferInfo = { 0 };
 static CHAR_INFO* gaBufferCache;
-SMALL_RECT gUpdatedRect;
+static SMALL_RECT gUpdatedRect;
 
 // Unicode support is not going to be added
 // as it's too slow with current limitations.
@@ -26,27 +26,27 @@ SMALL_RECT gUpdatedRect;
 // https://github.com/microsoft/terminal/issues/10810#issuecomment-897800855
 //
 
-// Console Attr
+// Console attribute values
 // cmd "color /?" explains this very well.
-#define ATTR_WINCON_BACKGROUND 0x0FU
-#define ATTR_WINCON_NORMAL     0x78U
-#define ATTR_WINCON_READ       0x1EU
-#define ATTR_WINCON_WRITE      0x4BU
-#define ATTR_WINCON_POINTER    0x3CU
-#define ATTR_WINCON_CORRECT    0x2EU
-#define ATTR_WINCON_INCORRECT  0x4BU
+#define ConsoleAttribute_Background 0x0FU
+#define ConsoleAttribute_Normal     0x78U
+#define ConsoleAttribute_Read       0x1EU
+#define ConsoleAttribute_Write      0x4BU
+#define ConsoleAttribute_Pointer    0x3CU
+#define ConsoleAttribute_Correct    0x2EU
+#define ConsoleAttribute_Incorrect  0x4BU
 
 // For uninitialization
 static HANDLE ghOldBuffer;
 static LONG_PTR gOldWindowStyle;
 
-// Abuse two's complement's addition property to prevent overflow
+// Use two's complement's addition property to prevent overflow
 static_assert(-123456789 == ~123456789 + 1);
 
 // Array
 typedef struct {
 	visualizer_int Value;
-	uint8_t aMarkerCount[visualizer_marker_attribute_EnumCount];
+	uint8_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 } array_member;
 
 typedef struct {
@@ -56,7 +56,7 @@ typedef struct {
 	// This will break rendering but will still work due to unsigned integer wrapping.
 	intptr_t MemberCount;
 	atomic visualizer_long ValueSum;
-	atomic uint32_t aMarkerCount[visualizer_marker_attribute_EnumCount];
+	atomic uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 } column_info_atomic;
 
 typedef struct {
@@ -65,7 +65,7 @@ typedef struct {
 
 	intptr_t MemberCount;
 	non_atomic(visualizer_long) ValueSum;
-	non_atomic(uint32_t) aMarkerCount[visualizer_marker_attribute_EnumCount];
+	non_atomic(uint32_t) aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 } column_info_non_atomic;
 
 typedef union {
@@ -98,11 +98,11 @@ typedef struct {
 static pool gArrayPropPool;
 static array_prop* gpArrayPropHead;
 
-thrd_t gRenderThread;
+static thrd_t gRenderThread;
 static atomic bool gbRun;
 
-spinlock gAlgorithmNameLock;
-char* gsAlgorithmName; // NULL terminated
+static spinlock gAlgorithmNameLock;
+static char* gsAlgorithmName; // NULL terminated
 
 static visualizer_array_handle PoolIndexToHandle(pool_index PoolIndex) {
 	return (visualizer_array_handle)(PoolIndex + 1);
@@ -147,12 +147,12 @@ static void UpdateCellCacheRow(intptr_t iRow, const char* sText, intptr_t nText)
 		gUpdatedRect.Right = (int16_t)nText;
 }
 
-static const USHORT aWinConAttrTable[visualizer_marker_attribute_EnumCount] = {
-	ATTR_WINCON_POINTER,
-	ATTR_WINCON_READ,
-	ATTR_WINCON_WRITE,
-	ATTR_WINCON_CORRECT,
-	ATTR_WINCON_INCORRECT
+static const USHORT aWinConAttrTable[Visualizer_MarkerAttribute_EnumCount] = {
+	ConsoleAttribute_Pointer,
+	ConsoleAttribute_Read,
+	ConsoleAttribute_Write,
+	ConsoleAttribute_Correct,
+	ConsoleAttribute_Incorrect
 };
 
 typedef struct {
@@ -169,7 +169,7 @@ static ColumnUpdateParam GetColumnUpdateParam(array_prop* pArrayProp, intptr_t i
 
 	column_info_non_atomic* pColumn = &pArrayProp->aColumn[iColumn].NonAtomic;
 	visualizer_long ValueSum;
-	uint32_t aMarkerCount[visualizer_marker_attribute_EnumCount];
+	uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 
 	sharedlock_lock_exclusive(&pColumn->SharedLock);
 
@@ -186,7 +186,7 @@ static ColumnUpdateParam GetColumnUpdateParam(array_prop* pArrayProp, intptr_t i
 	// Find the attribute that have the most occurrences. TODO: SIMD
 	uint8_t MaxAttrCount = aMarkerCount[0];
 	visualizer_marker_attribute Attr = 0;
-	for (uint8_t i = 1; i < visualizer_marker_attribute_EnumCount; ++i) {
+	for (uint8_t i = 1; i < Visualizer_MarkerAttribute_EnumCount; ++i) {
 		uint8_t Count = aMarkerCount[i];
 		if (Count >= MaxAttrCount) {
 			MaxAttrCount = Count;
@@ -196,7 +196,7 @@ static ColumnUpdateParam GetColumnUpdateParam(array_prop* pArrayProp, intptr_t i
 
 	uint16_t ConsoleAttr;
 	if (MaxAttrCount == 0)
-		ConsoleAttr = ATTR_WINCON_NORMAL;
+		ConsoleAttr = ConsoleAttribute_Normal;
 	else
 		ConsoleAttr = aWinConAttrTable[Attr];
 
@@ -227,7 +227,7 @@ static void UpdateCellCacheColumn(int16_t iConsoleColumn, ColumnUpdateParam Para
 
 	intptr_t i = 0;
 	for (; i < (intptr_t)(gBufferInfo.dwSize.Y - Parameter.Height); ++i)
-		gaBufferCache[gBufferInfo.dwSize.X * i + iConsoleColumn].Attributes = ATTR_WINCON_BACKGROUND;
+		gaBufferCache[gBufferInfo.dwSize.X * i + iConsoleColumn].Attributes = ConsoleAttribute_Background;
 	for (; i < gBufferInfo.dwSize.Y; ++i)
 		gaBufferCache[gBufferInfo.dwSize.X * i + iConsoleColumn].Attributes = Parameter.ConsoleAttr;
 }
@@ -236,7 +236,7 @@ static void ClearScreen() {
 	LONG BufferSize = gBufferInfo.dwSize.X * gBufferInfo.dwSize.Y;
 	for (intptr_t i = 0; i < BufferSize; ++i) {
 		gaBufferCache[i].Char.UnicodeChar = ' ';
-		gaBufferCache[i].Attributes = ATTR_WINCON_BACKGROUND;
+		gaBufferCache[i].Attributes = ConsoleAttribute_Background;
 	}
 	SMALL_RECT Rect = {
 		0,
@@ -335,7 +335,7 @@ static int RenderThreadMain(void* pData) {
 				memset(
 					(uint8_t*)pColumn->aMarkerCount,
 					0,
-					visualizer_marker_attribute_EnumCount * sizeof(*pColumn->aMarkerCount)
+					Visualizer_MarkerAttribute_EnumCount * sizeof(*pColumn->aMarkerCount)
 				);
 
 				// Regenerate values
@@ -344,7 +344,7 @@ static int RenderThreadMain(void* pData) {
 					array_member* pMember = &pArrayProp->aState[iMember];
 
 					pColumn->ValueSum += pMember->Value;
-					for (uint8_t i = 0; i < visualizer_marker_attribute_EnumCount; ++i)
+					for (uint8_t i = 0; i < Visualizer_MarkerAttribute_EnumCount; ++i)
 						pColumn->aMarkerCount[i] += pMember->aMarkerCount[i]; // FIXME: Doesn't have to be atomic
 					// TODO: Add non-atomic array_prop
 				}
@@ -502,7 +502,7 @@ void Visualizer_Initialize() {
 	gBufferInfo.cbSize = sizeof(gBufferInfo);
 	GetConsoleScreenBufferInfoEx(ghAltBuffer, &gBufferInfo);
 	gBufferInfo.dwCursorPosition = (COORD){ 0, 0 };
-	gBufferInfo.wAttributes = ATTR_WINCON_BACKGROUND;
+	gBufferInfo.wAttributes = ConsoleAttribute_Background;
 	// WORKAROUND: Window size is 1 row smaller than expected
 	gBufferInfo.srWindow.Bottom = gBufferInfo.dwSize.Y;
 	SetConsoleScreenBufferInfoEx(ghAltBuffer, &gBufferInfo);
@@ -593,9 +593,9 @@ void Visualizer_RemoveArray(visualizer_array_handle hArray) {
 
 // UNSUPPORTED: Multiple threads on the same member
 typedef uint8_t member_update_type;
-#define member_update_type_No              0 // Not used
-#define member_update_type_Attribute      (1 << 0)
-#define member_update_type_Value          (1 << 1)
+#define MemberUpdateTypeNo              0 // Not used
+#define MemberUpdateTypeAttribute      (1 << 0)
+#define MemberUpdateTypeValue          (1 << 1)
 
 static inline void UpdateMember(
 	array_prop* pArrayProp,
@@ -615,7 +615,7 @@ static inline void UpdateMember(
 	// This lock is put up here for the render thread to handle window resize
 	sharedlock_lock_shared(&pColumn->SharedLock);
 
-	if (UpdateType & member_update_type_Attribute) {
+	if (UpdateType & MemberUpdateTypeAttribute) {
 		if (bAddAttribute)
 			++pArrayMember->aMarkerCount[Attribute];
 		else
@@ -623,12 +623,12 @@ static inline void UpdateMember(
 	}
 
 	visualizer_int OldValue = Value;
-	if (UpdateType & member_update_type_Value)
+	if (UpdateType & MemberUpdateTypeValue)
 		swap(&pArrayMember->Value, &OldValue);
 
-	if (UpdateType & member_update_type_Value)
+	if (UpdateType & MemberUpdateTypeValue)
 		pColumn->ValueSum += (visualizer_long)Value - OldValue;
-	if (UpdateType & member_update_type_Attribute) {
+	if (UpdateType & MemberUpdateTypeAttribute) {
 		if (bAddAttribute)
 			++pColumn->aMarkerCount[Attribute];
 		else
@@ -642,8 +642,10 @@ static inline void UpdateMember(
 void Visualizer_UpdateArrayState(visualizer_array_handle hArray, visualizer_int* aState) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	for (intptr_t i = 0; i < pArrayProp->Size; ++i)
-		UpdateMember(pArrayProp, i, member_update_type_Value, false, 0, aState[i]);
+		UpdateMember(pArrayProp, i, MemberUpdateTypeValue, false, 0, aState[i]);
 }
+
+// TODO: Implement array resize
 
 /*
 void Visualizer_UpdateArray(
@@ -662,7 +664,7 @@ void Visualizer_UpdateArray(
 	uint32_t Written;
 	FillConsoleOutputAttribute(
 		ghAltBuffer,
-		ATTR_WINCON_BACKGROUND,
+		ConsoleAttribute_Background,
 		gBufferInfo.dwSize.X * gBufferInfo.dwSize.Y,
 		(COORD){ 0, 0 },
 		&Written
@@ -694,7 +696,7 @@ void Visualizer_UpdateArray(
 			aResizedArrayState[i] = 0;
 
 		for (intptr_t i = OldSize; i < NewSize; ++i)
-			aResizedAttribute[i] = visualizer_marker_attribute_Normal;
+			aResizedAttribute[i] = Visualizer_MarkerAttribute_Normal;
 
 		pArrayProp->aState = aResizedArrayState;
 		pArrayProp->aAttribute = aResizedAttribute;
@@ -725,7 +727,7 @@ static void AddMarker(
 	intptr_t iPosition,
 	visualizer_marker_attribute Attribute
 ) {
-	UpdateMember(pArrayProp, iPosition, member_update_type_Attribute, true, Attribute, 0);
+	UpdateMember(pArrayProp, iPosition, MemberUpdateTypeAttribute, true, Attribute, 0);
 }
 
 static void AddMarkerWithValue(
@@ -737,7 +739,7 @@ static void AddMarkerWithValue(
 	UpdateMember(
 		pArrayProp,
 		iPosition,
-		member_update_type_Attribute | member_update_type_Value,
+		MemberUpdateTypeAttribute | MemberUpdateTypeValue,
 		true,
 		Attribute,
 		Value
@@ -745,7 +747,7 @@ static void AddMarkerWithValue(
 }
 
 static void RemoveMarkerHelper(array_prop* pArrayProp, intptr_t iPosition, visualizer_marker_attribute Attribute) {
-	UpdateMember(pArrayProp, iPosition, member_update_type_Attribute, false, Attribute, 0);
+	UpdateMember(pArrayProp, iPosition, MemberUpdateTypeAttribute, false, Attribute, 0);
 }
 
 // It does not update the iPosition member
@@ -755,8 +757,8 @@ static void MoveMarkerHelper(
 	intptr_t iNewPosition,
 	visualizer_marker_attribute Attribute
 ) {
-	UpdateMember(pArrayProp, iPosition, member_update_type_Attribute, false, Attribute, 0);
-	UpdateMember(pArrayProp, iNewPosition, member_update_type_Attribute, true, Attribute, 0);
+	UpdateMember(pArrayProp, iPosition, MemberUpdateTypeAttribute, false, Attribute, 0);
+	UpdateMember(pArrayProp, iNewPosition, MemberUpdateTypeAttribute, true, Attribute, 0);
 }
 
 
@@ -775,20 +777,20 @@ void Visualizer_UpdateRead(visualizer_array_handle hArray, intptr_t iPosition, d
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 
 	pArrayProp->ReadCount += 1;
-	AddMarker(pArrayProp, iPosition, visualizer_marker_attribute_Read);
+	AddMarker(pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
 	SleepByMultiplier(fSleepMultiplier);
-	RemoveMarkerHelper(pArrayProp, iPosition, visualizer_marker_attribute_Read);
+	RemoveMarkerHelper(pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
 }
 
 void Visualizer_UpdateRead2(visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 
 	pArrayProp->ReadCount += 2;
-	AddMarker(pArrayProp, iPositionA, visualizer_marker_attribute_Read);
-	AddMarker(pArrayProp, iPositionB, visualizer_marker_attribute_Read);
+	AddMarker(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
+	AddMarker(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
 	SleepByMultiplier(fSleepMultiplier);
-	RemoveMarkerHelper(pArrayProp, iPositionA, visualizer_marker_attribute_Read);
-	RemoveMarkerHelper(pArrayProp, iPositionB, visualizer_marker_attribute_Read);
+	RemoveMarkerHelper(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
+	RemoveMarkerHelper(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
 }
 
 void Visualizer_UpdateReadMulti(
@@ -803,19 +805,19 @@ void Visualizer_UpdateReadMulti(
 
 	pArrayProp->ReadCount += Length;
 	for (intptr_t i = 0; i < Length; ++i)
-		AddMarker(pArrayProp, iStartPosition + i, visualizer_marker_attribute_Read);
+		AddMarker(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Read);
 	SleepByMultiplier(fSleepMultiplier);
 	for (intptr_t i = 0; i < Length; ++i)
-		RemoveMarkerHelper(pArrayProp, iStartPosition + i, visualizer_marker_attribute_Read);
+		RemoveMarkerHelper(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Read);
 }
 
 void Visualizer_UpdateWrite(visualizer_array_handle hArray, intptr_t iPosition, visualizer_int NewValue, double fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 
 	pArrayProp->WriteCount += 1;
-	AddMarkerWithValue(pArrayProp, iPosition, visualizer_marker_attribute_Write, NewValue);
+	AddMarkerWithValue(pArrayProp, iPosition, Visualizer_MarkerAttribute_Write, NewValue);
 	SleepByMultiplier(fSleepMultiplier);
-	RemoveMarkerHelper(pArrayProp, iPosition, visualizer_marker_attribute_Write);
+	RemoveMarkerHelper(pArrayProp, iPosition, Visualizer_MarkerAttribute_Write);
 }
 
 void Visualizer_UpdateReadWrite(
@@ -829,11 +831,11 @@ void Visualizer_UpdateReadWrite(
 	pArrayProp->ReadCount += 1;
 	pArrayProp->WriteCount += 1;
 	visualizer_int NewValueA = pArrayProp->aState[iPositionB].Value;
-	AddMarkerWithValue(pArrayProp, iPositionA, visualizer_marker_attribute_Write, NewValueA);
-	AddMarker(pArrayProp, iPositionB, visualizer_marker_attribute_Read);
+	AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
+	AddMarker(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
 	SleepByMultiplier(fSleepMultiplier);
-	RemoveMarkerHelper(pArrayProp, iPositionA, visualizer_marker_attribute_Write);
-	RemoveMarkerHelper(pArrayProp, iPositionB, visualizer_marker_attribute_Read);
+	RemoveMarkerHelper(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write);
+	RemoveMarkerHelper(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
 }
 
 void Visualizer_UpdateSwap(
@@ -848,11 +850,11 @@ void Visualizer_UpdateSwap(
 	pArrayProp->WriteCount += 2;
 	visualizer_int NewValueA = pArrayProp->aState[iPositionB].Value;
 	visualizer_int NewValueB = pArrayProp->aState[iPositionA].Value;
-	AddMarkerWithValue(pArrayProp, iPositionA, visualizer_marker_attribute_Write, NewValueA);
-	AddMarkerWithValue(pArrayProp, iPositionB, visualizer_marker_attribute_Write, NewValueB);
+	AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
+	AddMarkerWithValue(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write, NewValueB);
 	SleepByMultiplier(fSleepMultiplier);
-	RemoveMarkerHelper(pArrayProp, iPositionA, visualizer_marker_attribute_Write);
-	RemoveMarkerHelper(pArrayProp, iPositionB, visualizer_marker_attribute_Write);
+	RemoveMarkerHelper(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write);
+	RemoveMarkerHelper(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write);
 }
 
 void Visualizer_UpdateWriteMulti(
@@ -868,10 +870,10 @@ void Visualizer_UpdateWriteMulti(
 
 	pArrayProp->WriteCount += Length;
 	for (intptr_t i = 0; i < Length; ++i)
-		AddMarkerWithValue(pArrayProp, iStartPosition + i, visualizer_marker_attribute_Write, aNewValue[i]);
+		AddMarkerWithValue(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Write, aNewValue[i]);
 	SleepByMultiplier(fSleepMultiplier);
 	for (intptr_t i = 0; i < Length; ++i)
-		RemoveMarkerHelper(pArrayProp, iStartPosition + i, visualizer_marker_attribute_Write);
+		RemoveMarkerHelper(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Write);
 }
 
 // Marker
@@ -919,16 +921,16 @@ void Visualizer_UpdateCorrectness(visualizer_array_handle hArray, intptr_t iPosi
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	visualizer_marker_attribute Attribute =
 		bCorrect ?
-		visualizer_marker_attribute_Correct : 
-		visualizer_marker_attribute_Incorrect;
-	UpdateMember(pArrayProp, iPosition, member_update_type_Attribute, true, Attribute, 0);
+		Visualizer_MarkerAttribute_Correct : 
+		Visualizer_MarkerAttribute_Incorrect;
+	UpdateMember(pArrayProp, iPosition, MemberUpdateTypeAttribute, true, Attribute, 0);
 }
 
 void Visualizer_ClearCorrectness(visualizer_array_handle hArray, intptr_t iPosition, bool bCorrect) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	visualizer_marker_attribute Attribute =
 		bCorrect ?
-		visualizer_marker_attribute_Correct :
-		visualizer_marker_attribute_Incorrect;
-	UpdateMember(pArrayProp, iPosition, member_update_type_Attribute, false, Attribute, 0);
+		Visualizer_MarkerAttribute_Correct :
+		Visualizer_MarkerAttribute_Incorrect;
+	UpdateMember(pArrayProp, iPosition, MemberUpdateTypeAttribute, false, Attribute, 0);
 }

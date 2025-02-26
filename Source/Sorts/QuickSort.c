@@ -20,7 +20,7 @@ begin:
 	pivot = low + (high - low + 1) / 2;
 	pivotValue = array[pivot];
 
-	visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, pivot, visualizer_marker_attribute_Pointer);
+	visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, pivot, Visualizer_MarkerAttribute_Pointer);
 	while (left <= right) {
 		while (array[left] < pivotValue) {
 			Visualizer_UpdateRead(arrayHandle, left, 0.625);

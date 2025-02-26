@@ -40,7 +40,7 @@ static void shellSort(visualizer_array_handle arrayHandle, visualizer_int* array
 
 		intptr_t gap = gaps[pass];
 
-		visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, gap, visualizer_marker_attribute_Pointer);
+		visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, gap, Visualizer_MarkerAttribute_Pointer);
 		for (intptr_t i = gap; i < n; ++i) {
 			visualizer_int temp = array[i];
 			Visualizer_UpdateRead(arrayHandle, i, 0.25);
