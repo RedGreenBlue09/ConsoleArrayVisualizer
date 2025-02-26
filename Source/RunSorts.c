@@ -5,23 +5,23 @@
 #include "Utils/Time.h"
 #include "Utils/Random.h"
 
-void InsertionSort(isort_t* array, intptr_t n);
+void InsertionSort(visualizer_int* array, intptr_t n);
 
 // ShellSort.c
 
-void ShellSortTokuda(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n);
+void ShellSortTokuda(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 
 // QuickSort.c
 
-void LeftRightQuickSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n);
+void LeftRightQuickSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 
 // MergeSort.c
 
-void IterativeMergeSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n);
+void IterativeMergeSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 
 // HeapSort.c
 
-void BottomUpHeapSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n);
+void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 
 sort_info RunSorts_aSortList[128] = {
 	{
@@ -44,11 +44,11 @@ sort_info RunSorts_aSortList[128] = {
 
 uintptr_t RunSorts_nSort = static_arrlen(RunSorts_aSortList);
 
-static void Shuffle(Visualizer_Handle hArray, isort_t* aArray, intptr_t Length) {
+static void Shuffle(visualizer_array_handle hArray, visualizer_int* aArray, intptr_t Length) {
 	// Linear
 	for (intptr_t i = 0; i < Length; ++i) {
-		Visualizer_UpdateWrite(hArray, i, (isort_t)i, 0.125);
-		aArray[i] = (isort_t)i;
+		Visualizer_UpdateWrite(hArray, i, (visualizer_int)i, 0.125);
+		aArray[i] = (visualizer_int)i;
 	}
 
 	// Fisher-Yates shuffle
@@ -60,10 +60,27 @@ static void Shuffle(Visualizer_Handle hArray, isort_t* aArray, intptr_t Length) 
 	}
 }
 
+static void Verify(visualizer_array_handle hArray, visualizer_int* aArray, intptr_t Length) {
+	// Linear
+	for (intptr_t i = 0; i < Length; ++i) {
+		if (aArray[i] == (visualizer_int)i)
+			Visualizer_CreateMarker(hArray, i, visualizer_marker_attribute_Correct);
+		else
+			Visualizer_CreateMarker(hArray, i, visualizer_marker_attribute_Incorrect);
+	}
+	sleep64(2000000);
+	for (intptr_t i = 0; i < Length; ++i) {
+		if (aArray[i] == (visualizer_int)i)
+			Visualizer_RemoveMarker((visualizer_marker){ hArray, i, visualizer_marker_attribute_Correct });
+		else
+			Visualizer_RemoveMarker((visualizer_marker){ hArray, i, visualizer_marker_attribute_Incorrect });
+	}
+}
+
 void RunSorts_RunSort(
 	sort_info* pSortInfo,
-	Visualizer_Handle hArray,
-	isort_t* aArray,
+	visualizer_array_handle hArray,
+	visualizer_int* aArray,
 	intptr_t Length
 ) {
 	Visualizer_ClearReadWriteCounter(hArray);
@@ -74,5 +91,5 @@ void RunSorts_RunSort(
 	Visualizer_ClearReadWriteCounter(hArray);
 	Visualizer_SetAlgorithmName(pSortInfo->sName);
 	pSortInfo->SortFunction(hArray, aArray, Length);
-	sleep64(2000000);
+	Verify(hArray, aArray, Length);
 }

@@ -4,11 +4,11 @@
 
 #include "Utils/GuardedMalloc.h"
 
-static void weakHeapSort(isort_t* array, intptr_t n) {
+static void weakHeapSort(visualizer_int* array, intptr_t n) {
 
 	intptr_t i, j, x, y, Gparent;
 	intptr_t bitsLength = (n + 7) / 8;
-	isort_t* bits = malloc_guarded(bitsLength * sizeof(isort_t));
+	visualizer_int* bits = malloc_guarded(bitsLength * sizeof(visualizer_int));
 
 	for (i = 0; i < n / 8; ++i)
 		bits[i] = 0;
@@ -23,7 +23,7 @@ static void weakHeapSort(isort_t* array, intptr_t n) {
 
 		if (array[Gparent] < array[i]) {
 
-			isort_t flag = bits[i >> 3];
+			visualizer_int flag = bits[i >> 3];
 			flag ^= 1 << (i & 7);
 
 			bits[i >> 3] = flag;
@@ -47,7 +47,7 @@ static void weakHeapSort(isort_t* array, intptr_t n) {
 
 			if (array[0] < array[x]) {
 
-				isort_t flag = bits[x >> 3];
+				visualizer_int flag = bits[x >> 3];
 				flag ^= 1 << (x & 7);
 
 				bits[x >> 3] = flag;
@@ -62,7 +62,7 @@ static void weakHeapSort(isort_t* array, intptr_t n) {
 	free(bits);
 }
 
-void BUHS_SiftDown(Visualizer_Handle arrayHandle, isort_t* array, intptr_t i, intptr_t end) {
+void BUHS_SiftDown(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t i, intptr_t end) {
 
 	intptr_t j = i;
 
@@ -103,13 +103,13 @@ void BUHS_SiftDown(Visualizer_Handle arrayHandle, isort_t* array, intptr_t i, in
 
 /*
 * ALGORITHM INFORMATION:
-* Time complexity              : O(n * log2(n))
+* Time complexity              : O(n * log(n))
 * Extra space                  : No
 * Type of sort                 : Comparative - Selection
 * Negative integer support     : Yes
 */
 
-void BottomUpHeapSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n) {
+void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 
 	intptr_t length = n;
 
@@ -127,13 +127,13 @@ void BottomUpHeapSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n)
 
 /*
 * ALGORITHM INFORMATION:
-* Time complexity              : O(n * log2(n))
+* Time complexity              : O(n * log(n))
 * Extra space                  : O(n)
 * Type of sort                 : Comparative - Selection
 * Negative integer support     : Yes
 */
 
-void WeakHeapSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n) {
+void WeakHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 
 	if (n < 2) return;
 	weakHeapSort(array, n);

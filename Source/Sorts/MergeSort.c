@@ -4,9 +4,9 @@
 
 #include "Utils/GuardedMalloc.h"
 
-void BinaryInsertion(isort_t* array, intptr_t start, intptr_t end);
+void BinaryInsertion(visualizer_int* array, intptr_t start, intptr_t end);
 
-static void merge(isort_t* c, isort_t* d, size_t lt, size_t md, size_t rt) {
+static void merge(visualizer_int* c, visualizer_int* d, size_t lt, size_t md, size_t rt) {
 
 	// Merge c[lt:md] and c[md+1:rt] to d[lt:rt]
 	size_t i = lt;  // cursor for first segment
@@ -36,7 +36,7 @@ static void merge(isort_t* c, isort_t* d, size_t lt, size_t md, size_t rt) {
 /**
 * Perform one pass through the two arrays, invoking Merge() above
 */
-static void mergePass(isort_t* x, isort_t* y, size_t s, size_t n) {
+static void mergePass(visualizer_int* x, visualizer_int* y, size_t s, size_t n) {
 
 	// Merge adjacent segments of size s.
 	size_t i = 0;
@@ -62,14 +62,14 @@ static void mergePass(isort_t* x, isort_t* y, size_t s, size_t n) {
 
 //
 
-static void iterativeMergeSort(isort_t* a, size_t n) {
+static void iterativeMergeSort(visualizer_int* a, size_t n) {
 
 	if (n < 16) {
 		BinaryInsertion(a, 0, n);
 		return;
 	}
 
-	isort_t* b = malloc_guarded(n * sizeof(isort_t));
+	visualizer_int* b = malloc_guarded(n * sizeof(visualizer_int));
 
 	size_t s = 16; // segment size
 	size_t i;
@@ -78,7 +78,7 @@ static void iterativeMergeSort(isort_t* a, size_t n) {
 
 	BinaryInsertion(a, i, n);
 
-	isort_t* b2 = b;
+	visualizer_int* b2 = b;
 	while (s < n)
 	{
 		mergePass(a, b2, s, n); // merge from a to b
@@ -100,7 +100,7 @@ static void iterativeMergeSort(isort_t* a, size_t n) {
 
 // Exports:
 
-void IterativeMergeSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n) {
+void IterativeMergeSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 
 	if (n < 2) return;
 	iterativeMergeSort(array, n);

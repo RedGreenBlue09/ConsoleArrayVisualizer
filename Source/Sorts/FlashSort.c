@@ -4,23 +4,23 @@
 
 #include "Utils/GuardedMalloc.h"
 
-void InsertionSort(isort_t* array, intptr_t n);
+void InsertionSort(visualizer_int* array, intptr_t n);
 
-static void flashSort(usort_t* array, intptr_t n) {
+static void flashSort(visualizer_uint* array, intptr_t n) {
 
 	if (n < 2) return;
 
 	intptr_t M = (n / 5) + 2;
 
-	usort_t min, max;
+	visualizer_uint min, max;
 	intptr_t maxIndex;
 	max = array[0];
 	min = max;
 	maxIndex = 0;
 
 	for (intptr_t i = 1; i < n - 1; i += 2) {
-		usort_t smal;
-		usort_t big;
+		visualizer_uint smal;
+		visualizer_uint big;
 		intptr_t bigIndex;
 
 		if (array[i] < array[i + 1]) {
@@ -46,14 +46,14 @@ static void flashSort(usort_t* array, intptr_t n) {
 
 
 	}
-	else if (array[n - 1] > (usort_t)max) {
+	else if (array[n - 1] > (visualizer_uint)max) {
 		max = (intptr_t)array[n - 1];
 		maxIndex = n - 1;
 	}
 
 	if (max == min) return;
 
-	usort_t* L = malloc_guarded((M + 1) * sizeof(usort_t));
+	visualizer_uint* L = malloc_guarded((M + 1) * sizeof(visualizer_uint));
 	if (L == 0) return;
 
 	for (intptr_t t = 1; t <= M; ++t)
@@ -84,7 +84,7 @@ static void flashSort(usort_t* array, intptr_t n) {
 			k = (array[j] - min) * m1 / range + 1;
 		}
 
-		usort_t evicted = array[j];
+		visualizer_uint evicted = array[j];
 
 		while (j < L[k]) {
 
@@ -108,7 +108,7 @@ static void flashSort(usort_t* array, intptr_t n) {
 			flashSort(array + L[k], classSize);
 	}
 	free(L);
-	InsertionSort((isort_t*)array, n);
+	InsertionSort((visualizer_int*)array, n);
 
 }
 
@@ -121,10 +121,10 @@ static void flashSort(usort_t* array, intptr_t n) {
 * Integer only!
 */
 
-void FlashSort(isort_t* array, intptr_t n) {
+void FlashSort(visualizer_int* array, intptr_t n) {
 
 	if (n < 2) return;
-	flashSort((usort_t*)array, n);
+	flashSort((visualizer_uint*)array, n);
 	return;
 
 }

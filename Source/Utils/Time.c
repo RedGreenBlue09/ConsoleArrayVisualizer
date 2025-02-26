@@ -42,11 +42,10 @@ static void waitabletimer(int64_t Time) {
 
 }
 
-/*
-  time: Time to delay in microseconds
-*/
-
+// time: Time to delay in microseconds
 void sleep64(uint64_t time) {
+	if (time == 0)
+		return; // Avoid calculation overhead
 
 	uint64_t StartTime = clock64();
 

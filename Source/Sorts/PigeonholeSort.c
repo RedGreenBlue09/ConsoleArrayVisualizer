@@ -3,7 +3,7 @@
 
 #include "Utils/GuardedMalloc.h"
 
-static void pigeonholeSort(isort_t* array, intptr_t n) {
+static void pigeonholeSort(visualizer_int* array, intptr_t n) {
 
 	intptr_t i;
 
@@ -22,7 +22,7 @@ static void pigeonholeSort(isort_t* array, intptr_t n) {
 	intptr_t Range = Max - Min + 1;
 	if (Range < 2) return;
 
-	isort_t* Holes = malloc_guarded(Range * sizeof(isort_t));
+	visualizer_int* Holes = malloc_guarded(Range * sizeof(visualizer_int));
 	if (Holes == 0) return;
 
 	Holes -= Min;
@@ -38,7 +38,7 @@ static void pigeonholeSort(isort_t* array, intptr_t n) {
 
 		while (Holes[i] > 0) {
 			Holes[i] -= 1;
-			*array = (isort_t)(i + Min);
+			*array = (visualizer_int)(i + Min);
 			++array;
 		}
 	}
@@ -57,7 +57,7 @@ static void pigeonholeSort(isort_t* array, intptr_t n) {
 */
 
 
-void PigeonholeSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n) {
+void PigeonholeSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	pigeonholeSort(array, (intptr_t)n);
 	return;
 }

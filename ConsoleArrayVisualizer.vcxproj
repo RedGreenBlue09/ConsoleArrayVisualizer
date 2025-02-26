@@ -78,8 +78,6 @@
     <ClInclude Include="Include\Utils\Machine.h" />
     <ClInclude Include="Include\RunSorts.h" />
     <ClInclude Include="Include\Visualizer.h" />
-    <ClInclude Include="Include\Visualizer\Common.h" />
-    <ClInclude Include="Include\Visualizer\Renderer\ColumnWindowsConsole.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

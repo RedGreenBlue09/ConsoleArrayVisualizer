@@ -3,6 +3,8 @@
 
 // Time.c
 
+// Resolution: 1 microsecond
+
 uint64_t clock64();
 uint64_t clock64_resolution();
 

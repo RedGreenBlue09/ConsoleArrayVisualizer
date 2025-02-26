@@ -5,7 +5,7 @@
 
 /*
 * ALGORITHM INFORMATION:
-* Time complexity          : O(n * log2(n))
+* Time complexity          : O(n * log(n))
 * Extra space              : No
 * Type of sort             : Comparative - Insert
 * Negative integer support : Yes
@@ -28,7 +28,7 @@ intptr_t gapsTokuda[] = {
 #endif
 };
 
-static void shellSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n, intptr_t* gaps, intptr_t nGaps) {
+static void shellSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n, intptr_t* gaps, intptr_t nGaps) {
 
 	if (n < 2) return;
 
@@ -40,21 +40,23 @@ static void shellSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n,
 
 		intptr_t gap = gaps[pass];
 
-		Visualizer_Pointer pointer = Visualizer_CreatePointer(arrayHandle, gap);
+		visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, gap, visualizer_marker_attribute_Pointer);
 		for (intptr_t i = gap; i < n; ++i) {
-			isort_t temp = array[i];
+			visualizer_int temp = array[i];
 			Visualizer_UpdateRead(arrayHandle, i, 0.25);
-			Visualizer_MovePointer(&pointer, i);
+			Visualizer_MoveMarker(&pointer, i);
 			intptr_t j;
 
-			for (j = i; (j >= gap) && (array[j - gap] > temp); j -= gap) {
-				Visualizer_UpdateReadWrite(arrayHandle, j, j - gap, 0.25);
-				array[j] = array[j - gap];
+			visualizer_int temp2;
+			for (j = i; (j >= gap) && ((temp2 = array[j - gap]) > temp); j -= gap) {
+				Visualizer_UpdateRead(arrayHandle, j - gap, 0.25);
+				Visualizer_UpdateWrite(arrayHandle, j, temp2, 0.25);
+				array[j] = temp2;
 			}
 			Visualizer_UpdateWrite(arrayHandle, j, temp, 0.25);
 			array[j] = temp;
 		}
-		Visualizer_RemovePointer(pointer);
+		Visualizer_RemoveMarker(pointer);
 		--pass;
 	}
 
@@ -64,7 +66,7 @@ static void shellSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n,
 
 // Exports:
 
-void ShellSortTokuda(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n) {
+void ShellSortTokuda(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	shellSort(arrayHandle, array, n, gapsTokuda, static_arrlen(gapsTokuda));
 	return;
 }

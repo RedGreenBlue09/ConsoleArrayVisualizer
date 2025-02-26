@@ -3,16 +3,16 @@
 #include "Visualizer.h"
 
 
-static int isortCompare(const isort_t* a, const isort_t* b) {
+static int isortCompare(const visualizer_int* a, const visualizer_int* b) {
 	return (*a > *b) - (*a < *b);
 }
 
-static void partition(Visualizer_Handle arrayHandle, isort_t* array, intptr_t low, intptr_t high) {
+static void partition(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t low, intptr_t high) {
 
 	intptr_t left;
 	intptr_t right;
 	intptr_t pivot;
-	isort_t pivotValue;
+	visualizer_int pivotValue;
 
 begin:
 	left = low;
@@ -20,7 +20,7 @@ begin:
 	pivot = low + (high - low + 1) / 2;
 	pivotValue = array[pivot];
 
-	Visualizer_Pointer pointer = Visualizer_CreatePointer(arrayHandle, pivot);
+	visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, pivot, visualizer_marker_attribute_Pointer);
 	while (left <= right) {
 		while (array[left] < pivotValue) {
 			Visualizer_UpdateRead(arrayHandle, left, 0.625);
@@ -39,7 +39,7 @@ begin:
 			--right;
 		}
 	}
-	Visualizer_RemovePointer(pointer);
+	Visualizer_RemoveMarker(pointer);
 
 	// Call tail optimization
 	// Is slower but prevents O(n) call stack in worst case
@@ -74,15 +74,15 @@ begin:
 /*
 * ALGORITHM INFORMATION:
 * Time complexity (worst case) : O(n ^ 2)
-* Time complexity (avg. case)  : O(n * log2(n))
-* Time complexity (best case)  : O(n * log2(n))
-* Extra space (worst case)     : O(log2(n))
-* Extra space (best case)      : O(log2(n))
+* Time complexity (avg. case)  : O(n * log(n))
+* Time complexity (best case)  : O(n * log(n))
+* Extra space (worst case)     : O(log(n))
+* Extra space (best case)      : O(log(n))
 * Type of sort                 : Comparative - Exchange
 * Negative integer support     : Yes
 */
 
-void LeftRightQuickSort(Visualizer_Handle arrayHandle, isort_t* array, intptr_t n) {
+void LeftRightQuickSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 
 	if (n < 2) return;
 

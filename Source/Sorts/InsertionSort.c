@@ -1,14 +1,14 @@
 
 #include "Visualizer.h"
 
-void BinaryInsertion(isort_t* array, intptr_t start, intptr_t end) {
+void BinaryInsertion(visualizer_int* array, intptr_t start, intptr_t end) {
 
 	intptr_t start2 = start;
 	intptr_t end2 = end;
 
 	for (intptr_t i = start2; i < end2; ++i) {
 
-		isort_t item = array[i];
+		visualizer_int item = array[i];
 		intptr_t low = start2;
 		intptr_t high = i;
 
@@ -48,12 +48,12 @@ void BinaryInsertion(isort_t* array, intptr_t start, intptr_t end) {
 * Negative integer support     : Yes
 */
 
-void InsertionSort(isort_t* array, intptr_t n) {
+void InsertionSort(visualizer_int* array, intptr_t n) {
 
 	if (n < 2) return;
 
 	for (intptr_t i = 1; i < n; ++i) {
-		isort_t temp = array[i];
+		visualizer_int temp = array[i];
 		intptr_t j = i;
 		while ((j > 0) && (array[j - 1] > temp)) {
 			array[j] = array[j - 1];
