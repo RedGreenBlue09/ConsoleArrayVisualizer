@@ -9,27 +9,26 @@ static int isortCompare(const isort_t* a, const isort_t* b) {
 
 static void partition(Visualizer_Handle arrayHandle, isort_t* array, intptr_t low, intptr_t high) {
 
-	intptr_t pivot;
-	isort_t pivotValue;
 	intptr_t left;
 	intptr_t right;
+	intptr_t pivot;
+	isort_t pivotValue;
 
 begin:
-	pivot = low + (high - low + 1) / 2;
-	pivotValue = array[pivot];
 	left = low;
 	right = high;
+	pivot = low + (high - low + 1) / 2;
+	pivotValue = array[pivot];
 
+	Visualizer_Pointer pointer = Visualizer_CreatePointer(arrayHandle, pivot);
 	while (left <= right) {
-		// Visualizer_UpdateRead is more accurate here
-		// but in the real world, we can't just cache the pivot value
 		while (array[left] < pivotValue) {
-			Visualizer_UpdateRead2(arrayHandle, left, pivot, 0.625);
+			Visualizer_UpdateRead(arrayHandle, left, 0.625);
 			++left;
 
 		}
 		while (array[right] > pivotValue) {
-			Visualizer_UpdateRead2(arrayHandle, right, pivot, 0.625);
+			Visualizer_UpdateRead(arrayHandle, right, 0.625);
 			--right;
 		}
 
@@ -40,24 +39,25 @@ begin:
 			--right;
 		}
 	}
+	Visualizer_RemovePointer(pointer);
 
 	// Call tail optimization
-	// (prevents O(n) call stack in worst case)
+	// Is slower but prevents O(n) call stack in worst case
 
-	// Default small to the left partition
-	intptr_t smallLeft = low;
-	intptr_t smallRight = right;
-	// Default big to the right partition
-	intptr_t bigLeft = left;
-	intptr_t bigRight = high;
+	intptr_t smallLeft;
+	intptr_t smallRight;
+	intptr_t bigLeft;
+	intptr_t bigRight;
 	if ((right - low) > (high - left)) {
-		// (right - low) and (high - left) cannot be negative
-		// Switch small to right partition
 		smallLeft = left;
 		smallRight = high;
-		// Switch big to left partition
 		bigLeft = low;
 		bigRight = right;
+	} else {
+		smallLeft = low;
+		smallRight = right;
+		bigLeft = left;
+		bigRight = high;
 	}
 
 	if (bigLeft < bigRight) partition(arrayHandle, array, bigLeft, bigRight);

@@ -13,7 +13,7 @@ int main() {
 	Visualizer_Handle hArray = Visualizer_AddArray(N, NULL, 0, (isort_t)N - 1);
 
 	//
-	RunSorts_RunSort(RunSorts_aSortList + 3, hArray, aArray, N);
+	//RunSorts_RunSort(RunSorts_aSortList + 3, hArray, aArray, N);
 	RunSorts_RunSort(RunSorts_aSortList + 1, hArray, aArray, N);
 	RunSorts_RunSort(RunSorts_aSortList + 0, hArray, aArray, N);
 
