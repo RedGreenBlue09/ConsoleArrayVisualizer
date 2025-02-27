@@ -114,7 +114,7 @@ static void DistributeSine(
 
 	for (intptr_t i = 0; i < Length; ++i) {
 		visualizer_int Value = (visualizer_int)round(
-			(sin((double)i * fPi / (double)Length - (0.5 * fPi)) + 1.0) * fMax / 2.0
+			(sin((double)i * fPi / (double)Length - (0.5 * fPi)) + 1.0) * fMax * 0.5
 		);
 		Visualizer_UpdateWrite(hArray, i, Value, 1.0);
 		aArray[i] = Value;
@@ -274,7 +274,7 @@ static void VerifySine(
 	visualizer_int* aArray,
 	intptr_t Length
 ) {
-	Visualizer_SetAlgorithmName("Verify distribute: Square root");
+	Visualizer_SetAlgorithmName("Verify distribute: Sine");
 	Visualizer_SetAlgorithmSleepMultiplier(
 		Visualizer_ScaleSleepMultiplier(Length, 0.0625, Visualizer_SleepScale_N)
 	);
@@ -284,7 +284,7 @@ static void VerifySine(
 
 	for (intptr_t i = 0; i < Length; ++i) {
 		visualizer_int Value = (visualizer_int)round(
-			(sin((double)i * fPi / (double)Length - (0.5 * fPi)) + 1.0) * fMax / 2.0
+			(sin((double)i * fPi / (double)Length - (0.5 * fPi)) + 1.0) * fMax * 0.5
 		);
 		if (aArray[i] == Value)
 			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Correct);
@@ -297,7 +297,7 @@ static void VerifySine(
 
 	for (intptr_t i = 0; i < Length; ++i) {
 		visualizer_int Value = (visualizer_int)round(
-			(sin((double)i * fPi / (double)Length - (0.5 * fPi)) + 1.0) * fMax / 2.0
+			(sin((double)i * fPi / (double)Length - (0.5 * fPi)) + 1.0) * fMax * 0.5
 		);
 		if (aArray[i] == Value)
 			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Correct });

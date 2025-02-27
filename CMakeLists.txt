@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.21)
 cmake_policy(SET CMP0069 NEW) 
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -16,7 +16,6 @@ endmacro()
 
 project(ConsoleArrayVisualizer LANGUAGES C)
 
-
 if (CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	if (CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
 		set(LLVM_MINGW true)
@@ -24,8 +23,7 @@ if (CMAKE_C_COMPILER_ID STREQUAL "Clang")
 endif()
 
 set(ConsoleArrayVisualizer_HEADER_FILES
-	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Sorts.h"
-	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/CRT/threads.h"
+	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/RunSorts.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/Common.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/GuardedMalloc.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/LinkedList.h"
@@ -39,7 +37,7 @@ set(ConsoleArrayVisualizer_HEADER_FILES
 )
 set(ConsoleArrayVisualizer_SOURCE_FILES
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Main.c"
-	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Sorts.c"
+	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/RunSorts.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Sorts/FlashSort.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Sorts/HeapSort.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Sorts/InsertionSort.c"
@@ -78,7 +76,7 @@ target_include_directories(ConsoleArrayVisualizer PRIVATE
 )
 set_target_properties(ConsoleArrayVisualizer PROPERTIES
 	INTERPROCEDURAL_OPTIMIZATION TRUE
-	C_STANDARD 17
+	C_STANDARD 23
 )
 target_link_libraries(ConsoleArrayVisualizer ntdll)
 if (LLVM_MINGW)
