@@ -51,7 +51,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Machine.c" />
     <ClCompile Include="Source\Main.c" />
     <ClCompile Include="Source\RunSorts.c" />
     <ClCompile Include="Source\Sorts\FlashSort.c" />
@@ -61,6 +60,7 @@
     <ClCompile Include="Source\Sorts\PigeonholeSort.c" />
     <ClCompile Include="Source\Sorts\QuickSort.c" />
     <ClCompile Include="Source\Sorts\ShellSort.c" />
+    <ClCompile Include="Source\Utils\Machine.c" />
     <ClCompile Include="Source\Utils\MemoryPool.c" />
     <ClCompile Include="Source\Utils\Time.c" />
     <ClCompile Include="Source\Utils\Random.c" />

@@ -26,6 +26,7 @@ endif()
 set(ConsoleArrayVisualizer_HEADER_FILES
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Sorts.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/CRT/threads.h"
+	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/Common.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/GuardedMalloc.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/LinkedList.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/Machine.h"
@@ -34,8 +35,7 @@ set(ConsoleArrayVisualizer_HEADER_FILES
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/SharedLock.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/SpinLock.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/Time.h"
-	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Visualizer/Visualizer.h"
-	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Visualizer/Renderer/ColumnWindowsConsole.h"
+	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Visualizer.h"
 )
 set(ConsoleArrayVisualizer_SOURCE_FILES
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Main.c"
@@ -47,10 +47,11 @@ set(ConsoleArrayVisualizer_SOURCE_FILES
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Sorts/PigeonholeSort.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Sorts/QuickSort.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Sorts/ShellSort.c"
+	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Utils/Machine.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Utils/MemoryPool.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Utils/Random.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Utils/Time.c"
-	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Visualizer/Visualizer.c"
+	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Visualizer/VisualizerCommon.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Visualizer/Renderer/ColumnWindowsConsole.c"
 )
 set(ConsoleArrayVisualizer_INCLUDE_DIRECTORIES
