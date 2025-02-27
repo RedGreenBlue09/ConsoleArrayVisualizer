@@ -1,7 +1,7 @@
 # ConsoleArrayVisualizer
 Visualizes arrays on Windows terminal emulator.
 
-Usage: Run the executable in the console.
+Usage: Run the executable in the console. Executables is available in the folder `Executable`.
 
 # Build
 
