@@ -8,7 +8,7 @@ typedef struct {
 } sort_info;
 
 extern sort_info RunSorts_aSortList[];
-uintptr_t RunSorts_nSort;
+extern uintptr_t RunSorts_nSort;
 
 void RunSorts_RunSort(
 	sort_info* pSortInfo,
