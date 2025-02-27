@@ -11,7 +11,7 @@
 
 int main(int argc, char** argv) {
 
-	if (argc < 6) {
+	if (argc < 4) {
 		printf("Usage: %s <Array length> <Sleep multiplier> <Algorithm 1> <Algorithm 2>\n", argv[0]);
 		printf("Note: Use algorithm index.\n");
 		printf("\n");

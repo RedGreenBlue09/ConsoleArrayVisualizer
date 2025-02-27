@@ -16,10 +16,8 @@ endmacro()
 
 project(ConsoleArrayVisualizer LANGUAGES C)
 
-if (CMAKE_C_COMPILER_ID STREQUAL "Clang")
-	if (CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
-		set(LLVM_MINGW true)
-	endif()
+if (CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
+	set(MINGW true)
 endif()
 
 set(ConsoleArrayVisualizer_HEADER_FILES
@@ -55,7 +53,7 @@ set(ConsoleArrayVisualizer_SOURCE_FILES
 set(ConsoleArrayVisualizer_INCLUDE_DIRECTORIES
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include"
 )
-if (LLVM_MINGW)
+if (MINGW)
 	list(APPEND ConsoleArrayVisualizer_HEADER_FILES
 		"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/CRT/threads.h"
 	)
@@ -79,7 +77,7 @@ set_target_properties(ConsoleArrayVisualizer PROPERTIES
 	C_STANDARD 23
 )
 target_link_libraries(ConsoleArrayVisualizer ntdll)
-if (LLVM_MINGW)
+if (MINGW)
 	target_link_options(ConsoleArrayVisualizer PRIVATE -Wl,--pdb=)
 endif()
 
