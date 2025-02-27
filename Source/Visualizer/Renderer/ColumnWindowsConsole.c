@@ -104,7 +104,7 @@ static atomic bool gbRun;
 static spinlock gAlgorithmNameLock;
 static char* gsAlgorithmName; // NULL terminated
 
-static const double gfDefaultDelay = 1000000.0f;
+static const double gfDefaultDelay = 10000000.0f;
 static atomic double gfAlgorithmSleepMultiplier;
 static atomic double gfUserSleepMultiplier;
 
@@ -576,6 +576,8 @@ visualizer_array_handle Visualizer_AddArray(
 		for (intptr_t i = 0; i < Size; ++i)
 			pArrayProp->aState[i] = (array_member){ 0 };
 
+	if (ValueMax <= ValueMin)
+		ValueMax = ValueMin + 1;
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
 	pArrayProp->bRemoved = false;

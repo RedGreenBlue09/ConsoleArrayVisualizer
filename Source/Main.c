@@ -11,7 +11,7 @@
 
 int main(int argc, char** argv) {
 
-	if (argc < 4) {
+	if (argc < 6) {
 		printf("Usage: %s <Array length> <Sleep multiplier> <Algorithm 1> <Algorithm 2>\n", argv[0]);
 		printf("Note: Use algorithm index.\n");
 		printf("\n");
@@ -38,11 +38,14 @@ int main(int argc, char** argv) {
 	double fSleepMultiplier;
 	if (
 		sscanf(argv[2], "%lf %n", &fSleepMultiplier, &ReadChars) != 1 ||
-		ReadChars != strlen(argv[2])
+		ReadChars != strlen(argv[2]) ||
+		fSleepMultiplier < 0.0
 	) {
 		printf("Error: Invalid sleep multiplier \'%s\'\n", argv[2]);
 		return 0;
 	}
+
+	// TODO: Ask user about array distro and shuffle
 
 	visualizer_int* aArray = calloc_guarded(ArrayLength, sizeof(visualizer_int));
 	Visualizer_Initialize();
@@ -56,10 +59,10 @@ int main(int argc, char** argv) {
 			ReadChars != strlen(argv[i]) ||
 			iAlgorithm >= RunSorts_nSort
 		) {
-			printf("Warning: Invalid array index \'%s\'\n", argv[i]);
+			printf("Warning: Invalid algorithm index \'%s\'\n", argv[i]);
 			continue;
 		}
-		RunSorts_RunSort(&RunSorts_aSortList[iAlgorithm], hArray, aArray, ArrayLength);
+		RunSorts_RunSort(&RunSorts_aSortList[iAlgorithm], 3, 0, hArray, aArray, ArrayLength);
 	}
 
 	Visualizer_RemoveArray(hArray);

@@ -1,8 +1,11 @@
 #pragma once
-#include <inttypes.h>
+#include <stdint.h>
 
-// Random.c
+typedef struct {
+	uint64_t s[4];
+} rand64_state;
 
-void srand64(uint64_t seed);
-uint64_t rand64();
-uint64_t rand64_bounded(uint64_t range);
+void srand64(rand64_state* state, uint64_t seed);
+uint64_t rand64(rand64_state* state);
+uint64_t rand64_bounded(rand64_state* state, uint64_t range);
+double rand_double(rand64_state* state);

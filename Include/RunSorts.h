@@ -12,6 +12,8 @@ extern uintptr_t RunSorts_nSort;
 
 void RunSorts_RunSort(
 	sort_info* pSortInfo,
+	visualizer_array_distro ArrayDistro,
+	visualizer_shuffle ShuffleType,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length

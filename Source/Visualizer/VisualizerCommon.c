@@ -16,5 +16,5 @@ double Visualizer_ScaleSleepMultiplier(intptr_t N, double fMultiplier, visualize
 		fN = fN * fN;
 		break;
 	}
-	return fMultiplier * 8.0 / fN;
+	return fMultiplier / fN;
 }
