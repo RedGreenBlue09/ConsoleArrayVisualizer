@@ -18,10 +18,24 @@ typedef uint8_t visualizer_marker_attribute;
 #define Visualizer_MarkerAttribute_Incorrect 4
 #define Visualizer_MarkerAttribute_EnumCount 5
 
-#define VISUALIZER_DISABLE_SLEEP 1
+typedef uint8_t visualizer_sleep_scale;
+#define Visualizer_SleepScale_N 0
+#define Visualizer_SleepScale_NLogN 1
+#define Visualizer_SleepScale_NN 2
+
+//#define VISUALIZER_DISABLE_SLEEP 1
 
 void Visualizer_Initialize();
 void Visualizer_Uninitialize();
+
+// Delays
+
+double Visualizer_ScaleSleepMultiplier(intptr_t N, double fMultiplier, visualizer_sleep_scale ScaleMode);
+void Visualizer_SetAlgorithmSleepMultiplier(double fAlgorithmSleepMultiplier);
+void Visualizer_SetUserSleepMultiplier(double fUserSleepMultiplier);
+void Visualizer_Sleep(double fSleepMultiplier);
+
+// Array
 
 visualizer_array_handle Visualizer_AddArray(
 	intptr_t Size,

@@ -104,6 +104,10 @@ static atomic bool gbRun;
 static spinlock gAlgorithmNameLock;
 static char* gsAlgorithmName; // NULL terminated
 
+static const double gfDefaultDelay = 1000000.0f;
+static atomic double gfAlgorithmSleepMultiplier;
+static atomic double gfUserSleepMultiplier;
+
 static visualizer_array_handle PoolIndexToHandle(pool_index PoolIndex) {
 	return (visualizer_array_handle)(PoolIndex + 1);
 }
@@ -465,6 +469,8 @@ void Visualizer_Initialize() {
 
 	PoolInitialize(&gArrayPropPool, 16, sizeof(array_prop));
 	gsAlgorithmName = NULL;
+	gfAlgorithmSleepMultiplier = 1.0f;
+	gfUserSleepMultiplier = 1.0f;
 
 	// New window style
 
@@ -593,9 +599,9 @@ void Visualizer_RemoveArray(visualizer_array_handle hArray) {
 
 // UNSUPPORTED: Multiple threads on the same member
 typedef uint8_t member_update_type;
-#define MemberUpdateTypeNo              0 // Not used
-#define MemberUpdateTypeAttribute      (1 << 0)
-#define MemberUpdateTypeValue          (1 << 1)
+#define MemberUpdateType_No              0 // Not used
+#define MemberUpdateType_Attribute      (1 << 0)
+#define MemberUpdateType_Value          (1 << 1)
 
 static inline void UpdateMember(
 	array_prop* pArrayProp,
@@ -615,7 +621,7 @@ static inline void UpdateMember(
 	// This lock is put up here for the render thread to handle window resize
 	sharedlock_lock_shared(&pColumn->SharedLock);
 
-	if (UpdateType & MemberUpdateTypeAttribute) {
+	if (UpdateType & MemberUpdateType_Attribute) {
 		if (bAddAttribute)
 			++pArrayMember->aMarkerCount[Attribute];
 		else
@@ -623,12 +629,12 @@ static inline void UpdateMember(
 	}
 
 	visualizer_int OldValue = Value;
-	if (UpdateType & MemberUpdateTypeValue)
+	if (UpdateType & MemberUpdateType_Value)
 		swap(&pArrayMember->Value, &OldValue);
 
-	if (UpdateType & MemberUpdateTypeValue)
+	if (UpdateType & MemberUpdateType_Value)
 		pColumn->ValueSum += (visualizer_long)Value - OldValue;
-	if (UpdateType & MemberUpdateTypeAttribute) {
+	if (UpdateType & MemberUpdateType_Attribute) {
 		if (bAddAttribute)
 			++pColumn->aMarkerCount[Attribute];
 		else
@@ -642,7 +648,7 @@ static inline void UpdateMember(
 void Visualizer_UpdateArrayState(visualizer_array_handle hArray, visualizer_int* aState) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	for (intptr_t i = 0; i < pArrayProp->Size; ++i)
-		UpdateMember(pArrayProp, i, MemberUpdateTypeValue, false, 0, aState[i]);
+		UpdateMember(pArrayProp, i, MemberUpdateType_Value, false, 0, aState[i]);
 }
 
 // TODO: Implement array resize
@@ -727,7 +733,7 @@ static void AddMarker(
 	intptr_t iPosition,
 	visualizer_marker_attribute Attribute
 ) {
-	UpdateMember(pArrayProp, iPosition, MemberUpdateTypeAttribute, true, Attribute, 0);
+	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, true, Attribute, 0);
 }
 
 static void AddMarkerWithValue(
@@ -739,7 +745,7 @@ static void AddMarkerWithValue(
 	UpdateMember(
 		pArrayProp,
 		iPosition,
-		MemberUpdateTypeAttribute | MemberUpdateTypeValue,
+		MemberUpdateType_Attribute | MemberUpdateType_Value,
 		true,
 		Attribute,
 		Value
@@ -747,7 +753,7 @@ static void AddMarkerWithValue(
 }
 
 static void RemoveMarkerHelper(array_prop* pArrayProp, intptr_t iPosition, visualizer_marker_attribute Attribute) {
-	UpdateMember(pArrayProp, iPosition, MemberUpdateTypeAttribute, false, Attribute, 0);
+	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
 }
 
 // It does not update the iPosition member
@@ -757,17 +763,31 @@ static void MoveMarkerHelper(
 	intptr_t iNewPosition,
 	visualizer_marker_attribute Attribute
 ) {
-	UpdateMember(pArrayProp, iPosition, MemberUpdateTypeAttribute, false, Attribute, 0);
-	UpdateMember(pArrayProp, iNewPosition, MemberUpdateTypeAttribute, true, Attribute, 0);
+	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
+	UpdateMember(pArrayProp, iNewPosition, MemberUpdateType_Attribute, true, Attribute, 0);
 }
 
+// Delays
 
-static const uint64_t gDefaultDelay = 10000; // microseconds
+void Visualizer_SetAlgorithmSleepMultiplier(double fAlgorithmSleepMultiplier){
+	gfAlgorithmSleepMultiplier = fAlgorithmSleepMultiplier;
+}
 
-static void SleepByMultiplier(double fSleepMultiplier) {
+void Visualizer_SetUserSleepMultiplier(double fUserSleepMultiplier) {
+	gfUserSleepMultiplier = fUserSleepMultiplier;
+}
+
+void Visualizer_Sleep(double fSleepMultiplier) {
 #ifdef VISUALIZER_DISABLE_SLEEP
 #else
-	sleep64((uint64_t)((double)gDefaultDelay * fSleepMultiplier));
+	sleep64(
+		(uint64_t)(
+			gfDefaultDelay *
+			gfAlgorithmSleepMultiplier *
+			gfUserSleepMultiplier *
+			fSleepMultiplier
+		)
+	);
 #endif
 }
 
@@ -778,7 +798,7 @@ void Visualizer_UpdateRead(visualizer_array_handle hArray, intptr_t iPosition, d
 
 	pArrayProp->ReadCount += 1;
 	AddMarker(pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
-	SleepByMultiplier(fSleepMultiplier);
+	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
 }
 
@@ -788,7 +808,7 @@ void Visualizer_UpdateRead2(visualizer_array_handle hArray, intptr_t iPositionA,
 	pArrayProp->ReadCount += 2;
 	AddMarker(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
 	AddMarker(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
-	SleepByMultiplier(fSleepMultiplier);
+	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
 	RemoveMarkerHelper(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
 }
@@ -806,7 +826,7 @@ void Visualizer_UpdateReadMulti(
 	pArrayProp->ReadCount += Length;
 	for (intptr_t i = 0; i < Length; ++i)
 		AddMarker(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Read);
-	SleepByMultiplier(fSleepMultiplier);
+	Visualizer_Sleep(fSleepMultiplier);
 	for (intptr_t i = 0; i < Length; ++i)
 		RemoveMarkerHelper(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Read);
 }
@@ -816,7 +836,7 @@ void Visualizer_UpdateWrite(visualizer_array_handle hArray, intptr_t iPosition, 
 
 	pArrayProp->WriteCount += 1;
 	AddMarkerWithValue(pArrayProp, iPosition, Visualizer_MarkerAttribute_Write, NewValue);
-	SleepByMultiplier(fSleepMultiplier);
+	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(pArrayProp, iPosition, Visualizer_MarkerAttribute_Write);
 }
 
@@ -833,7 +853,7 @@ void Visualizer_UpdateReadWrite(
 	visualizer_int NewValueA = pArrayProp->aState[iPositionB].Value;
 	AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
 	AddMarker(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
-	SleepByMultiplier(fSleepMultiplier);
+	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write);
 	RemoveMarkerHelper(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
 }
@@ -852,7 +872,7 @@ void Visualizer_UpdateSwap(
 	visualizer_int NewValueB = pArrayProp->aState[iPositionA].Value;
 	AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
 	AddMarkerWithValue(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write, NewValueB);
-	SleepByMultiplier(fSleepMultiplier);
+	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write);
 	RemoveMarkerHelper(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write);
 }
@@ -871,7 +891,7 @@ void Visualizer_UpdateWriteMulti(
 	pArrayProp->WriteCount += Length;
 	for (intptr_t i = 0; i < Length; ++i)
 		AddMarkerWithValue(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Write, aNewValue[i]);
-	SleepByMultiplier(fSleepMultiplier);
+	Visualizer_Sleep(fSleepMultiplier);
 	for (intptr_t i = 0; i < Length; ++i)
 		RemoveMarkerHelper(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Write);
 }
@@ -923,7 +943,7 @@ void Visualizer_UpdateCorrectness(visualizer_array_handle hArray, intptr_t iPosi
 		bCorrect ?
 		Visualizer_MarkerAttribute_Correct : 
 		Visualizer_MarkerAttribute_Incorrect;
-	UpdateMember(pArrayProp, iPosition, MemberUpdateTypeAttribute, true, Attribute, 0);
+	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, true, Attribute, 0);
 }
 
 void Visualizer_ClearCorrectness(visualizer_array_handle hArray, intptr_t iPosition, bool bCorrect) {
@@ -932,5 +952,5 @@ void Visualizer_ClearCorrectness(visualizer_array_handle hArray, intptr_t iPosit
 		bCorrect ?
 		Visualizer_MarkerAttribute_Correct :
 		Visualizer_MarkerAttribute_Incorrect;
-	UpdateMember(pArrayProp, iPosition, MemberUpdateTypeAttribute, false, Attribute, 0);
+	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
 }

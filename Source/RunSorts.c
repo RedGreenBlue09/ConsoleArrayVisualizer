@@ -23,7 +23,7 @@ void IterativeMergeSort(visualizer_array_handle arrayHandle, visualizer_int* arr
 
 void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 
-sort_info RunSorts_aSortList[128] = {
+sort_info RunSorts_aSortList[] = {
 	{
 		"Shellsort (Tokuda's gaps)",
 		ShellSortTokuda,
@@ -31,10 +31,6 @@ sort_info RunSorts_aSortList[128] = {
 	{
 		"Left/Right Quicksort",
 		LeftRightQuickSort,
-	},
-	{
-		"Iterative Mergesort",
-		IterativeMergeSort,
 	},
 	{
 		"Bottom-up Heapsort",
@@ -45,9 +41,12 @@ sort_info RunSorts_aSortList[128] = {
 uintptr_t RunSorts_nSort = static_arrlen(RunSorts_aSortList);
 
 static void Shuffle(visualizer_array_handle hArray, visualizer_int* aArray, intptr_t Length) {
+	Visualizer_SetAlgorithmSleepMultiplier(
+		Visualizer_ScaleSleepMultiplier(Length, 0.125, Visualizer_SleepScale_N)
+	);
 	// Linear
 	for (intptr_t i = 0; i < Length; ++i) {
-		Visualizer_UpdateWrite(hArray, i, (visualizer_int)i, 0.125);
+		Visualizer_UpdateWrite(hArray, i, (visualizer_int)i, 1.0);
 		aArray[i] = (visualizer_int)i;
 	}
 
@@ -61,12 +60,16 @@ static void Shuffle(visualizer_array_handle hArray, visualizer_int* aArray, intp
 }
 
 static void Verify(visualizer_array_handle hArray, visualizer_int* aArray, intptr_t Length) {
+	Visualizer_SetAlgorithmSleepMultiplier(
+		Visualizer_ScaleSleepMultiplier(Length, 0.125, Visualizer_SleepScale_N)
+	);
 	// Linear
 	for (intptr_t i = 0; i < Length; ++i) {
 		if (aArray[i] == (visualizer_int)i)
 			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Correct);
 		else
 			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Incorrect);
+		Visualizer_Sleep(1.0);
 	}
 	sleep64(2000000);
 	for (intptr_t i = 0; i < Length; ++i) {

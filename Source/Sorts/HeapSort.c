@@ -110,6 +110,9 @@ void BUHS_SiftDown(visualizer_array_handle arrayHandle, visualizer_int* array, i
 */
 
 void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
+	Visualizer_SetAlgorithmSleepMultiplier(
+		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_NLogN)
+	);
 
 	intptr_t length = n;
 

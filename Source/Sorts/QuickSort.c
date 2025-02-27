@@ -83,6 +83,9 @@ begin:
 */
 
 void LeftRightQuickSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
+	Visualizer_SetAlgorithmSleepMultiplier(
+		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_NLogN)
+	);
 
 	if (n < 2) return;
 

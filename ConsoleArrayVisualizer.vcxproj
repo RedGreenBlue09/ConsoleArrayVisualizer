@@ -65,6 +65,7 @@
     <ClCompile Include="Source\Utils\Time.c" />
     <ClCompile Include="Source\Utils\Random.c" />
     <ClCompile Include="Source\Visualizer\Renderer\ColumnWindowsConsole.c" />
+    <ClCompile Include="Source\Visualizer\VisualizerCommon.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Utils\Common.h" />

@@ -72,6 +72,9 @@
     <ClCompile Include="Machine.c">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Visualizer\VisualizerCommon.c">
+      <Filter>Source Files\Visualizer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\RunSorts.h">

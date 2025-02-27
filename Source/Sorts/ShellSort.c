@@ -67,6 +67,9 @@ static void shellSort(visualizer_array_handle arrayHandle, visualizer_int* array
 // Exports:
 
 void ShellSortTokuda(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
+	Visualizer_SetAlgorithmSleepMultiplier(
+		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_NLogN)
+	);
 	shellSort(arrayHandle, array, n, gapsTokuda, static_arrlen(gapsTokuda));
 	return;
 }
