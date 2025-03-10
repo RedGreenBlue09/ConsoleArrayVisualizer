@@ -28,6 +28,12 @@
     <Filter Include="Header Files\Utils">
       <UniqueIdentifier>{190aae32-827c-48ef-a0d8-d43ea430028e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Distributions">
+      <UniqueIdentifier>{4ce71f6c-9438-494c-965b-42d4f044733f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Shuffles">
+      <UniqueIdentifier>{f71e4812-4406-4ff6-922d-22f893b9e930}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Main.c">
@@ -74,6 +80,27 @@
     </ClCompile>
     <ClCompile Include="Source\Utils\Machine.c">
       <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Distributions\Random.c">
+      <Filter>Source Files\Distributions</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Distributions\Linear.c">
+      <Filter>Source Files\Distributions</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Distributions\SquareRoot.c">
+      <Filter>Source Files\Distributions</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Distributions\Sine.c">
+      <Filter>Source Files\Distributions</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shuffles\Random.c">
+      <Filter>Source Files\Shuffles</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shuffles\Sorted.c">
+      <Filter>Source Files\Shuffles</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shuffles\Reversed.c">
+      <Filter>Source Files\Shuffles</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

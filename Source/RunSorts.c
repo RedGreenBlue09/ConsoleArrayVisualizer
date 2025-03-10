@@ -2,6 +2,7 @@
 #include "RunSorts.h"
 
 #include <math.h>
+#include <string.h>
 
 #include "Utils/Common.h"
 #include "Utils/Machine.h"
@@ -26,7 +27,7 @@ void IterativeMergeSort(visualizer_array_handle arrayHandle, visualizer_int* arr
 
 void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 
-sort_info RunSorts_aSortList[] = {
+sort_info RunSorts_aSort[] = {
 	{
 		"Shellsort (Tokuda's gaps)",
 		ShellSortTokuda,
@@ -41,338 +42,173 @@ sort_info RunSorts_aSortList[] = {
 	},
 };
 
-uintptr_t RunSorts_nSort = static_arrlen(RunSorts_aSortList);
+uintptr_t RunSorts_nSort = static_arrlen(RunSorts_aSort);
 
-static void DistributeRandom(
+void DistributeLinear(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
-) {
-	Visualizer_SetAlgorithmName("Distribute: Random");
-	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(Length, 0.125, Visualizer_SleepScale_N)
-	);
+);
 
-	double fCurrentMax = (double)(Length - 1);
-	for (intptr_t i = Length - 1; i >= 0; --i) {
-		fCurrentMax *= exp2(log2(rand_double(&RngState)) / (double)(i + 1));
-		visualizer_int Value = (visualizer_int)round(fCurrentMax);
-		Visualizer_UpdateWrite(hArray, i, Value, 1.0);
-		aArray[i] = Value;
-	}
-}
-
-static void DistributeLinear(
+void VerifyLinear(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
-) {
-	Visualizer_SetAlgorithmName("Distribute: Linear");
-	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(Length, 0.0625, Visualizer_SleepScale_N)
-	);
-	for (intptr_t i = 0; i < Length; ++i) {
-		Visualizer_UpdateWrite(hArray, i, (visualizer_int)i, 1.0);
-		aArray[i] = (visualizer_int)i;
-	}
-}
+);
 
-static void DistributeSquareRoot(
+void DistributeRandom(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
-) {
-	Visualizer_SetAlgorithmName("Distribute: Square root");
-	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(Length, 0.125, Visualizer_SleepScale_N)
-	);
+);
 
-	double fSqrtMax = sqrt((double)(Length - 1));
-	for (intptr_t i = 0; i < Length; ++i) {
-		visualizer_int Value = (visualizer_int)round(sqrt((double)i) * fSqrtMax);
-		Visualizer_UpdateWrite(hArray, i, Value, 1.0);
-		aArray[i] = Value;
-	}
-}
-
-static void DistributeSine(
+void VerifyRandom(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
-) {
-	Visualizer_SetAlgorithmName("Distribute: Sine");
-	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(Length, 0.125, Visualizer_SleepScale_N)
-	);
+);
 
-	double fMax = (double)(Length - 1);
-	const double fPi = 0x1.921FB54442D18p1;
-
-	for (intptr_t i = 0; i < Length; ++i) {
-		visualizer_int Value = (visualizer_int)round(
-			(sin((double)i * fPi / (double)Length - (0.5 * fPi)) + 1.0) * fMax * 0.5
-		);
-		Visualizer_UpdateWrite(hArray, i, Value, 1.0);
-		aArray[i] = Value;
-	}
-}
-
-static void ShuffleRandom(
+void DistributeSquareRoot(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
-) {
-	Visualizer_SetAlgorithmName("Shuffle: Random");
-	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(Length, 0.125, Visualizer_SleepScale_N)
-	);
+);
 
-	for (intptr_t i = Length - 1; i >= 1; --i) {
-		intptr_t iRandom = (intptr_t)rand64_bounded(&RngState, i + 1);
-		Visualizer_UpdateSwap(hArray, i, iRandom, 1.0);
-		swap(&aArray[i], &aArray[iRandom]);
-	}
-}
-
-static void ShuffleSorted(
+void VerifySquareRoot(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
-) {
-	Visualizer_SetAlgorithmName("Shuffle: Sorted");
-}
+);
 
-static void ShuffleReversed(
+void DistributeSine(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
-) {
-	Visualizer_SetAlgorithmName("Shuffle: Reversed");
-	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(Length, 0.125, Visualizer_SleepScale_N)
-	);
+);
 
-	intptr_t i = 0;
-	intptr_t ii = Length - 1;
-	while (i < ii) {
-		Visualizer_UpdateSwap(hArray, i, ii, 1.0);
-		swap(&aArray[i], &aArray[ii]);
-		++i;
-		--ii;
-	}
-}
-
-static void VerifyRandom(
+void VerifySine(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
-) {
-	Visualizer_SetAlgorithmName("Verify distribute: Random");
-	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(Length, 0.0625, Visualizer_SleepScale_N)
-	);
+);
 
-	double fCurrentMax;
-	rand64_state RngStateOriginal = RngState;
+distribution_info RunSorts_aDistribution[] = {
+	{
+		"Linear",
+		DistributeLinear,
+		VerifyLinear,
+	},
+	{
+		"Random",
+		DistributeRandom,
+		VerifyRandom,
+	},
+	{
+		"Square Root",
+		DistributeSquareRoot,
+		VerifySquareRoot,
+	},
+	{
+		"Sine",
+		DistributeSine,
+		VerifySine,
+	},
+};
 
-	fCurrentMax = (double)(Length - 1);
-	for (intptr_t i = Length - 1; i >= 1; --i) {
-		fCurrentMax *= exp2(log2(rand_double(&RngState)) / (double)(i + 1));
-		visualizer_int Value = (visualizer_int)round(fCurrentMax);
-		if (aArray[i] == Value)
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Correct);
-		else
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Incorrect);
-		Visualizer_Sleep(1.0);
-	}
+uintptr_t RunSorts_nDistribution = static_arrlen(RunSorts_aDistribution);
 
-	sleep64(2000000);
-
-	fCurrentMax = (double)(Length - 1);
-	for (intptr_t i = Length - 1; i >= 1; --i) {
-		fCurrentMax *= exp2(log2(rand_double(&RngStateOriginal)) / (double)(i + 1));
-		visualizer_int Value = (visualizer_int)round(fCurrentMax);
-		if (aArray[i] == Value)
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Correct });
-		else
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Incorrect });
-	}
-}
-
-static void VerifyLinear(
+void ShuffleRandom(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
-) {
-	Visualizer_SetAlgorithmName("Verify distribute: Linear");
-	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(Length, 0.0625, Visualizer_SleepScale_N)
-	);
+);
 
-	for (intptr_t i = 0; i < Length; ++i) {
-		if (aArray[i] == (visualizer_int)i)
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Correct);
-		else
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Incorrect);
-		Visualizer_Sleep(1.0);
-	}
-
-	sleep64(2000000);
-
-	for (intptr_t i = 0; i < Length; ++i) {
-		if (aArray[i] == (visualizer_int)i)
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Correct });
-		else
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Incorrect });
-	}
-}
-
-static void VerifySquareRoot(
+void ShuffleSorted(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
-) {
-	Visualizer_SetAlgorithmName("Verify distribute: Square root");
-	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(Length, 0.0625, Visualizer_SleepScale_N)
-	);
+);
 
-	double fSqrtMax = sqrt((double)(Length - 1));
-	for (intptr_t i = 0; i < Length; ++i) {
-		visualizer_int Value = (visualizer_int)round(sqrt((double)i) * fSqrtMax);
-		if (aArray[i] == Value)
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Correct);
-		else
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Incorrect);
-		Visualizer_Sleep(1.0);
-	}
-
-	sleep64(2000000);
-
-	for (intptr_t i = 0; i < Length; ++i) {
-		visualizer_int Value = (visualizer_int)round(sqrt((double)i) * fSqrtMax);
-		if (aArray[i] == Value)
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Correct });
-		else
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Incorrect });
-	}
-}
-
-static void VerifySine(
+void ShuffleReversed(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
-) {
-	Visualizer_SetAlgorithmName("Verify distribute: Sine");
-	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(Length, 0.0625, Visualizer_SleepScale_N)
-	);
+);
 
-	double fMax = (double)(Length - 1);
-	const double fPi = 0x1.921FB54442D18p1;
+shuffle_info RunSorts_aShuffle[] = {
+	{
+		"Random",
+		ShuffleRandom,
+	},
+	{
+		"Reversed",
+		ShuffleReversed,
+	},
+	{
+		"Sorted",
+		ShuffleSorted,
+	},
+};
 
-	for (intptr_t i = 0; i < Length; ++i) {
-		visualizer_int Value = (visualizer_int)round(
-			(sin((double)i * fPi / (double)Length - (0.5 * fPi)) + 1.0) * fMax * 0.5
-		);
-		if (aArray[i] == Value)
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Correct);
-		else
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Incorrect);
-		Visualizer_Sleep(1.0);
-	}
-
-	sleep64(2000000);
-
-	for (intptr_t i = 0; i < Length; ++i) {
-		visualizer_int Value = (visualizer_int)round(
-			(sin((double)i * fPi / (double)Length - (0.5 * fPi)) + 1.0) * fMax * 0.5
-		);
-		if (aArray[i] == Value)
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Correct });
-		else
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Incorrect });
-	}
-}
+uintptr_t RunSorts_nShuffle = static_arrlen(RunSorts_aShuffle);
 
 void RunSorts_RunSort(
-	sort_info* pSortInfo,
-	visualizer_array_distro ArrayDistro,
-	visualizer_shuffle ShuffleType,
+	sort_info* pSort,
+	distribution_info* pDistribution,
+	shuffle_info* pShuffle,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
 	intptr_t Length
 ) {
-	// Shuffle
+	rand64_state RngState;
+	srand64(&RngState, clock64());
+
+	// Distribute
 
 	Visualizer_ClearReadWriteCounter(hArray);
 
-	rand64_state RngState;
-	srand64(&RngState, clock64());
-	
-	switch (ArrayDistro) {
-		default:
-		case Visualizer_ArrayDistro_Random:
-			DistributeRandom(RngState, hArray, aArray, Length);
-			break;
-		case Visualizer_ArrayDistro_Linear:
-			DistributeLinear(RngState, hArray, aArray, Length);
-			break;
-		case Visualizer_ArrayDistro_SquareRoot:
-			DistributeSquareRoot(RngState, hArray, aArray, Length);
-			break;
-		case Visualizer_ArrayDistro_Sine:
-			DistributeSine(RngState, hArray, aArray, Length);
-			break;
-	}
+	char sDistributionName[static_strlen("Distribution: ") + static_arrlen(pDistribution->sName)] = "";
+	strcat_s(sDistributionName, static_arrlen(sDistributionName), "Distribution: ");
+	strcat_s(sDistributionName, static_arrlen(sDistributionName), pDistribution->sName);
+	Visualizer_SetAlgorithmName(sDistributionName);
 
-	switch (ShuffleType) {
-		default:
-		case Visualizer_Shuffle_Random:
-			ShuffleRandom(RngState, hArray, aArray, Length);
-			break;
-		case Visualizer_Shuffle_Sorted:
-			ShuffleSorted(RngState, hArray, aArray, Length);
-			break;
-		case Visualizer_Shuffle_Reversed:
-			ShuffleReversed(RngState, hArray, aArray, Length);
-			break;
-	}
+	pDistribution->Distribute(RngState, hArray, aArray, Length);
+
+	// Shuffle
+	
+	char sShuffleName[static_strlen("Shuffle: ") + static_arrlen(pShuffle->sName)] = "";
+	strcat_s(sShuffleName, static_arrlen(sShuffleName), "Shuffle: ");
+	strcat_s(sShuffleName, static_arrlen(sShuffleName), pShuffle->sName);
+	Visualizer_SetAlgorithmName(sShuffleName);
+
+	pShuffle->Shuffle(RngState, hArray, aArray, Length);
 
 	sleep64(1000000);
 
-	// Run the sort
+	// Sort
 
 	Visualizer_ClearReadWriteCounter(hArray);
-	Visualizer_SetAlgorithmName(pSortInfo->sName);
-	pSortInfo->SortFunction(hArray, aArray, Length);
+	Visualizer_SetAlgorithmName(pSort->sName);
+	pSort->Sort(hArray, aArray, Length);
 
 	// Verify
 
-	switch (ArrayDistro) {
-		default:
-		case Visualizer_ArrayDistro_Random:
-			VerifyRandom(RngState, hArray, aArray, Length);
-			break;
-		case Visualizer_ArrayDistro_Linear:
-			VerifyLinear(RngState, hArray, aArray, Length);
-			break;
-		case Visualizer_ArrayDistro_SquareRoot:
-			VerifySquareRoot(RngState, hArray, aArray, Length);
-			break;
-		case Visualizer_ArrayDistro_Sine:
-			VerifySine(RngState, hArray, aArray, Length);
-			break;
-	}
+	char sVerifyName[static_strlen("Verify: ") + static_arrlen(pDistribution->sName)] = "";
+	strcat_s(sVerifyName, static_arrlen(sVerifyName), "Verify: ");
+	strcat_s(sVerifyName, static_arrlen(sVerifyName), pDistribution->sName);
+	Visualizer_SetAlgorithmName(sVerifyName);
+
+	pDistribution->Verify(RngState, hArray, aArray, Length);
 }
+

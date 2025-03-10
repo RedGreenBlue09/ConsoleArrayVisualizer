@@ -23,17 +23,6 @@ typedef uint8_t visualizer_sleep_scale;
 #define Visualizer_SleepScale_NLogN 1
 #define Visualizer_SleepScale_NN 2
 
-typedef uint8_t visualizer_array_distro;
-#define Visualizer_ArrayDistro_Random 0
-#define Visualizer_ArrayDistro_Linear 1
-#define Visualizer_ArrayDistro_SquareRoot 2
-#define Visualizer_ArrayDistro_Sine 3
-
-typedef uint8_t visualizer_shuffle;
-#define Visualizer_Shuffle_Random 0
-#define Visualizer_Shuffle_Sorted 1
-#define Visualizer_Shuffle_Reversed 2
-
 //#define VISUALIZER_DISABLE_SLEEP 1
 
 void Visualizer_Initialize();
