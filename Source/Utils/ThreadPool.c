@@ -89,13 +89,21 @@ thread_pool_job ThreadPool_InitJob(thrd_start_t pFunction, void* Parameter) {
 }
 
 void ThreadPool_AddJob(thread_pool* ThreadPool, thread_pool_job* pJob) {
-	semaphore_acquire_single(&ThreadPool->StatusSemaphore); // TODO: Sleep
-	size_t iThread = ConcurrentQueue_Pop(ThreadPool->pThreadQueue);
+	if (semaphore_try_acquire_single(&ThreadPool->StatusSemaphore)) {
+		size_t iThread = ConcurrentQueue_Pop(ThreadPool->pThreadQueue);
 
-	pJob->bFinished = false;
-	ThreadPool->aThread[iThread].pJob = pJob;
+		pJob->bFinished = false;
+		ThreadPool->aThread[iThread].pJob = pJob;
+	} else {
+		// Get the job done to prevent dead lock
+		// This is less efficient but saves memory
+		// TODO: Find another way to address this
+		pJob->StatusCode = pJob->pFunction(pJob->Parameter);
+		pJob->bFinished = true;
+	}
+
 }
 
 void ThreadPool_WaitForJob(thread_pool_job* pJob) {
-	while (pJob->bFinished); // TODO: Sleep
+	while (!pJob->bFinished); // TODO: Sleep
 }

@@ -237,6 +237,6 @@ void ConcurrentQueue_Push(concurrent_queue* pQueue, size_t Value) {
 }
 
 size_t ConcurrentQueue_Pop(concurrent_queue* pQueue) {
-	lfring_dequeue(pQueue, true);
+	return lfring_dequeue(pQueue, true);
 }
 

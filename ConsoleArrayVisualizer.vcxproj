@@ -67,6 +67,7 @@
     <ClCompile Include="Source\Sorts\PigeonholeSort.c" />
     <ClCompile Include="Source\Sorts\QuickSort.c" />
     <ClCompile Include="Source\Sorts\ShellSort.c" />
+    <ClCompile Include="Source\Sorts\WeaveSortParallel.c" />
     <ClCompile Include="Source\Utils\ConcurrentQueue.c" />
     <ClCompile Include="Source\Utils\Machine.c" />
     <ClCompile Include="Source\Utils\MemoryPool.c" />

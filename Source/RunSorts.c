@@ -10,22 +10,11 @@
 #include "Utils/Random.h"
 
 void InsertionSort(visualizer_int* array, intptr_t n);
-
-// ShellSort.c
-
 void ShellSortTokuda(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
-
-// QuickSort.c
-
 void LeftRightQuickSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
-
-// MergeSort.c
-
 void IterativeMergeSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
-
-// HeapSort.c
-
 void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
+void WeaveSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 
 sort_info RunSorts_aSort[] = {
 	{
@@ -39,6 +28,10 @@ sort_info RunSorts_aSort[] = {
 	{
 		"Bottom-up Heapsort",
 		BottomUpHeapSort,
+	},
+	{
+		"Parallel Weave Sort",
+		WeaveSortParallel,
 	},
 };
 

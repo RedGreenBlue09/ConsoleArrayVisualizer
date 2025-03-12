@@ -14,7 +14,7 @@ typedef struct {
 
 typedef struct {
 	thrd_t Thread;
-	thread_pool_job* pJob;
+	thread_pool_job* atomic pJob;
 	atomic bool bRun;
 } thread_pool_worker_thread;
 
@@ -25,3 +25,10 @@ typedef struct {
 	thread_pool_worker_thread* aThread;
 	uint8_t Data[];
 } thread_pool;
+
+thread_pool* ThreadPool_Create(size_t ThreadCount);
+void ThreadPool_Destroy(thread_pool* pThreadPool);
+
+thread_pool_job ThreadPool_InitJob(thrd_start_t pFunction, void* Parameter);
+void ThreadPool_AddJob(thread_pool* ThreadPool, thread_pool_job* pJob);
+void ThreadPool_WaitForJob(thread_pool_job* pJob);
