@@ -14,24 +14,25 @@
 
 #ifdef _MSC_VER
 	#ifdef _M_IX86 
-		#define MACHINE_IA32
+		#define MACHINE_IA32 1
 	#elif _M_X64
-		#define MACHINE_AMD64
+		#define MACHINE_AMD64 1
 	#elif _M_ARM
-		#define MACHINE_ARM32
+		#define MACHINE_ARM32 1
 	#elif _M_ARM64
-		#define MACHINE_ARM64
+		#define MACHINE_ARM64 1
 	#endif
 #elif __GNUC__
 	#ifdef __i386__
-		#define MACHINE_IA32
+		#define MACHINE_IA32 1
 	#elif __x86_64__
-		#define MACHINE_AMD64
+		#define MACHINE_AMD64 1
 	#elif __arm__
-		#define MACHINE_ARM32
+		#define MACHINE_ARM32 1
 	#elif __aarch64__
-		#define MACHINE_ARM64
+		#define MACHINE_ARM64 1
 	#endif
 #endif
 
+uint8_t log2_uptr(uintptr_t X);
 uint8_t log2_u64(uint64_t X);

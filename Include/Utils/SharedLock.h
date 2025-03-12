@@ -10,7 +10,7 @@
 #include "Utils/Machine.h"
 
 // Last bit for exclusive lock, the rest is shared lock count
-// Max number of shared locks: 128
+// Max number of shared locks: 127
 typedef atomic uint8_t sharedlock;
 
 static inline void sharedlock_init(sharedlock* pLock) {

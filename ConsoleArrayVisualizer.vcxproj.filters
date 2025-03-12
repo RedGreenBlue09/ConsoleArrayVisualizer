@@ -102,6 +102,12 @@
     <ClCompile Include="Source\Shuffles\Reversed.c">
       <Filter>Source Files\Shuffles</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Utils\ConcurrentQueue.c">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Utils\ThreadPool.c">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\RunSorts.h">
@@ -135,6 +141,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\Utils\Common.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Utils\Semaphore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Utils\ConcurrentQueue.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Utils\ThreadPool.h">
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
   </ItemGroup>
