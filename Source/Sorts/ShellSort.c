@@ -83,7 +83,6 @@ typedef struct {
 	intptr_t start;
 	intptr_t end;
 	intptr_t gap;
-	thread_pool* threadPool;
 	atomic bool parameterRead;
 } insertion_parameter;
 
@@ -94,7 +93,6 @@ static int gappedInsertion(void* parameter) {
 	intptr_t start = insertionParameter->start;
 	intptr_t end = insertionParameter->end;
 	intptr_t gap = insertionParameter->gap;
-	thread_pool* threadPool = insertionParameter->threadPool;
 	insertionParameter->parameterRead = true;
 	insertionParameter = NULL;
 
@@ -132,23 +130,20 @@ void ShellSortParallel(visualizer_array_handle arrayHandle, visualizer_int* arra
 	intptr_t pass = nGaps - 1;
 	while (gaps[pass] > n) --pass;
 
-	thread_pool* threadPool = ThreadPool_Create(6); // TODO FIXME
 	thread_pool_job* jobs = malloc_guarded(sizeof(*jobs) * (n / 2));
 
 	for (--pass; pass >= 0; --pass) {
 		intptr_t gap = gaps[pass];
-		intptr_t nIteration = min2(gap, n - gap);
+		intptr_t nIteration = min2(gap, n - gap); // Worst case: n / 2
 
 		for (intptr_t i = 0; i < nIteration; ++i) {
-			insertion_parameter parameter = { arrayHandle, array, i, n, gap, threadPool , false};
+			insertion_parameter parameter = { arrayHandle, array, i, n, gap, false };
 			jobs[i] = ThreadPool_InitJob(gappedInsertion, &parameter);
-			ThreadPool_AddJob(threadPool, &jobs[i]);
+			ThreadPool_AddJob(Visualizer_pThreadPool, &jobs[i]);
 			while (!parameter.parameterRead);
 		}
 
 		for (intptr_t i = 0; i < nIteration; ++i)
 			ThreadPool_WaitForJob(&jobs[i]);
 	}
-
-	ThreadPool_Destroy(threadPool);
 }

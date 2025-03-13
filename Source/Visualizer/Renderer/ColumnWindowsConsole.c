@@ -1,7 +1,6 @@
 
 #include "Visualizer.h"
 
-#include <threads.h>
 #include <stdalign.h>
 #include <string.h>
 #include <Windows.h>
@@ -107,6 +106,8 @@ static char* gsAlgorithmName; // NULL terminated
 static const double gfDefaultDelay = 10000000.0f;
 static atomic double gfAlgorithmSleepMultiplier;
 static atomic double gfUserSleepMultiplier;
+
+thread_pool* Visualizer_pThreadPool;
 
 static visualizer_array_handle PoolIndexToHandle(pool_index PoolIndex) {
 	return (visualizer_array_handle)(PoolIndex + 1);
@@ -465,7 +466,7 @@ static int RenderThreadMain(void* pData) {
 
 }
 
-void Visualizer_Initialize() {
+void Visualizer_Initialize(size_t ThreadCount) {
 
 	PoolInitialize(&gArrayPropPool, 16, sizeof(array_prop));
 	gsAlgorithmName = NULL;
@@ -524,9 +525,12 @@ void Visualizer_Initialize() {
 	gbRun = true;
 	thrd_create(&gRenderThread, RenderThreadMain, NULL);
 
+	Visualizer_pThreadPool = ThreadPool_Create(ThreadCount);
 }
 
 void Visualizer_Uninitialize() {
+
+	ThreadPool_Destroy(Visualizer_pThreadPool);
 
 	// Stop render thread
 

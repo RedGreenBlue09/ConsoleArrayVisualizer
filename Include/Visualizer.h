@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "Utils/ThreadPool.h"
+
 typedef int32_t visualizer_int;
 typedef uint32_t visualizer_uint;
 
@@ -25,7 +27,7 @@ typedef uint8_t visualizer_sleep_scale;
 
 //#define VISUALIZER_DISABLE_SLEEP 1
 
-void Visualizer_Initialize();
+void Visualizer_Initialize(size_t ThreadCount);
 void Visualizer_Uninitialize();
 
 // Delays
@@ -117,3 +119,7 @@ void Visualizer_MoveMarker(
 
 void Visualizer_SetAlgorithmName(char* sAlgorithmNameArg);
 void Visualizer_ClearReadWriteCounter(visualizer_array_handle hArray);
+
+// Thread
+
+extern thread_pool* Visualizer_pThreadPool;

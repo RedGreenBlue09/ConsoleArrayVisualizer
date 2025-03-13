@@ -217,18 +217,20 @@ static inline size_t lfring_dequeue(struct lfring* q, bool nonempty) {
 
 // wrappers
 
-static bool is_pow2(size_t X) {
-	return (X & (X - 1)) == 0;
+static size_t MemberCountToOrder(size_t MemberCount) {
+	// Order is log2 half the real count of the queue
+	// The queue must have at least 2 members (order = 1)
+	bool bIsPow2 = (MemberCount & (MemberCount - 1)) == 0;
+	return log2_uptr(MemberCount) - bIsPow2 + (MemberCount == 1);
 }
 
 size_t ConcurrentQueue_StructSize(size_t MemberCount) {
-	size_t Order = log2_uptr(MemberCount) - is_pow2(MemberCount);
+	size_t Order = MemberCountToOrder(MemberCount);
 	return sizeof(concurrent_queue) + (sizeof(uintptr_t) << (Order + 1));
 }
 
 void ConcurrentQueue_Init(concurrent_queue* pQueue, size_t MemberCount) {
-	// Order is log2 half the real count of the queue
-	size_t Order = log2_uptr(MemberCount) - is_pow2(MemberCount);
+	size_t Order = MemberCountToOrder(MemberCount);
 	lfring_init_empty(pQueue, Order);
 }
 
