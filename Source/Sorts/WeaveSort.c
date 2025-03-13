@@ -4,10 +4,10 @@
 #include "Visualizer.h"
 
 static void step(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t x, intptr_t y) {
-	Visualizer_UpdateRead2(arrayHandle, x, y, 1.0);
+	Visualizer_UpdateRead2(arrayHandle, x, y, 0.5);
 	if (array[x] > array[y]) {
 		swap(&array[x], &array[y]);
-		Visualizer_UpdateSwap(arrayHandle, x, y, 1.0);
+		Visualizer_UpdateSwap(arrayHandle, x, y, 0.5);
 	}
 }
 
@@ -42,8 +42,8 @@ static int circle(void* parameter) {
 		thread_pool_job leftJob = ThreadPool_InitJob(circle, &leftParameter);
 		thread_pool_job rightJob = ThreadPool_InitJob(circle, &rightParameter);
 
-		ThreadPool_AddJob(threadPool, &leftJob);
-		ThreadPool_AddJob(threadPool, &rightJob);
+		ThreadPool_AddJobRecursive(threadPool, &leftJob);
+		ThreadPool_AddJobRecursive(threadPool, &rightJob);
 
 		ThreadPool_WaitForJob(&leftJob);
 		ThreadPool_WaitForJob(&rightJob);
@@ -76,8 +76,8 @@ static int sortMain(void* parameter) {
 		thread_pool_job leftJob = ThreadPool_InitJob(sortMain, &leftParameter);
 		thread_pool_job rightJob = ThreadPool_InitJob(sortMain, &rightParameter);
 
-		ThreadPool_AddJob(threadPool, &leftJob);
-		ThreadPool_AddJob(threadPool, &rightJob);
+		ThreadPool_AddJobRecursive(threadPool, &leftJob);
+		ThreadPool_AddJobRecursive(threadPool, &rightJob);
 
 		ThreadPool_WaitForJob(&leftJob);
 		ThreadPool_WaitForJob(&rightJob);
@@ -90,6 +90,9 @@ static int sortMain(void* parameter) {
 }
 
 void WeaveSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
+	Visualizer_SetAlgorithmSleepMultiplier(
+		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_N) // TODO FIXME
+	);
 	thread_pool* threadPool = ThreadPool_Create(4); // TODO FIXME
 	sort_main_parameter parameter = { arrayHandle, array, n, 0, 1, threadPool };
 	sortMain(&parameter);

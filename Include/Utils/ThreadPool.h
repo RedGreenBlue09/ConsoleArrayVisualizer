@@ -31,4 +31,5 @@ void ThreadPool_Destroy(thread_pool* pThreadPool);
 
 thread_pool_job ThreadPool_InitJob(thrd_start_t pFunction, void* Parameter);
 void ThreadPool_AddJob(thread_pool* ThreadPool, thread_pool_job* pJob);
+void ThreadPool_AddJobRecursive(thread_pool* ThreadPool, thread_pool_job* pJob);
 void ThreadPool_WaitForJob(thread_pool_job* pJob);

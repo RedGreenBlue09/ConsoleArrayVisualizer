@@ -19,8 +19,10 @@ static int WorkerThread(void* Parameter) {
 	thread_pool_worker_thread* pWorkerThread = &pThreadPool->aThread[iThread];
 
 	while (pWorkerThread->bRun) {
-		if (!pWorkerThread->pJob) // TODO: Sleep
+		if (!pWorkerThread->pJob) {
+			thrd_yield();
 			continue;
+		}
 		thread_pool_job* pJob = pWorkerThread->pJob;
 
 		pJob->StatusCode = pJob->pFunction(pJob->Parameter);
@@ -89,21 +91,30 @@ thread_pool_job ThreadPool_InitJob(thrd_start_t pFunction, void* Parameter) {
 }
 
 void ThreadPool_AddJob(thread_pool* ThreadPool, thread_pool_job* pJob) {
+	while (!semaphore_try_acquire_single(&ThreadPool->StatusSemaphore))
+		thrd_yield();
+
+	size_t iThread = ConcurrentQueue_Pop(ThreadPool->pThreadQueue);
+
+	pJob->bFinished = false;
+	ThreadPool->aThread[iThread].pJob = pJob;
+}
+
+void ThreadPool_AddJobRecursive(thread_pool* ThreadPool, thread_pool_job* pJob) {
 	if (semaphore_try_acquire_single(&ThreadPool->StatusSemaphore)) {
 		size_t iThread = ConcurrentQueue_Pop(ThreadPool->pThreadQueue);
 
 		pJob->bFinished = false;
 		ThreadPool->aThread[iThread].pJob = pJob;
 	} else {
-		// Get the job done to prevent dead lock
-		// This is less efficient but saves memory
-		// TODO: Find another way to address this
+		// Get the job done on the calling thread to prevent dead lock
+		// This is less efficient but has low memory and complexity
 		pJob->StatusCode = pJob->pFunction(pJob->Parameter);
 		pJob->bFinished = true;
 	}
-
 }
 
 void ThreadPool_WaitForJob(thread_pool_job* pJob) {
-	while (!pJob->bFinished); // TODO: Sleep
+	while (!pJob->bFinished)
+		thrd_yield();
 }

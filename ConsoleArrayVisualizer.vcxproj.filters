@@ -108,7 +108,7 @@
     <ClCompile Include="Source\Utils\ThreadPool.c">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Sorts\WeaveSortParallel.c">
+    <ClCompile Include="Source\Sorts\WeaveSort.c">
       <Filter>Source Files\Sorts</Filter>
     </ClCompile>
   </ItemGroup>

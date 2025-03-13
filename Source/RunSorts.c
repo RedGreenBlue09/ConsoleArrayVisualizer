@@ -11,6 +11,7 @@
 
 void InsertionSort(visualizer_int* array, intptr_t n);
 void ShellSortTokuda(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
+void ShellSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 void LeftRightQuickSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 void IterativeMergeSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
@@ -32,6 +33,10 @@ sort_info RunSorts_aSort[] = {
 	{
 		"Parallel Weave Sort",
 		WeaveSortParallel,
+	},
+	{
+		"Parallel Shellsort (Tokuda's gaps)",
+		ShellSortParallel,
 	},
 };
 
