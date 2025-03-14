@@ -4,7 +4,7 @@
 
 // Source: https://arxiv.org/pdf/2210.16471
 
-void PoolInitialize(pool* pPool, pool_index nBlock, uintptr_t BlockSize) {
+void Pool_Initialize(pool* pPool, pool_index nBlock, uintptr_t BlockSize) {
 	if (BlockSize < sizeof(pool_index)) return;
 	pPool->nBlock = nBlock;
 	pPool->BlockSize = BlockSize;
@@ -14,14 +14,14 @@ void PoolInitialize(pool* pPool, pool_index nBlock, uintptr_t BlockSize) {
 	pPool->NextIndex = 0;
 }
 
-void PoolDestroy(pool* pPool) {
+void Pool_Destroy(pool* pPool) {
 	assert(pPool);
 	assert(pPool->pMemory);
 	free(pPool->pMemory);
 	pPool->pMemory = NULL; // Prevent undefined behavior
 }
 
-pool_index PoolAllocate(pool* pPool) {
+pool_index Pool_Allocate(pool* pPool) {
 
 	assert(pPool);
 	assert(pPool->nBlock > 0);
@@ -30,7 +30,7 @@ pool_index PoolAllocate(pool* pPool) {
 
 	if (pPool->nInitializedBlock < pPool->nBlock) {
 
-		pool_index* pFreeBlock = PoolIndexToAddress(pPool, pPool->nInitializedBlock);
+		pool_index* pFreeBlock = Pool_IndexToAddress(pPool, pPool->nInitializedBlock);
 		*pFreeBlock = pPool->nInitializedBlock + 1;
 		++pPool->nInitializedBlock;
 
@@ -40,7 +40,7 @@ pool_index PoolAllocate(pool* pPool) {
 
 		pool_index FreeIndex = pPool->NextIndex;
 		--pPool->nFreeBlock;
-		pPool->NextIndex = *(pool_index*)PoolIndexToAddress(pPool, FreeIndex);
+		pPool->NextIndex = *(pool_index*)Pool_IndexToAddress(pPool, FreeIndex);
 		return FreeIndex;
 
 	} else
@@ -48,7 +48,7 @@ pool_index PoolAllocate(pool* pPool) {
 
 }
 
-void PoolDeallocate(pool* pPool, pool_index Index)
+void Pool_Deallocate(pool* pPool, pool_index Index)
 {
 	assert(pPool);
 	assert(pPool->nBlock > 0);
@@ -57,22 +57,22 @@ void PoolDeallocate(pool* pPool, pool_index Index)
 	assert(pPool->pMemory);
 	assert(Index < pPool->nBlock);
 
-	pool_index* pFreeBlock = PoolIndexToAddress(pPool, Index);
+	pool_index* pFreeBlock = Pool_IndexToAddress(pPool, Index);
 	*pFreeBlock = pPool->NextIndex;
 	pPool->NextIndex = Index;
 	++pPool->nFreeBlock;
 }
 
-void PoolDeallocateAddress(pool* pPool, void* pBlock)
+void Pool_DeallocateAddress(pool* pPool, void* pBlock)
 {
 	assert(pPool);
 	assert(pPool->nBlock > 0);
 	assert(pPool->BlockSize > 0);
 	assert(pPool->nFreeBlock < pPool->nBlock);
 	assert(pPool->pMemory);
-	assert((uint8_t*)pBlock >= pPool->pMemory && pBlock <= PoolIndexToAddress(pPool, pPool->nBlock - 1));
+	assert((uint8_t*)pBlock >= pPool->pMemory && pBlock <= Pool_IndexToAddress(pPool, pPool->nBlock - 1));
 
 	*(pool_index*)pBlock = pPool->NextIndex;
-	pPool->NextIndex = PoolAddressToIndex(pPool, pBlock);
+	pPool->NextIndex = Pool_AddressToIndex(pPool, pBlock);
 	++pPool->nFreeBlock;
 }

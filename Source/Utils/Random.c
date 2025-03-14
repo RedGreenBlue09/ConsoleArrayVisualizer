@@ -68,6 +68,6 @@ uint64_t rand64_bounded(rand64_state* state, uint64_t range) {
 	return x;
 }
 
-double rand_double(rand64_state* state) {
+double randf64(rand64_state* state) {
 	return (double)(xoshiro_next(state) >> 11) * 0x1p-53;
 }

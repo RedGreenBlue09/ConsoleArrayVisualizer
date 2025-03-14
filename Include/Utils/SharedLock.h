@@ -13,20 +13,20 @@
 // Max number of shared locks: 127
 typedef atomic uint8_t sharedlock;
 
-static inline void sharedlock_init(sharedlock* pLock) {
+static inline void SharedLock_Init(sharedlock* pLock) {
 	pLock = 0;
 }
 
-static inline void sharedlock_lock_exclusive(sharedlock* pLock) {
+static inline void SharedLock_LockExclusive(sharedlock* pLock) {
 	*pLock |= (1 << 7); // Set exclusive lock bit
 	while (*pLock > (1 << 7)); // Wait for all shared locks
 }
 
-static inline void sharedlock_unlock_exclusive(sharedlock* pLock) {
+static inline void SharedLock_UnlockExclusive(sharedlock* pLock) {
 	*pLock &= ~(1 << 7); // Unset exclusive lock bit
 }
 
-static inline void sharedlock_lock_shared(sharedlock* pLock) {
+static inline void SharedLock_LockShared(sharedlock* pLock) {
 #if defined(MACHINE_ARM32) || defined(MACHINE_ARM64) /* TODO: Handle ARMv8.1 */
 	// CAS version, is slower on x86 but might be faster on ARM
 	uint8_t CachedLock;
@@ -54,7 +54,7 @@ static inline void sharedlock_lock_shared(sharedlock* pLock) {
 #endif
 }
 
-static inline void sharedlock_unlock_shared(sharedlock* pLock) {
+static inline void SharedLock_UnlockShared(sharedlock* pLock) {
 	// Decrease shared lock count
 	--*pLock;
 }

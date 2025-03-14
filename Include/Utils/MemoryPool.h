@@ -17,20 +17,20 @@ typedef struct {
 
 #define POOL_INVALID_INDEX UINTPTR_MAX
 
-inline void* PoolIndexToAddress(pool* pPool, pool_index Index) {
+inline void* Pool_IndexToAddress(pool* pPool, pool_index Index) {
 	assert(pPool);
 	assert(Index < pPool->nBlock);
 	return (pPool->pMemory + (Index * pPool->BlockSize));
 }
 
-inline pool_index PoolAddressToIndex(pool* pPool, void* pAddress) {
+inline pool_index Pool_AddressToIndex(pool* pPool, void* pAddress) {
 	assert(pPool);
-	assert((uint8_t*)pAddress >= pPool->pMemory && pAddress <= PoolIndexToAddress(pPool, pPool->nBlock - 1));
+	assert((uint8_t*)pAddress >= pPool->pMemory && pAddress <= Pool_IndexToAddress(pPool, pPool->nBlock - 1));
 	return ((uint8_t*)pAddress - pPool->pMemory) / pPool->BlockSize; // FIXME: UNDERFLOW?
 }
 
-void PoolInitialize(pool* pPool, pool_index nBlock, uintptr_t BlockSize);
-void PoolDestroy(pool* pPool);
-pool_index PoolAllocate(pool* pPool);
-void PoolDeallocate(pool* pPool, pool_index Index);
-void PoolDeallocateAddress(pool* pPool, void* pBlock);
+void Pool_Initialize(pool* pPool, pool_index nBlock, uintptr_t BlockSize);
+void Pool_Destroy(pool* pPool);
+pool_index Pool_Allocate(pool* pPool);
+void Pool_Deallocate(pool* pPool, pool_index Index);
+void Pool_DeallocateAddress(pool* pPool, void* pBlock);

@@ -10,11 +10,11 @@
 // Max number of threads: 127
 typedef atomic int8_t semaphore;
 
-static inline void semaphore_init(semaphore* pSemaphore, int8_t MaxCount) {
+static inline void Semaphore_Init(semaphore* pSemaphore, int8_t MaxCount) {
 	*pSemaphore = MaxCount;
 }
 
-static inline void semaphore_acquire_single(semaphore* pSemaphore) {
+static inline void Semaphore_AcquireSingle(semaphore* pSemaphore) {
 #if defined(MACHINE_ARM32) || defined(MACHINE_ARM64) /* TODO: Handle ARMv8.1 */
 	// CAS version, is slower on x86 but might be faster on ARM
 	// This version can support more threads if we use unsigned type
@@ -43,7 +43,7 @@ static inline void semaphore_acquire_single(semaphore* pSemaphore) {
 #endif
 }
 
-static inline bool semaphore_try_acquire_single(semaphore* pSemaphore) {
+static inline bool Semaphore_TryAcquireSingle(semaphore* pSemaphore) {
 #if defined(MACHINE_ARM32) || defined(MACHINE_ARM64) /* TODO: Handle ARMv8.1 */
 	// CAS version, is slower on x86 but might be faster on ARM
 	// This version can support more threads if we use unsigned type
@@ -67,6 +67,6 @@ static inline bool semaphore_try_acquire_single(semaphore* pSemaphore) {
 #endif
 }
 
-static inline void semaphore_release_single(semaphore* pSemaphore) {
+static inline void Semaphore_ReleaseSingle(semaphore* pSemaphore) {
 	++*pSemaphore;
 }

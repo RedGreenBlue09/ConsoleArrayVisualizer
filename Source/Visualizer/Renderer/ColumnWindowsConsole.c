@@ -118,7 +118,7 @@ static pool_index HandleToPoolIndex(visualizer_array_handle hHandle) {
 }
 
 static void* GetHandleData(pool* pPool, visualizer_array_handle hHandle) {
-	return PoolIndexToAddress(pPool, HandleToPoolIndex(hHandle));
+	return Pool_IndexToAddress(pPool, HandleToPoolIndex(hHandle));
 }
 
 static bool ValidateHandle(pool* pPool, visualizer_array_handle hHandle) {
@@ -176,13 +176,13 @@ static ColumnUpdateParam GetColumnUpdateParam(array_prop* pArrayProp, intptr_t i
 	visualizer_long ValueSum;
 	uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 
-	sharedlock_lock_exclusive(&pColumn->SharedLock);
+	SharedLock_LockExclusive(&pColumn->SharedLock);
 
 	pColumn->bUpdated = false;
 	ValueSum = pColumn->ValueSum;
 	memcpy(aMarkerCount, (uint32_t*)&pColumn->aMarkerCount, sizeof(aMarkerCount));
 
-	sharedlock_unlock_exclusive(&pColumn->SharedLock);
+	SharedLock_UnlockExclusive(&pColumn->SharedLock);
 
 	// NOTE: Precision loss: This force it to have a precision = range
 	// Fix is possible but does it worth it?
@@ -307,7 +307,7 @@ static int RenderThreadMain(void* pData) {
 		// Remove
 		if (pArrayProp->bRemoved) {
 			free(pArrayProp->aState);
-			PoolDeallocateAddress(&gArrayPropPool, pArrayProp);
+			Pool_DeallocateAddress(&gArrayPropPool, pArrayProp);
 			gpArrayPropHead = NULL;
 
 			ClearScreen();
@@ -333,7 +333,7 @@ static int RenderThreadMain(void* pData) {
 
 				column_info_non_atomic* pColumn = &pArrayProp->aColumn[iColumn].NonAtomic;
 
-				sharedlock_lock_exclusive(&pColumn->SharedLock);
+				SharedLock_LockExclusive(&pColumn->SharedLock);
 
 				// Reset values
 				pColumn->ValueSum = 0;
@@ -355,7 +355,7 @@ static int RenderThreadMain(void* pData) {
 				}
 				pColumn->bUpdated = true;
 
-				sharedlock_unlock_exclusive(&pColumn->SharedLock);
+				SharedLock_UnlockExclusive(&pColumn->SharedLock);
 
 			}
 
@@ -388,14 +388,14 @@ static int RenderThreadMain(void* pData) {
 		// Update cell text rows
 
 		// Algorithm name
-		spinlock_lock(&gAlgorithmNameLock);
+		SpinLock_Lock(&gAlgorithmNameLock);
 
 		char* sAlgorithmNameTemp = gsAlgorithmName;
 		if (sAlgorithmNameTemp == NULL)
 			sAlgorithmNameTemp = "";
 		UpdateCellCacheRow(0, sAlgorithmNameTemp, strlen(sAlgorithmNameTemp));
 
-		spinlock_unlock(&gAlgorithmNameLock);
+		SpinLock_Unlock(&gAlgorithmNameLock);
 
 		intptr_t Length;
 		intptr_t NumberLength;
@@ -422,7 +422,7 @@ static int RenderThreadMain(void* pData) {
 		char aArrayIndexString[48] = "Array #";
 		Length = static_strlen("Array #");
 		NumberLength = Uint64ToString(
-			PoolAddressToIndex(&gArrayPropPool, pArrayProp),
+			Pool_AddressToIndex(&gArrayPropPool, pArrayProp),
 			aArrayIndexString + Length
 		);
 		Length += NumberLength;
@@ -468,7 +468,7 @@ static int RenderThreadMain(void* pData) {
 
 void Visualizer_Initialize(size_t ThreadCount) {
 
-	PoolInitialize(&gArrayPropPool, 16, sizeof(array_prop));
+	Pool_Initialize(&gArrayPropPool, 16, sizeof(array_prop));
 	gsAlgorithmName = NULL;
 	gfAlgorithmSleepMultiplier = 1.0f;
 	gfUserSleepMultiplier = 1.0f;
@@ -553,7 +553,7 @@ void Visualizer_Uninitialize() {
 
 	// Free arrays & markers
 
-	PoolDestroy(&gArrayPropPool);
+	Pool_Destroy(&gArrayPropPool);
 
 }
 
@@ -563,9 +563,9 @@ visualizer_array_handle Visualizer_AddArray(
 	visualizer_int ValueMin,
 	visualizer_int ValueMax
 ) {
-	pool_index Index = PoolAllocate(&gArrayPropPool);
+	pool_index Index = Pool_Allocate(&gArrayPropPool);
 	if (Index == POOL_INVALID_INDEX) return NULL;
-	array_prop* pArrayProp = PoolIndexToAddress(&gArrayPropPool, Index);
+	array_prop* pArrayProp = Pool_IndexToAddress(&gArrayPropPool, Index);
 
 	if (Size < 1) return NULL; // TODO: Allow this
 
@@ -598,7 +598,7 @@ visualizer_array_handle Visualizer_AddArray(
 void Visualizer_RemoveArray(visualizer_array_handle hArray) {
 	assert(ValidateHandle(&gArrayPropPool, hArray));
 	pool_index Index = HandleToPoolIndex(hArray);
-	array_prop* pArrayProp = PoolIndexToAddress(&gArrayPropPool, Index);
+	array_prop* pArrayProp = Pool_IndexToAddress(&gArrayPropPool, Index);
 
 	pArrayProp->bRemoved = true;
 }
@@ -625,7 +625,7 @@ static inline void UpdateMember(
 	column_info_atomic* pColumn = &pArrayProp->aColumn[iColumn].Atomic;
 
 	// This lock is put up here for the render thread to handle window resize
-	sharedlock_lock_shared(&pColumn->SharedLock);
+	SharedLock_LockShared(&pColumn->SharedLock);
 
 	if (UpdateType & MemberUpdateType_Attribute) {
 		if (bAddAttribute)
@@ -648,7 +648,7 @@ static inline void UpdateMember(
 	}
 	pColumn->bUpdated = true;
 
-	sharedlock_unlock_shared(&pColumn->SharedLock);
+	SharedLock_UnlockShared(&pColumn->SharedLock);
 };
 
 void Visualizer_UpdateArrayState(visualizer_array_handle hArray, visualizer_int* aState) {
@@ -669,7 +669,7 @@ void Visualizer_UpdateArray(
 
 	assert(ValidateHandle(&gArrayPropPool, hArray));
 	pool_index Index = HandleToPoolIndex(hArray);
-	array_prop* pArrayProp = PoolIndexToAddress(&gArrayPropPool, Index);
+	array_prop* pArrayProp = Pool_IndexToAddress(&gArrayPropPool, Index);
 
 	// Clear screen
 
@@ -930,9 +930,9 @@ void Visualizer_SetAlgorithmName(char* sAlgorithmName) {
 	char* sAlgorithmNameTemp = malloc_guarded(Size * sizeof(*sAlgorithmName));
 	memcpy(sAlgorithmNameTemp, sAlgorithmName, Size * sizeof(*sAlgorithmName));
 
-	spinlock_lock(&gAlgorithmNameLock);
+	SpinLock_Lock(&gAlgorithmNameLock);
 	swap(&gsAlgorithmName, &sAlgorithmNameTemp);
-	spinlock_unlock(&gAlgorithmNameLock);
+	SpinLock_Unlock(&gAlgorithmNameLock);
 	free(sAlgorithmNameTemp);
 }
 

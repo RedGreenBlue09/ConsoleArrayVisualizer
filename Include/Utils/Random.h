@@ -8,4 +8,4 @@ typedef struct {
 void srand64(rand64_state* state, uint64_t seed);
 uint64_t rand64(rand64_state* state);
 uint64_t rand64_bounded(rand64_state* state, uint64_t range);
-double rand_double(rand64_state* state);
+double randf64(rand64_state* state);

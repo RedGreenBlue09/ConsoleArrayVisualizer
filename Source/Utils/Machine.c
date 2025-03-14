@@ -44,14 +44,14 @@ uint8_t log2_u64(uint64_t X) {
 // Source: https://www.chessprogramming.org/BitScan#De_Bruijn_Multiplication_2
 
 static const uint8_t aTab64[64] = {
-	63,  0, 58,  1, 59, 47, 53,  2,
-	60, 39, 48, 27, 54, 33, 42,  3,
-	61, 51, 37, 40, 49, 18, 28, 20,
-	55, 30, 34, 11, 43, 14, 22,  4,
-	62, 57, 46, 52, 38, 26, 32, 41,
-	50, 36, 17, 19, 29, 10, 13, 21,
-	56, 45, 25, 31, 35, 16,  9, 12,
-	44, 24, 15,  8, 23,  7,  6,  5
+	 0, 47,  1, 56, 48, 27,  2, 60,
+	57, 49, 41, 37, 28, 16,  3, 61,
+	54, 58, 35, 52, 50, 42, 21, 44,
+	38, 32, 29, 23, 17, 11,  4, 62,
+	46, 55, 26, 59, 40, 36, 15, 53,
+	34, 51, 20, 43, 31, 22, 10, 45,
+	25, 39, 14, 33, 19, 30,  9, 24,
+	13, 18,  8, 12,  7,  6,  5, 63
 };
 
 uint8_t log2_u64(uint64_t X) {
@@ -61,7 +61,7 @@ uint8_t log2_u64(uint64_t X) {
 	X |= X >> 8;
 	X |= X >> 16;
 	X |= X >> 32;
-	return aTab64[((uint64_t)((X - (X >> 1)) * 0x07EDD5E59A4E28C2)) >> 58];
+	return aTab64[(X * 0x03F79D71B4CB0A89) >> 58];
 }
 
 #endif
@@ -92,20 +92,22 @@ uint8_t log2_uptr(uintptr_t X) {
 
 	#else
 
-const int aTab32[32] = {
+// Source: https://stackoverflow.com/questions/11376288/fast-computing-of-log2-for-64-bit-integers
+
+static const uint8_t aTab32[32] = {
 	 0,  9,  1, 10, 13, 21,  2, 29,
 	11, 14, 16, 18, 22, 25,  3, 30,
 	 8, 12, 20, 28, 15, 17, 24,  7,
-	19, 27, 23,  6, 26,  5,  4, 31 };
+	19, 27, 23,  6, 26,  5,  4, 31
+};
 
-int log2_uptr(uintptr_t X)
-{
+uint8_t log2_uptr(uintptr_t X) {
 	X |= X >> 1;
 	X |= X >> 2;
 	X |= X >> 4;
 	X |= X >> 8;
 	X |= X >> 16;
-	return aTab32[(uintptr_t)(X * 0x07C4ACDD) >> 27];
+	return aTab32[(X * 0x07C4ACDD) >> 27];
 }
 
 	#endif
