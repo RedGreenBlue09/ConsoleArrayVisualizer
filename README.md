@@ -2,7 +2,20 @@
 
 Visualizes arrays on Windows terminal emulator.
 
-# Features
+### Demo with [Alacritty](https://github.com/alacritty/alacritty)
+<details closed>
+<summary>Videos</summary>
+
+Shellsort, Quicksort, Heapsort on 840 elements, with delays:
+
+https://github.com/user-attachments/assets/8383624c-5651-4755-88d4-7f378d377c12
+
+Parallel Shellsort with 6 extra threads on 16777216 elements, without delays:
+
+https://github.com/user-attachments/assets/9abadf2c-0d15-4b4f-9a0f-9544249eb9dd
+</details>
+
+## Features
 
 ### Current
 
@@ -34,7 +47,7 @@ Visualizes arrays on Windows terminal emulator.
 + Stability test
 + Zooming
 
-# Build
+## Build
 
 ### Visual Studio
 
