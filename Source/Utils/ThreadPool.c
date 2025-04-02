@@ -41,7 +41,7 @@ thread_pool* ThreadPool_Create(size_t ThreadCount) {
 	// TODO: Separate this so that the user can allocate it on the stack
 
 	thread_pool* pThreadPool;
-	size_t QueueStructSize = ConcurrentQueue_StructSize(ThreadCount);
+	size_t QueueStructSize = ConcurrentQueue_StructSize(ThreadCount + (ThreadCount == 0));
 	size_t StructSize =
 		sizeof(thread_pool) + QueueStructSize +
 		sizeof(pThreadPool->aThread[0]) * ThreadCount;
@@ -57,7 +57,7 @@ thread_pool* ThreadPool_Create(size_t ThreadCount) {
 	// Init values
 	pThreadPool->ThreadCount = ThreadCount;
 	Semaphore_Init(&pThreadPool->StatusSemaphore, (int8_t)ThreadCount);
-	ConcurrentQueue_Init(pThreadPool->pThreadQueue, ThreadCount);
+	ConcurrentQueue_Init(pThreadPool->pThreadQueue, ThreadCount + (ThreadCount == 0));
 
 	for (size_t i = 0; i < ThreadCount; ++i)
 		ConcurrentQueue_Push(pThreadPool->pThreadQueue, i);

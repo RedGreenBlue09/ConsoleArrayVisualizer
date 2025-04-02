@@ -5,6 +5,8 @@
 #include "Utils/Random.h"
 #include "Utils/Time.h"
 
+uint64_t RunSorts_Second;
+
 void DistributeRandom(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
@@ -50,7 +52,7 @@ void VerifyRandom(
 		Visualizer_Sleep(1.0);
 	}
 
-	sleep64(2000000);
+	sleep64(RunSorts_Second * 2);
 
 	fCurrentMax = (double)(Length - 1);
 	for (intptr_t i = Length - 1; i >= 1; --i) {

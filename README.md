@@ -13,6 +13,7 @@ https://github.com/user-attachments/assets/8383624c-5651-4755-88d4-7f378d377c12
 Parallel Shellsort with 6 extra threads on 16777216 elements, without delays:
 
 https://github.com/user-attachments/assets/9abadf2c-0d15-4b4f-9a0f-9544249eb9dd
+
 </details>
 
 ## Features
@@ -22,6 +23,7 @@ https://github.com/user-attachments/assets/9abadf2c-0d15-4b4f-9a0f-9544249eb9dd
 + Single array visualization
 + Read & Write counters
 + Fixed set of marker types
++ Delays
 + Large array support
 + Average of overlapped elements
 + Support for most if not all concurrent algorithms  

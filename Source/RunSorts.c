@@ -161,6 +161,8 @@ shuffle_info RunSorts_aShuffle[] = {
 
 uintptr_t RunSorts_nShuffle = static_arrlen(RunSorts_aShuffle);
 
+uint64_t RunSorts_Second;
+
 void RunSorts_RunSort(
 	sort_info* pSort,
 	distribution_info* pDistribution,
@@ -169,6 +171,8 @@ void RunSorts_RunSort(
 	visualizer_int* aArray,
 	intptr_t Length
 ) {
+	RunSorts_Second = clock64_resolution();
+
 	rand64_state RngState;
 	srand64(&RngState, clock64());
 
@@ -192,7 +196,7 @@ void RunSorts_RunSort(
 
 	pShuffle->Shuffle(RngState, hArray, aArray, Length);
 
-	sleep64(1000000);
+	sleep64(RunSorts_Second);
 
 	// Sort
 

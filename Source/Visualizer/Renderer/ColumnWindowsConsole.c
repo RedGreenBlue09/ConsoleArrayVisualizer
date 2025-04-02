@@ -103,7 +103,7 @@ static atomic bool gbRun;
 static spinlock gAlgorithmNameLock;
 static char* gsAlgorithmName; // NULL terminated
 
-static const double gfDefaultDelay = 10000000.0f;
+static double gfDefaultDelay; // Delay for 1 element array
 static atomic double gfAlgorithmSleepMultiplier;
 static atomic double gfUserSleepMultiplier;
 
@@ -285,17 +285,16 @@ static intptr_t Uint64ToString(uint64_t X, char* sString) {
 
 static int RenderThreadMain(void* pData) {
 
-	// microseconds
-	uint64_t ClockResolution = clock64_resolution();
+	uint64_t Second = clock64_resolution();
 	uint64_t ThreadTimeStart = clock64();
-	uint64_t UpdateInterval = 16666; // 60 FPS
+	uint64_t UpdateInterval = Second / 60;
 
-	uint64_t FpsUpdateInterval = 500000; // FPS counter interval
+	uint64_t FpsUpdateInterval = Second / 2; // FPS counter interval
 	uint64_t FpsUpdateCount = 0;
 	uint64_t FramesRendered = 0;
 
 	while (gbRun) {
-		uint64_t ThreadDuration = (clock64() - ThreadTimeStart) * 1000000 / ClockResolution;
+		uint64_t ThreadDuration = clock64() - ThreadTimeStart;
 		
 		// TODO: Multi array
 		if (!gpArrayPropHead) {
@@ -407,7 +406,7 @@ static int RenderThreadMain(void* pData) {
 			char aFpsString[48] = "FPS: ";
 			Length = static_strlen("FPS: ");
 			NumberLength = Uint64ToString(
-				FramesRendered * 1000000 / ((NewFpsUpdateCount - FpsUpdateCount) * FpsUpdateInterval),
+				FramesRendered * Second / ((NewFpsUpdateCount - FpsUpdateCount) * FpsUpdateInterval),
 				aFpsString + Length
 			);
 			Length += NumberLength;
@@ -458,7 +457,7 @@ static int RenderThreadMain(void* pData) {
 		);
 		++FramesRendered;
 
-		ThreadDuration = (clock64() - ThreadTimeStart) * 1000000 / ClockResolution;
+		ThreadDuration = clock64() - ThreadTimeStart;
 		sleep64(UpdateInterval - (ThreadDuration % UpdateInterval));
 	}
 
@@ -525,6 +524,9 @@ void Visualizer_Initialize(size_t ThreadCount) {
 	gbRun = true;
 	thrd_create(&gRenderThread, RenderThreadMain, NULL);
 
+	// Other stuff
+
+	gfDefaultDelay = (double)(clock64_resolution() * 10); // 10s
 	Visualizer_pThreadPool = ThreadPool_Create(ThreadCount);
 }
 

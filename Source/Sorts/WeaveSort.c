@@ -4,10 +4,10 @@
 #include "Visualizer.h"
 
 static void step(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t x, intptr_t y) {
-	Visualizer_UpdateRead2(arrayHandle, x, y, 0.5);
+	Visualizer_UpdateRead2(arrayHandle, x, y, 1.0);
 	if (array[x] > array[y]) {
 		swap(&array[x], &array[y]);
-		Visualizer_UpdateSwap(arrayHandle, x, y, 0.5);
+		Visualizer_UpdateSwap(arrayHandle, x, y, 1.0);
 	}
 }
 
@@ -87,7 +87,7 @@ static int sortMain(void* parameter) {
 
 void WeaveSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_N) // TODO FIXME
+		Visualizer_ScaleSleepMultiplier(n, 0.375, Visualizer_SleepScale_N) // TODO FIXME
 	);
 	sort_main_parameter parameter = { arrayHandle, array, n, 0, 1 };
 	sortMain(&parameter);

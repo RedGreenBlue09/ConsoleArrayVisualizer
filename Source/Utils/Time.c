@@ -2,19 +2,19 @@
 #include <Windows.h>
 #include <stdint.h>
 
-static uint64_t ClockRes = 0;
+static uint64_t ClockRes = 0; // Doesn't have to be atomic
 
 uint64_t clock64() {
-	LARGE_INTEGER li;
-	QueryPerformanceCounter(&li);
-	return li.QuadPart;
+	LARGE_INTEGER TimeStruct;
+	QueryPerformanceCounter(&TimeStruct);
+	return TimeStruct.QuadPart;
 }
 
 uint64_t clock64_resolution() {
 	if (ClockRes == 0) {
-		LARGE_INTEGER li;
-		QueryPerformanceFrequency(&li);
-		ClockRes = li.QuadPart;
+		LARGE_INTEGER TimeStruct;
+		QueryPerformanceFrequency(&TimeStruct);
+		ClockRes = TimeStruct.QuadPart;
 	}
 	return ClockRes;
 }
@@ -25,29 +25,30 @@ NTSYSAPI NTSTATUS NTAPI NtQueryTimerResolution(
 	OUT PULONG CurrentResolution
 );
 
-static ULONG MinTickRes = 0;
+static ULONG TimerResPeriod = 0;
 
-static void waitabletimer(int64_t Time) {
-
+static void WaitableTimerSleep(int64_t Duration) {
+	if (Duration <= 0)
+		return; // Avoid overhead
 	HANDLE hTimer = CreateWaitableTimerW(NULL, TRUE, NULL);
-	if (!hTimer) return;
+	if (!hTimer)
+		return;
 
-	LARGE_INTEGER liTime;
-	liTime.QuadPart = -Time;
-	SetWaitableTimer(hTimer, &liTime, 0, NULL, NULL, FALSE);
+	LARGE_INTEGER DurationStruct = { .QuadPart = -Duration };
+	SetWaitableTimer(hTimer, &DurationStruct, 0, NULL, NULL, FALSE);
 
 	WaitForSingleObject(hTimer, INFINITE);
 	CloseHandle(hTimer);
 	return;
-
 }
 
-// time: Time to delay in microseconds
-void sleep64(uint64_t time) {
-	if (time == 0)
+// Implementation assumes the clock resolution is at least
+// better than the waitable timer resolution.
+void sleep64(uint64_t Duration) {
+	if (Duration == 0)
 		return; // Avoid calculation overhead
 
-	uint64_t StartTime = clock64();
+	uint64_t StartClockTime = clock64();
 
 	if (ClockRes == 0) {
 		LARGE_INTEGER li;
@@ -55,21 +56,18 @@ void sleep64(uint64_t time) {
 		ClockRes = li.QuadPart;
 	}
 	
-	if (MinTickRes == 0) {
-		ULONG Unused, Unused2;
-		NtQueryTimerResolution(
-			&MinTickRes,
-			&Unused,
-			&Unused2
-		);
+	if (TimerResPeriod == 0) {
+		ULONG Unused;
+		ULONG Unused2;
+		NtQueryTimerResolution(&TimerResPeriod, &Unused, &Unused2);
 	}
+
+	// Most of the times, waitable timer will sleep more than
+	// the specified time by 1 TimerResPeriod or less.
+	int64_t TimerDuration = (int64_t)(Duration * 10000000 / ClockRes) - TimerResPeriod;
+	WaitableTimerSleep(TimerDuration);
 	
-	int64_t WaitableTimerTime = ((int64_t)time * 10 / (int64_t)MinTickRes - 1) * (int64_t)MinTickRes;
-	if (WaitableTimerTime > 0)
-		waitabletimer(WaitableTimerTime);
-	
-	// FIXME: Potential overflow
-	uint64_t TargetClockTime = StartTime + (time * ClockRes / 1000000);
+	uint64_t TargetClockTime = StartClockTime + Duration;
 	while (clock64() < TargetClockTime);
 
 	return;

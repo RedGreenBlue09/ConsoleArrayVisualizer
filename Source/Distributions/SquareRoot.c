@@ -5,6 +5,8 @@
 #include "Utils/Random.h"
 #include "Utils/Time.h"
 
+uint64_t RunSorts_Second;
+
 void DistributeSquareRoot(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
@@ -45,7 +47,7 @@ void VerifySquareRoot(
 		Visualizer_Sleep(1.0);
 	}
 
-	sleep64(2000000);
+	sleep64(RunSorts_Second * 2);
 
 	for (intptr_t i = 0; i < Length; ++i) {
 		visualizer_int Value = (visualizer_int)round(sqrt((double)i) * fSqrtMax);

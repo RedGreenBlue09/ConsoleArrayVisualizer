@@ -13,6 +13,7 @@ typedef struct lfring {
 	atomic uintptr_t array[];
 } concurrent_queue;
 
+// MemberCount > 0
 size_t ConcurrentQueue_StructSize(size_t MemberCount);
 void ConcurrentQueue_Init(concurrent_queue* pQueue, size_t MemberCount);
 void ConcurrentQueue_Push(concurrent_queue* pQueue, size_t Value);

@@ -13,15 +13,11 @@ int main(int argc, char** argv) {
 	if (argc < 7) {
 		printf("Usage:\n");
 		printf("	%s\n", argv[0]);
-		printf("	<Thread count> <Array length> <Sleep multiplier>\n");
+		printf("	<Extra thread count> <Array length> <Sleep multiplier>\n");
 		printf("	<Distribution ID> <Shuffle ID> <Algorithm ID> <Algorithm ID> ...\n");
 		printf("\n");
-		printf("Thread count: The number of threads for the algorithm. (Max: 127)\n");
+		printf("Extra thread count: The number of extra threads for the algorithm. (Max: 125)\n");
 		printf("It is recommended to leave a free thread for the renderer.\n");
-		printf("\n");
-		printf("Algorithms:\n");
-		for (uintptr_t i = 0; i < RunSorts_nSort; ++i)
-			printf("%tu - %s\n", i, RunSorts_aSort[i].sName);
 		printf("\n");
 		printf("Distributions:\n");
 		for (uintptr_t i = 0; i < RunSorts_nDistribution; ++i)
@@ -30,19 +26,23 @@ int main(int argc, char** argv) {
 		printf("Shuffles:\n");
 		for (uintptr_t i = 0; i < RunSorts_nShuffle; ++i)
 			printf("%tu - %s\n", i, RunSorts_aShuffle[i].sName);
+		printf("\n");
+		printf("Algorithms:\n");
+		for (uintptr_t i = 0; i < RunSorts_nSort; ++i)
+			printf("%tu - %s\n", i, RunSorts_aSort[i].sName);
 
 		return 0;
 	}
 
 	int ReadChars;
 
-	size_t ThreadCount = 1;
+	size_t ThreadCount = 0;
 	if (
 		sscanf(argv[1], "%zu %n", &ThreadCount, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[1]) ||
-		ThreadCount == 0 || ThreadCount > 127
+		ThreadCount > 125
 	) {
-		printf("Error: Invalid thread count \'%s\'\n", argv[1]);
+		printf("Error: Invalid extra thread count \'%s\'\n", argv[1]);
 		return 0;
 	}
 
