@@ -5,7 +5,7 @@
 #include "Utils/Random.h"
 #include "Utils/Time.h"
 
-uint64_t RunSorts_Second;
+extern uint64_t RunSorts_Second;
 
 void DistributeSine(
 	rand64_state RngState,
