@@ -5,6 +5,7 @@
 #include "Utils/ConcurrentQueue.h"
 #include "Utils/Semaphore.h"
 
+// TODO: Wait groups allow waiting for jobs without an array of jobs. Maybe I should do that instead?
 typedef struct {
 	thrd_start_t pFunction;
 	void* Parameter;
@@ -22,7 +23,7 @@ typedef struct {
 	size_t ThreadCount;
 	semaphore StatusSemaphore;
 	concurrent_queue* pThreadQueue;
-	thread_pool_worker_thread* aThread;
+	thread_pool_worker_thread* aWorkerThread;
 	uint8_t Data[];
 } thread_pool;
 

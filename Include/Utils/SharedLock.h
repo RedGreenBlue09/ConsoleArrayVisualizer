@@ -14,7 +14,7 @@
 typedef atomic uint8_t sharedlock;
 
 static inline void SharedLock_Init(sharedlock* pLock) {
-	pLock = 0;
+	atomic_init(pLock, 0);
 }
 
 static inline void SharedLock_LockExclusive(sharedlock* pLock) {

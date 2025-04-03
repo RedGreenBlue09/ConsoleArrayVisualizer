@@ -9,26 +9,27 @@ typedef struct {
 	atomic bool bParameterReadDone;
 } worker_thread_parameter;
 
-static int WorkerThread(void* Parameter) {
+static int WorkerThreadFunction(void* Parameter) {
 	worker_thread_parameter* pWorkerParameter = Parameter;
 	thread_pool* pThreadPool = pWorkerParameter->pThreadPool;
 	size_t iThread = pWorkerParameter->iThread;
-	pWorkerParameter->bParameterReadDone = true;
+	atomic_store_explicit(&pWorkerParameter->bParameterReadDone, true, memory_order_release);
 	pWorkerParameter = NULL;
 
-	thread_pool_worker_thread* pWorkerThread = &pThreadPool->aThread[iThread];
+	thread_pool_worker_thread* pWorkerThread = &pThreadPool->aWorkerThread[iThread];
 
-	while (pWorkerThread->bRun) {
-		if (!pWorkerThread->pJob) {
+	while (atomic_load_explicit(&pWorkerThread->bRun, memory_order_relaxed)) {
+		thread_pool_job* pJob = atomic_load_explicit(&pWorkerThread->pJob, memory_order_relaxed);
+		if (!pJob) {
 			thrd_yield();
 			continue;
 		}
-		thread_pool_job* pJob = pWorkerThread->pJob;
 
 		pJob->StatusCode = pJob->pFunction(pJob->Parameter);
-		pJob->bFinished = true;
+		atomic_store_explicit(&pJob->bFinished, true, memory_order_release);
 
-		pWorkerThread->pJob = NULL;
+		// ConcurrentQueue_Push() is acq_rel so this is safe
+		atomic_store_explicit(&pWorkerThread->pJob, NULL, memory_order_relaxed);
 		ConcurrentQueue_Push(pThreadPool->pThreadQueue, iThread);
 		Semaphore_ReleaseSingle(&pThreadPool->StatusSemaphore);
 	}
@@ -44,7 +45,7 @@ thread_pool* ThreadPool_Create(size_t ThreadCount) {
 	size_t QueueStructSize = ConcurrentQueue_StructSize(ThreadCount + (ThreadCount == 0));
 	size_t StructSize =
 		sizeof(thread_pool) + QueueStructSize +
-		sizeof(pThreadPool->aThread[0]) * ThreadCount;
+		sizeof(pThreadPool->aWorkerThread[0]) * ThreadCount;
 	
 	pThreadPool = malloc_guarded(StructSize);
 
@@ -52,7 +53,7 @@ thread_pool* ThreadPool_Create(size_t ThreadCount) {
 
 	// Init pointers
 	pThreadPool->pThreadQueue = (void*)&pThreadPool->Data[0];
-	pThreadPool->aThread = (void*)&pThreadPool->Data[QueueStructSize];
+	pThreadPool->aWorkerThread = (void*)&pThreadPool->Data[QueueStructSize];
 
 	// Init values
 	pThreadPool->ThreadCount = ThreadCount;
@@ -63,12 +64,12 @@ thread_pool* ThreadPool_Create(size_t ThreadCount) {
 		ConcurrentQueue_Push(pThreadPool->pThreadQueue, i);
 
 	for (size_t i = 0; i < ThreadCount; ++i) {
-		pThreadPool->aThread[i].pJob = NULL;
-		pThreadPool->aThread[i].bRun = true;
+		atomic_store_explicit(&pThreadPool->aWorkerThread[i].pJob, NULL, memory_order_relaxed);
+		atomic_store_explicit(&pThreadPool->aWorkerThread[i].bRun, true, memory_order_relaxed);
 
 		worker_thread_parameter WorkerParameter = { pThreadPool, i, false };
-		thrd_create(&pThreadPool->aThread[i].Thread, WorkerThread, &WorkerParameter);
-		while (!WorkerParameter.bParameterReadDone);
+		thrd_create(&pThreadPool->aWorkerThread[i].Thread, WorkerThreadFunction, &WorkerParameter);
+		while (!atomic_load_explicit(&WorkerParameter.bParameterReadDone, memory_order_relaxed));
 	}
 
 	return pThreadPool;
@@ -76,9 +77,9 @@ thread_pool* ThreadPool_Create(size_t ThreadCount) {
 
 void ThreadPool_Destroy(thread_pool* pThreadPool) {
 	for (size_t i = 0; i < pThreadPool->ThreadCount; ++i)
-		pThreadPool->aThread[i].bRun = false;
+		atomic_store_explicit(&pThreadPool->aWorkerThread[i].bRun, false, memory_order_relaxed);
 	for (size_t i = 0; i < pThreadPool->ThreadCount; ++i)
-		thrd_join(pThreadPool->aThread[i].Thread, NULL);
+		thrd_join(pThreadPool->aWorkerThread[i].Thread, NULL);
 
 	free(pThreadPool);
 }
@@ -96,25 +97,25 @@ void ThreadPool_AddJob(thread_pool* ThreadPool, thread_pool_job* pJob) {
 
 	size_t iThread = ConcurrentQueue_Pop(ThreadPool->pThreadQueue);
 
-	pJob->bFinished = false;
-	ThreadPool->aThread[iThread].pJob = pJob;
+	atomic_store_explicit(&pJob->bFinished, false, memory_order_relaxed);
+	atomic_store_explicit(&ThreadPool->aWorkerThread[iThread].pJob, pJob, memory_order_release);
 }
 
 void ThreadPool_AddJobRecursive(thread_pool* ThreadPool, thread_pool_job* pJob) {
 	if (Semaphore_TryAcquireSingle(&ThreadPool->StatusSemaphore)) {
 		size_t iThread = ConcurrentQueue_Pop(ThreadPool->pThreadQueue);
 
-		pJob->bFinished = false;
-		ThreadPool->aThread[iThread].pJob = pJob;
+		atomic_store_explicit(&pJob->bFinished, false, memory_order_relaxed);
+		atomic_store_explicit(&ThreadPool->aWorkerThread[iThread].pJob, pJob, memory_order_release);
 	} else {
 		// Get the job done on the calling thread to prevent dead lock
 		// This is less efficient but has low memory and complexity
 		pJob->StatusCode = pJob->pFunction(pJob->Parameter);
-		pJob->bFinished = true;
+		atomic_store_explicit(&pJob->bFinished, true, memory_order_release);
 	}
 }
 
 void ThreadPool_WaitForJob(thread_pool_job* pJob) {
-	while (!pJob->bFinished)
+	while (!atomic_load_explicit(&pJob->bFinished, memory_order_acquire))
 		thrd_yield();
 }
