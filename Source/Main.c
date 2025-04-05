@@ -36,11 +36,11 @@ int main(int argc, char** argv) {
 
 	int ReadChars;
 
-	size_t ThreadCount = 0;
+	size_t ExtraThreadCount = 0;
 	if (
-		sscanf(argv[1], "%zu %n", &ThreadCount, &ReadChars) != 1 ||
+		sscanf(argv[1], "%zu %n", &ExtraThreadCount, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[1]) ||
-		ThreadCount > 125
+		ExtraThreadCount > 125
 	) {
 		printf("Error: Invalid extra thread count \'%s\'\n", argv[1]);
 		return 0;
@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
 	// TODO: Ask user about array distro and shuffle
 
 	visualizer_int* aArray = calloc_guarded(ArrayLength, sizeof(visualizer_int));
-	Visualizer_Initialize(ThreadCount);
+	Visualizer_Initialize(ExtraThreadCount);
 	visualizer_array_handle hArray = Visualizer_AddArray(ArrayLength, NULL, 0, (visualizer_int)ArrayLength - 1);
 	Visualizer_SetUserSleepMultiplier(fSleepMultiplier);
 

@@ -1,9 +1,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <stdatomic.h>
 
-#include "Utils/Common.h"
+#include "Utils/Atomic.h"
 
 typedef struct lfring {
 	size_t order;

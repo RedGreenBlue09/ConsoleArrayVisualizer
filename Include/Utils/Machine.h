@@ -21,6 +21,9 @@
 		#define MACHINE_ARM32 1
 	#elif _M_ARM64
 		#define MACHINE_ARM64 1
+		#if __ARM_ARCH >= 801
+			#define MACHINE_ARM64_ATOMICS 1
+		#endif
 	#endif
 #elif __GNUC__
 	#ifdef __i386__
@@ -31,6 +34,9 @@
 		#define MACHINE_ARM32 1
 	#elif __aarch64__
 		#define MACHINE_ARM64 1
+		#if defined(__ARM_FEATURE_ATOMICS)
+			#define MACHINE_ARM64_ATOMICS 1
+		#endif
 	#endif
 #endif
 

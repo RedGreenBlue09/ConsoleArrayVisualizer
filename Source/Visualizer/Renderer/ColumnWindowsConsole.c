@@ -1,10 +1,10 @@
 
 #include "Visualizer.h"
 
-#include <stdalign.h>
 #include <string.h>
 #include <Windows.h>
 
+#include "Utils/Atomic.h"
 #include "Utils/Common.h"
 #include "Utils/GuardedMalloc.h"
 #include "Utils/LinkedList.h"
@@ -79,9 +79,9 @@ typedef struct {
 	atomic bool     bRemoved;
 	atomic bool     bResized;
 	// atomic bool     bRangeUpdated;
-	atomic intptr_t Size;
-	atomic visualizer_int  ValueMin;
-	atomic visualizer_int  ValueMax;
+	intptr_t Size;
+	visualizer_int  ValueMin;
+	visualizer_int  ValueMax;
 	array_member*   aState;
 
 	intptr_t        ColumnCount;
@@ -167,8 +167,9 @@ typedef struct {
 } ColumnUpdateParam;
 
 static ColumnUpdateParam GetColumnUpdateParam(array_prop* pArrayProp, intptr_t iColumn) {
-	if (!pArrayProp->aColumn[iColumn].Atomic.bUpdated)
+	if (!atomic_load_explicit(&pArrayProp->aColumn[iColumn].Atomic.bUpdated, memory_order_relaxed))
 		return (ColumnUpdateParam){ false, 0, 0 };
+	atomic_thread_fence_light(&pArrayProp->aColumn[iColumn].Atomic.bUpdated, memory_order_acquire);
 
 	// Choose the correct value & attribute
 
@@ -293,7 +294,7 @@ static int RenderThreadMain(void* pData) {
 	uint64_t FpsUpdateCount = 0;
 	uint64_t FramesRendered = 0;
 
-	while (gbRun) {
+	while (atomic_load_explicit(&gbRun, memory_order_relaxed)) {
 		uint64_t ThreadDuration = clock64() - ThreadTimeStart;
 		
 		// TODO: Multi array
@@ -304,7 +305,8 @@ static int RenderThreadMain(void* pData) {
 		array_prop* pArrayProp = gpArrayPropHead;
 
 		// Remove
-		if (pArrayProp->bRemoved) {
+		if (atomic_load_explicit(&pArrayProp->bRemoved, memory_order_relaxed)) {
+			atomic_thread_fence_light(&pArrayProp->bRemoved, memory_order_acquire);
 			free(pArrayProp->aState);
 			Pool_DeallocateAddress(&gArrayPropPool, pArrayProp);
 			gpArrayPropHead = NULL;
@@ -317,7 +319,8 @@ static int RenderThreadMain(void* pData) {
 		// Resize array
 
 		intptr_t Size = pArrayProp->Size;
-		if (pArrayProp->bResized) {
+		if (atomic_load_explicit(&pArrayProp->bResized, memory_order_relaxed)) {
+			atomic_thread_fence_light(&pArrayProp->bResized, memory_order_acquire);
 
 			for (intptr_t iColumn = 0; iColumn < pArrayProp->ColumnCount; ++iColumn)
 				pArrayProp->aColumn[iColumn].NonAtomic.MemberCount = 0;
@@ -337,7 +340,7 @@ static int RenderThreadMain(void* pData) {
 				// Reset values
 				pColumn->ValueSum = 0;
 				memset(
-					(uint8_t*)pColumn->aMarkerCount,
+					pColumn->aMarkerCount,
 					0,
 					Visualizer_MarkerAttribute_EnumCount * sizeof(*pColumn->aMarkerCount)
 				);
@@ -349,8 +352,7 @@ static int RenderThreadMain(void* pData) {
 
 					pColumn->ValueSum += pMember->Value;
 					for (uint8_t i = 0; i < Visualizer_MarkerAttribute_EnumCount; ++i)
-						pColumn->aMarkerCount[i] += pMember->aMarkerCount[i]; // FIXME: Doesn't have to be atomic
-					// TODO: Add non-atomic array_prop
+						pColumn->aMarkerCount[i] += pMember->aMarkerCount[i];
 				}
 				pColumn->bUpdated = true;
 
@@ -358,7 +360,7 @@ static int RenderThreadMain(void* pData) {
 
 			}
 
-			pArrayProp->bResized = false;
+			atomic_store_fence_light(&pArrayProp->bResized, false);
 
 		}
 
@@ -437,14 +439,20 @@ static int RenderThreadMain(void* pData) {
 		// Reads
 		char aReadCountString[48] = "Reads: ";
 		Length = static_strlen("Reads: ");
-		NumberLength = Uint64ToString(pArrayProp->ReadCount, aReadCountString + Length);
+		NumberLength = Uint64ToString(
+			atomic_load_explicit(&pArrayProp->ReadCount, memory_order_relaxed),
+			aReadCountString + Length
+		);
 		Length += NumberLength;
 		UpdateCellCacheRow(6, aReadCountString, Length);
 
 		// Write
 		char aWriteCountString[48] = "Writes: ";
 		Length = static_strlen("Writes: ");
-		NumberLength = Uint64ToString(pArrayProp->WriteCount, aWriteCountString + Length);
+		NumberLength = Uint64ToString(
+			atomic_load_explicit(&pArrayProp->WriteCount, memory_order_relaxed),
+			aWriteCountString + Length
+		);
 		Length += NumberLength;
 		UpdateCellCacheRow(7, aWriteCountString, Length);
 
@@ -465,12 +473,12 @@ static int RenderThreadMain(void* pData) {
 
 }
 
-void Visualizer_Initialize(size_t ThreadCount) {
+void Visualizer_Initialize(size_t ExtraThreadCount) {
 
 	Pool_Initialize(&gArrayPropPool, 16, sizeof(array_prop));
 	gsAlgorithmName = NULL;
-	gfAlgorithmSleepMultiplier = 1.0f;
-	gfUserSleepMultiplier = 1.0f;
+	atomic_store_explicit(&gfAlgorithmSleepMultiplier, 1.0, memory_order_relaxed);
+	atomic_store_explicit(&gfUserSleepMultiplier, 1.0, memory_order_relaxed);
 
 	// New window style
 
@@ -521,13 +529,13 @@ void Visualizer_Initialize(size_t ThreadCount) {
 
 	// Render thread
 
-	gbRun = true;
+	atomic_store_explicit(&gbRun, true, memory_order_relaxed);
 	thrd_create(&gRenderThread, RenderThreadMain, NULL);
 
 	// Other stuff
 
 	gfDefaultDelay = (double)(clock64_resolution() * 10); // 10s
-	Visualizer_pThreadPool = ThreadPool_Create(ThreadCount);
+	Visualizer_pThreadPool = ThreadPool_Create(ExtraThreadCount);
 }
 
 void Visualizer_Uninitialize() {
@@ -536,7 +544,7 @@ void Visualizer_Uninitialize() {
 
 	// Stop render thread
 
-	gbRun = false;
+	atomic_store_explicit(&gbRun, false, memory_order_relaxed);
 	int ThreadReturn;
 	thrd_join(gRenderThread, &ThreadReturn);
 
@@ -586,11 +594,11 @@ visualizer_array_handle Visualizer_AddArray(
 		ValueMax = ValueMin + 1;
 	pArrayProp->ValueMin = ValueMin;
 	pArrayProp->ValueMax = ValueMax;
-	pArrayProp->bRemoved = false;
-	pArrayProp->bResized = true;
+	atomic_store_fence_light(&pArrayProp->bRemoved, false);
+	atomic_store_fence_light(&pArrayProp->bResized, true);
 
-	pArrayProp->ReadCount = 0;
-	pArrayProp->WriteCount = 0;
+	atomic_store_explicit(&pArrayProp->ReadCount, 0, memory_order_relaxed);
+	atomic_store_explicit(&pArrayProp->WriteCount, 0, memory_order_relaxed);
 
 	if (!gpArrayPropHead) // TODO: Multi array
 		gpArrayPropHead = pArrayProp;
@@ -602,7 +610,7 @@ void Visualizer_RemoveArray(visualizer_array_handle hArray) {
 	pool_index Index = HandleToPoolIndex(hArray);
 	array_prop* pArrayProp = Pool_IndexToAddress(&gArrayPropPool, Index);
 
-	pArrayProp->bRemoved = true;
+	atomic_store_fence_light(&pArrayProp->bRemoved, true);
 }
 
 // UNSUPPORTED: Multiple threads on the same member
@@ -641,14 +649,14 @@ static inline void UpdateMember(
 		swap(&pArrayMember->Value, &OldValue);
 
 	if (UpdateType & MemberUpdateType_Value)
-		pColumn->ValueSum += (visualizer_long)Value - OldValue;
+		atomic_fetch_add_explicit(&pColumn->ValueSum, Value - OldValue, memory_order_relaxed);
 	if (UpdateType & MemberUpdateType_Attribute) {
 		if (bAddAttribute)
-			++pColumn->aMarkerCount[Attribute];
+			atomic_fetch_add_explicit(&pColumn->aMarkerCount[Attribute], 1, memory_order_relaxed);
 		else
-			--pColumn->aMarkerCount[Attribute];
+			atomic_fetch_sub_explicit(&pColumn->aMarkerCount[Attribute], 1, memory_order_relaxed);
 	}
-	pColumn->bUpdated = true;
+	atomic_store_fence_light(&pColumn->bUpdated, true);
 
 	SharedLock_UnlockShared(&pColumn->SharedLock);
 };
@@ -778,11 +786,11 @@ static void MoveMarkerHelper(
 // Delays
 
 void Visualizer_SetAlgorithmSleepMultiplier(double fAlgorithmSleepMultiplier){
-	gfAlgorithmSleepMultiplier = fAlgorithmSleepMultiplier;
+	atomic_store_explicit(&gfAlgorithmSleepMultiplier, fAlgorithmSleepMultiplier, memory_order_relaxed);
 }
 
 void Visualizer_SetUserSleepMultiplier(double fUserSleepMultiplier) {
-	gfUserSleepMultiplier = fUserSleepMultiplier;
+	atomic_store_explicit(&gfUserSleepMultiplier, fUserSleepMultiplier, memory_order_relaxed);
 }
 
 void Visualizer_Sleep(double fSleepMultiplier) {
@@ -791,8 +799,8 @@ void Visualizer_Sleep(double fSleepMultiplier) {
 	sleep64(
 		(uint64_t)(
 			gfDefaultDelay *
-			gfAlgorithmSleepMultiplier *
-			gfUserSleepMultiplier *
+			atomic_load_explicit(&gfAlgorithmSleepMultiplier, memory_order_relaxed) *
+			atomic_load_explicit(&gfUserSleepMultiplier, memory_order_relaxed) *
 			fSleepMultiplier
 		)
 	);
@@ -804,7 +812,7 @@ void Visualizer_Sleep(double fSleepMultiplier) {
 void Visualizer_UpdateRead(visualizer_array_handle hArray, intptr_t iPosition, double fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 
-	pArrayProp->ReadCount += 1;
+	atomic_fetch_add_explicit(&pArrayProp->ReadCount, 1, memory_order_relaxed);
 	AddMarker(pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
@@ -813,7 +821,7 @@ void Visualizer_UpdateRead(visualizer_array_handle hArray, intptr_t iPosition, d
 void Visualizer_UpdateRead2(visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 
-	pArrayProp->ReadCount += 2;
+	atomic_fetch_add_explicit(&pArrayProp->ReadCount, 2, memory_order_relaxed);
 	AddMarker(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
 	AddMarker(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
@@ -831,7 +839,7 @@ void Visualizer_UpdateReadMulti(
 
 	assert(Length <= 16);
 
-	pArrayProp->ReadCount += Length;
+	atomic_fetch_add_explicit(&pArrayProp->ReadCount, Length, memory_order_relaxed);
 	for (intptr_t i = 0; i < Length; ++i)
 		AddMarker(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
@@ -842,7 +850,7 @@ void Visualizer_UpdateReadMulti(
 void Visualizer_UpdateWrite(visualizer_array_handle hArray, intptr_t iPosition, visualizer_int NewValue, double fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 
-	pArrayProp->WriteCount += 1;
+	atomic_fetch_add_explicit(&pArrayProp->WriteCount, 1, memory_order_relaxed);
 	AddMarkerWithValue(pArrayProp, iPosition, Visualizer_MarkerAttribute_Write, NewValue);
 	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(pArrayProp, iPosition, Visualizer_MarkerAttribute_Write);
@@ -856,8 +864,8 @@ void Visualizer_UpdateReadWrite(
 ) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 
-	pArrayProp->ReadCount += 1;
-	pArrayProp->WriteCount += 1;
+	atomic_fetch_add_explicit(&pArrayProp->ReadCount, 1, memory_order_relaxed);
+	atomic_fetch_add_explicit(&pArrayProp->WriteCount, 1, memory_order_relaxed);
 	visualizer_int NewValueA = pArrayProp->aState[iPositionB].Value;
 	AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
 	AddMarker(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
@@ -874,8 +882,8 @@ void Visualizer_UpdateSwap(
 ) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 
-	pArrayProp->ReadCount += 2;
-	pArrayProp->WriteCount += 2;
+	atomic_fetch_add_explicit(&pArrayProp->ReadCount, 2, memory_order_relaxed);
+	atomic_fetch_add_explicit(&pArrayProp->WriteCount, 2, memory_order_relaxed);
 	visualizer_int NewValueA = pArrayProp->aState[iPositionB].Value;
 	visualizer_int NewValueB = pArrayProp->aState[iPositionA].Value;
 	AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
@@ -896,7 +904,7 @@ void Visualizer_UpdateWriteMulti(
 
 	assert(Length <= 16);
 
-	pArrayProp->WriteCount += Length;
+	atomic_fetch_add_explicit(&pArrayProp->WriteCount, Length, memory_order_relaxed);
 	for (intptr_t i = 0; i < Length; ++i)
 		AddMarkerWithValue(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Write, aNewValue[i]);
 	Visualizer_Sleep(fSleepMultiplier);
@@ -940,8 +948,8 @@ void Visualizer_SetAlgorithmName(char* sAlgorithmName) {
 
 void Visualizer_ClearReadWriteCounter(visualizer_array_handle hArray) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
-	pArrayProp->ReadCount = 0;
-	pArrayProp->WriteCount = 0;
+	atomic_store_explicit(&pArrayProp->ReadCount, 0, memory_order_relaxed);
+	atomic_store_explicit(&pArrayProp->WriteCount, 0, memory_order_relaxed);
 }
 
 // FIXME: Proper impl

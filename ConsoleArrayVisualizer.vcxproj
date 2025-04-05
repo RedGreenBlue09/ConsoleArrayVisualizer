@@ -78,6 +78,7 @@
     <ClCompile Include="Source\Visualizer\VisualizerCommon.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Include\Utils\Atomic.h" />
     <ClInclude Include="Include\Utils\Common.h" />
     <ClInclude Include="Include\Utils\ConcurrentQueue.h" />
     <ClInclude Include="Include\Utils\GuardedMalloc.h" />

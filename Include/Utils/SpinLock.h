@@ -1,9 +1,8 @@
 #pragma once
 
-#include <stdatomic.h>
 #include <stdbool.h>
 
-#include "Utils/Common.h"
+#include "Utils/Atomic.h"
 #include "Utils/Machine.h"
 
 typedef atomic bool spinlock;
@@ -13,25 +12,30 @@ static inline void SpinLock_Init(spinlock* pLock) {
 }
 
 static inline void SpinLock_Lock(spinlock* pLock) {
-#ifdef MACHINE_ARM32 // TODO: Test if this is faster on ARM32
+#if defined(MACHINE_ARM32) || (defined(MACHINE_ARM64) && !defined(MACHINE_ARM64_ATOMICS))
 	bool bExpected = true;
 	while (
 		!atomic_compare_exchange_weak_explicit(
 			pLock,
 			&bExpected,
 			true,
-			memory_order_acquire,
+			memory_order_relaxed,
 			memory_order_relaxed
 		)
 	)
 		while (atomic_load_explicit(pLock, memory_order_relaxed) == true);
+	// Really hate this but it has to be done to be compatible with C memory model
+	// since fences there only sync with other fences, not operations on variables.
+	atomic_thread_fence_light(pLock, memory_order_acquire);
 #else
 	while (atomic_exchange_explicit(pLock, true, memory_order_relaxed) == true)
 		while (atomic_load_explicit(pLock, memory_order_relaxed) == true);
-	atomic_load_explicit(pLock, memory_order_acquire);
+	// Load would be faster than fence on ARM64 but that's slower on every other CPUs
+	// This fence is eliminated on x86 anyways
+	atomic_thread_fence_light(pLock, memory_order_acquire);
 #endif
 }
 
 static inline void SpinLock_Unlock(spinlock* pLock) {
-	atomic_store_explicit(pLock, false, memory_order_release);
+	atomic_store_fence_light(pLock, false);
 }

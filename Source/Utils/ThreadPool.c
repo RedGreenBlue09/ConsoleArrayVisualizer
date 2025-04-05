@@ -13,7 +13,7 @@ static int WorkerThreadFunction(void* Parameter) {
 	worker_thread_parameter* pWorkerParameter = Parameter;
 	thread_pool* pThreadPool = pWorkerParameter->pThreadPool;
 	size_t iThread = pWorkerParameter->iThread;
-	atomic_store_explicit(&pWorkerParameter->bParameterReadDone, true, memory_order_release);
+	atomic_store_fence_light(&pWorkerParameter->bParameterReadDone, true);
 	pWorkerParameter = NULL;
 
 	thread_pool_worker_thread* pWorkerThread = &pThreadPool->aWorkerThread[iThread];
@@ -24,12 +24,13 @@ static int WorkerThreadFunction(void* Parameter) {
 			thrd_yield();
 			continue;
 		}
-
+		atomic_thread_fence_light(&pWorkerThread->pJob, memory_order_acquire);
+		
 		pJob->StatusCode = pJob->pFunction(pJob->Parameter);
-		atomic_store_explicit(&pJob->bFinished, true, memory_order_release);
+		atomic_store_fence_light(&pJob->bFinished, true);
 
-		// ConcurrentQueue_Push() is acq_rel so this is safe
 		atomic_store_explicit(&pWorkerThread->pJob, NULL, memory_order_relaxed);
+		atomic_thread_fence(memory_order_release); // FIXME: Prevent the reorder of the above line
 		ConcurrentQueue_Push(pThreadPool->pThreadQueue, iThread);
 		Semaphore_ReleaseSingle(&pThreadPool->StatusSemaphore);
 	}
@@ -70,6 +71,7 @@ thread_pool* ThreadPool_Create(size_t ThreadCount) {
 		worker_thread_parameter WorkerParameter = { pThreadPool, i, false };
 		thrd_create(&pThreadPool->aWorkerThread[i].Thread, WorkerThreadFunction, &WorkerParameter);
 		while (!atomic_load_explicit(&WorkerParameter.bParameterReadDone, memory_order_relaxed));
+		atomic_thread_fence_light(&WorkerParameter.bParameterReadDone, memory_order_acquire);
 	}
 
 	return pThreadPool;
@@ -98,7 +100,7 @@ void ThreadPool_AddJob(thread_pool* ThreadPool, thread_pool_job* pJob) {
 	size_t iThread = ConcurrentQueue_Pop(ThreadPool->pThreadQueue);
 
 	atomic_store_explicit(&pJob->bFinished, false, memory_order_relaxed);
-	atomic_store_explicit(&ThreadPool->aWorkerThread[iThread].pJob, pJob, memory_order_release);
+	atomic_store_fence_light(&ThreadPool->aWorkerThread[iThread].pJob, pJob);
 }
 
 void ThreadPool_AddJobRecursive(thread_pool* ThreadPool, thread_pool_job* pJob) {
@@ -106,16 +108,17 @@ void ThreadPool_AddJobRecursive(thread_pool* ThreadPool, thread_pool_job* pJob) 
 		size_t iThread = ConcurrentQueue_Pop(ThreadPool->pThreadQueue);
 
 		atomic_store_explicit(&pJob->bFinished, false, memory_order_relaxed);
-		atomic_store_explicit(&ThreadPool->aWorkerThread[iThread].pJob, pJob, memory_order_release);
+		atomic_store_fence_light(&ThreadPool->aWorkerThread[iThread].pJob, pJob);
 	} else {
 		// Get the job done on the calling thread to prevent dead lock
 		// This is less efficient but has low memory and complexity
 		pJob->StatusCode = pJob->pFunction(pJob->Parameter);
-		atomic_store_explicit(&pJob->bFinished, true, memory_order_release);
+		atomic_thread_fence_light(&pJob->bFinished, true);
 	}
 }
 
 void ThreadPool_WaitForJob(thread_pool_job* pJob) {
-	while (!atomic_load_explicit(&pJob->bFinished, memory_order_acquire))
+	while (!atomic_load_explicit(&pJob->bFinished, memory_order_relaxed))
 		thrd_yield();
+	atomic_thread_fence_light(&pJob->bFinished, memory_order_acquire);
 }

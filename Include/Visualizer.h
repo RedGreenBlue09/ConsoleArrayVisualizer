@@ -27,7 +27,7 @@ typedef uint8_t visualizer_sleep_scale;
 
 //#define VISUALIZER_DISABLE_SLEEP 1
 
-void Visualizer_Initialize(size_t ThreadCount);
+void Visualizer_Initialize(size_t ExtraThreadCount);
 void Visualizer_Uninitialize();
 
 // Delays
