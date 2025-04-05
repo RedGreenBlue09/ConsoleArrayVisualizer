@@ -169,7 +169,6 @@ typedef struct {
 static ColumnUpdateParam GetColumnUpdateParam(array_prop* pArrayProp, intptr_t iColumn) {
 	if (!atomic_load_explicit(&pArrayProp->aColumn[iColumn].Atomic.bUpdated, memory_order_relaxed))
 		return (ColumnUpdateParam){ false, 0, 0 };
-	atomic_thread_fence_light(&pArrayProp->aColumn[iColumn].Atomic.bUpdated, memory_order_acquire);
 
 	// Choose the correct value & attribute
 
@@ -656,9 +655,9 @@ static inline void UpdateMember(
 		else
 			atomic_fetch_sub_explicit(&pColumn->aMarkerCount[Attribute], 1, memory_order_relaxed);
 	}
-	atomic_store_fence_light(&pColumn->bUpdated, true);
 
 	SharedLock_UnlockShared(&pColumn->SharedLock);
+	atomic_store_explicit(&pColumn->bUpdated, true, memory_order_relaxed);
 };
 
 void Visualizer_UpdateArrayState(visualizer_array_handle hArray, visualizer_int* aState) {
