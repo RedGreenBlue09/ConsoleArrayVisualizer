@@ -99,6 +99,7 @@ void ThreadPool_AddJob(thread_pool* ThreadPool, thread_pool_job* pJob) {
 
 	size_t iThread = ConcurrentQueue_Pop(ThreadPool->pThreadQueue);
 
+	// This relaxed store is safe unless someone run WaitForJob() in another thread.
 	atomic_store_explicit(&pJob->bFinished, false, memory_order_relaxed);
 	atomic_store_fence_light(&ThreadPool->aWorkerThread[iThread].pJob, pJob);
 }

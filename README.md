@@ -39,8 +39,8 @@ https://github.com/user-attachments/assets/9abadf2c-0d15-4b4f-9a0f-9544249eb9dd
 + Virtual terminal renderer
 + Cross platform support
 + Ability to disable average of overlapped elements for performance
-+ Optimize atomic accesses' memory order
-+ Use a subset of C++
++ ~Optimize atomic accesses' memory order~
++ Use a subset of C++ (maybe)
 + Improve API
 + Comparision / branches counter
 + GPU shader renderer
