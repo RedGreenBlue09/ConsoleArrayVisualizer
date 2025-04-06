@@ -22,6 +22,7 @@ endif()
 
 set(ConsoleArrayVisualizer_HEADER_FILES
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/RunSorts.h"
+	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/Atomic.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/Common.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/ConcurrentQueue.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/GuardedMalloc.h"
@@ -29,6 +30,7 @@ set(ConsoleArrayVisualizer_HEADER_FILES
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/Machine.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/MemoryPool.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/Random.h"
+	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/Semaphore.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/SharedLock.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/SpinLock.h"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Utils/ThreadPool.h"

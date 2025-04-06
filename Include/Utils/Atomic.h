@@ -48,7 +48,7 @@
 
 #if defined(MACHINE_ARM64)
 	#define atomic_rmw_fence_light(Operation, pAtomicVar, Value, Order) \
-			Operation(pAtomicVar, Value, Order)
+		Operation(pAtomicVar, Value, Order)
 #else
 	#define atomic_rmw_fence_light(Operation, pAtomicVar, Value, Order) {   \
 		if (Order == memory_order_release || Order == memory_order_acq_rel) \
