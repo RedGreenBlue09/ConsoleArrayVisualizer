@@ -113,7 +113,7 @@ void ThreadPool_AddJobRecursive(thread_pool* ThreadPool, thread_pool_job* pJob) 
 		// Get the job done on the calling thread to prevent dead lock
 		// This is less efficient but has low memory and complexity
 		pJob->StatusCode = pJob->pFunction(pJob->Parameter);
-		atomic_thread_fence_light(&pJob->bFinished, true);
+		atomic_store_fence_light(&pJob->bFinished, true);
 	}
 }
 

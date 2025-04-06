@@ -59,6 +59,8 @@
 	}
 #endif
 
+#define atomic_add_fence_light(pAtomicVar, Value, Order) \
+	atomic_rmw_fence_light(atomic_fetch_add_explicit, pAtomicVar, Value, Order)
 #define atomic_sub_fence_light(pAtomicVar, Value, Order) \
 	atomic_rmw_fence_light(atomic_fetch_sub_explicit, pAtomicVar, Value, Order)
 #define atomic_and_fence_light(pAtomicVar, Value, Order) \

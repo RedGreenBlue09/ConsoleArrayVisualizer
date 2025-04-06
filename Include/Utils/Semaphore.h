@@ -87,5 +87,5 @@ static inline bool Semaphore_TryAcquireSingle(semaphore* pSemaphore) {
 }
 
 static inline void Semaphore_ReleaseSingle(semaphore* pSemaphore) {
-	atomic_store_fence_light(pSemaphore, 1);
+	atomic_add_fence_light(pSemaphore, 1, memory_order_release);
 }
