@@ -655,9 +655,9 @@ static inline void UpdateMember(
 		else
 			atomic_fetch_sub_explicit(&pColumn->aMarkerCount[Attribute], 1, memory_order_relaxed);
 	}
+	atomic_store_explicit(&pColumn->bUpdated, true, memory_order_relaxed);
 
 	SharedLock_UnlockShared(&pColumn->SharedLock);
-	atomic_store_explicit(&pColumn->bUpdated, true, memory_order_relaxed);
 };
 
 void Visualizer_UpdateArrayState(visualizer_array_handle hArray, visualizer_int* aState) {
