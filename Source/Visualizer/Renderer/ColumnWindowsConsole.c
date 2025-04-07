@@ -263,7 +263,7 @@ static void ClearScreen() {
 
 static_assert(sizeof(uintptr_t) <= 8);
 
-// Length of sString must be as least 20
+// Max length of sString is 20
 // strlen("18446744073709551615") == 20
 static intptr_t Uint64ToString(uint64_t X, char* sString) {
 	if (X == 0) {
@@ -514,7 +514,7 @@ static int RenderThreadMain(void* pData) {
 		++FramesRendered;
 
 		ThreadDuration = clock64() - ThreadTimeStart;
-		//sleep64(UpdateInterval - (ThreadDuration % UpdateInterval));
+		sleep64(UpdateInterval - (ThreadDuration % UpdateInterval));
 	}
 
 	return 0;
@@ -983,7 +983,7 @@ void Visualizer_MoveMarker(visualizer_marker* pMarker, intptr_t iNewPosition) {
 
 void Visualizer_SetAlgorithmName(char* sAlgorithmName) {
 	intptr_t Size = strlen(sAlgorithmName) + 1;
-	char* sAlgorithmNameTemp = malloc_guarded(Size * sizeof(*sAlgorithmName));
+	char* sAlgorithmNameTemp = malloc_guarded(Size * sizeof(*sAlgorithmName)); // TODO: Use stack
 	memcpy(sAlgorithmNameTemp, sAlgorithmName, Size * sizeof(*sAlgorithmName));
 
 	SpinLock_Lock(&gAlgorithmNameLock);

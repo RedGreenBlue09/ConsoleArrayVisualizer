@@ -52,7 +52,7 @@ void VerifyRandom(
 		Visualizer_Sleep(1.0);
 	}
 
-	sleep64(RunSorts_Second * 2);
+	sleep64(RunSorts_Second * 3);
 
 	fCurrentMax = (double)(Length - 1);
 	for (intptr_t i = Length - 1; i >= 1; --i) {

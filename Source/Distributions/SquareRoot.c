@@ -47,7 +47,7 @@ void VerifySquareRoot(
 		Visualizer_Sleep(1.0);
 	}
 
-	sleep64(RunSorts_Second * 2);
+	sleep64(RunSorts_Second * 3);
 
 	for (intptr_t i = 0; i < Length; ++i) {
 		visualizer_int Value = (visualizer_int)round(sqrt((double)i) * fSqrtMax);
