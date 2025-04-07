@@ -143,7 +143,7 @@ static void UpdateCellCacheRow(int16_t iRow, const char* sText, intptr_t nText) 
 	int16_t i = 0;
 	for (; i < nText; ++i)
 		gaBufferCache[gBufferInfo.dwSize.X * iRow + i].Char.UnicodeChar = (wchar_t)sText[i];
-	for (; i < gBufferInfo.dwSize.X; ++i)
+	for (; i < gBufferInfo.dwSize.X; ++i) // TODO: Remember old length
 		gaBufferCache[gBufferInfo.dwSize.X * iRow + i].Char.UnicodeChar = L' ';
 
 	if (iRow < gUpdatedRect.Top)
@@ -292,7 +292,7 @@ static int RenderThreadMain(void* pData) {
 	uint64_t Second = clock64_resolution();
 	uint64_t Millisecond = Second / 1000;
 	uint64_t ThreadTimeStart = clock64();
-	uint64_t UpdateInterval = Second / 60;
+	uint64_t UpdateInterval = Second / 60; // TODO: Query from system
 
 	uint64_t FpsUpdateInterval = Second / 2; // FPS counter interval
 	uint64_t FpsUpdateCount = 0;
@@ -424,28 +424,20 @@ static int RenderThreadMain(void* pData) {
 
 		// Visual time
 		{
-			uint64_t VisualTime;
 			uint64_t CachedTimerStartTime = atomic_load_explicit(&TimerStartTime, memory_order_acquire);
 			uint64_t CachedTimerStopTime = atomic_load_explicit(&TimerStopTime, memory_order_relaxed);
 			if (CachedTimerStopTime == UINT64_MAX)
-				VisualTime = clock64() - CachedTimerStartTime; // Timer is running
-			else
-				VisualTime = CachedTimerStopTime - CachedTimerStartTime; // Timer stopped
-			VisualTime /= Millisecond;
+				CachedTimerStopTime = clock64();
+			uint64_t VisualTime = (CachedTimerStopTime - CachedTimerStartTime) / Millisecond;
 
 			char aVisualTimeString[48] = "Visual time: ";
 			Length = static_strlen("Visual time: ");
 			Length += Uint64ToString(VisualTime / 1000, aVisualTimeString + Length);
 
 			aVisualTimeString[Length++] = '.';
-			aVisualTimeString[Length++] = '0';
-			aVisualTimeString[Length++] = '0';
-			aVisualTimeString[Length++] = '0';
-
-			char aMilliString[3];
-			uintptr_t MilliLength = Uint64ToString(VisualTime % 1000, aMilliString);
-			memcpy(aVisualTimeString + Length - MilliLength, aMilliString, MilliLength);
-
+			aVisualTimeString[Length++] = '0' + (char)(VisualTime / 100 % 10);
+			aVisualTimeString[Length++] = '0' + (char)(VisualTime / 10 % 10);
+			aVisualTimeString[Length++] = '0' + (char)(VisualTime % 10);
 			aVisualTimeString[Length++] = ' ';
 			aVisualTimeString[Length++] = 's';
 
