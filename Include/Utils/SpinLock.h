@@ -13,7 +13,7 @@ static inline void SpinLock_Init(spinlock* pLock) {
 
 static inline void SpinLock_Lock(spinlock* pLock) {
 #if defined(MACHINE_ARM32) || (defined(MACHINE_ARM64) && !defined(MACHINE_ARM64_ATOMICS))
-	bool bExpected = true;
+	bool bExpected = false;
 	while (
 		!atomic_compare_exchange_weak_explicit(
 			pLock,
@@ -30,8 +30,6 @@ static inline void SpinLock_Lock(spinlock* pLock) {
 #else
 	while (atomic_exchange_explicit(pLock, true, memory_order_relaxed) == true)
 		while (atomic_load_explicit(pLock, memory_order_relaxed) == true);
-	// Load would be faster than fence on ARM64 but that's slower on every other CPUs
-	// This fence is eliminated on x86 anyways
 	atomic_thread_fence_light(pLock, memory_order_acquire);
 #endif
 }

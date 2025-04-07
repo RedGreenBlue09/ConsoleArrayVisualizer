@@ -21,6 +21,7 @@ https://github.com/user-attachments/assets/9abadf2c-0d15-4b4f-9a0f-9544249eb9dd
 ### Current
 
 + Single array visualization
++ Visual time
 + Read & Write counters
 + Fixed set of marker types
 + Delays
@@ -37,6 +38,7 @@ https://github.com/user-attachments/assets/9abadf2c-0d15-4b4f-9a0f-9544249eb9dd
 
 + Multiple arrays visualization
 + Virtual terminal renderer
++ Estimated time
 + Cross platform support
 + Ability to disable average of overlapped elements for performance
 + ~Optimize atomic accesses' memory order~

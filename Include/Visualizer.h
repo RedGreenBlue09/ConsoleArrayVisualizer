@@ -120,6 +120,11 @@ void Visualizer_MoveMarker(
 void Visualizer_SetAlgorithmName(char* sAlgorithmNameArg);
 void Visualizer_ClearReadWriteCounter(visualizer_array_handle hArray);
 
-// Thread
+// Timer
+void Visualizer_StartTimer();
+void Visualizer_StopTimer();
+void Visualizer_ResetTimer();
+
+// Thread pool
 
 extern thread_pool* Visualizer_pThreadPool;

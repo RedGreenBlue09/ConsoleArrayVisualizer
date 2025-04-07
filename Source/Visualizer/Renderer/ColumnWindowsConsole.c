@@ -107,6 +107,9 @@ static double gfDefaultDelay; // Delay for 1 element array
 static atomic double gfAlgorithmSleepMultiplier;
 static atomic double gfUserSleepMultiplier;
 
+static atomic uint64_t TimerStartTime;
+static atomic uint64_t TimerStopTime;
+
 thread_pool* Visualizer_pThreadPool;
 
 static visualizer_array_handle PoolIndexToHandle(pool_index PoolIndex) {
@@ -131,7 +134,7 @@ static inline intptr_t NearestNeighborScale(intptr_t iA, intptr_t nA, intptr_t n
 	return ((int64_t)iA * nB + ((uintptr_t)nB / 2)) / nA;
 }
 
-static void UpdateCellCacheRow(intptr_t iRow, const char* sText, intptr_t nText) {
+static void UpdateCellCacheRow(int16_t iRow, const char* sText, intptr_t nText) {
 	if (iRow >= gBufferInfo.dwSize.Y)
 		return;
 	if (nText > gBufferInfo.dwSize.X)
@@ -144,10 +147,10 @@ static void UpdateCellCacheRow(intptr_t iRow, const char* sText, intptr_t nText)
 		gaBufferCache[gBufferInfo.dwSize.X * iRow + i].Char.UnicodeChar = L' ';
 
 	if (iRow < gUpdatedRect.Top)
-		gUpdatedRect.Top = (int16_t)iRow;
+		gUpdatedRect.Top = iRow;
 	gUpdatedRect.Left = 0;
 	if (iRow > gUpdatedRect.Bottom)
-		gUpdatedRect.Bottom = (int16_t)iRow;
+		gUpdatedRect.Bottom = iRow;
 	if (nText > gUpdatedRect.Right)
 		gUpdatedRect.Right = (int16_t)nText;
 }
@@ -261,6 +264,7 @@ static void ClearScreen() {
 static_assert(sizeof(uintptr_t) <= 8);
 
 // Length of sString must be as least 20
+// strlen("18446744073709551615") == 20
 static intptr_t Uint64ToString(uint64_t X, char* sString) {
 	if (X == 0) {
 		sString[0] = '0';
@@ -286,6 +290,7 @@ static intptr_t Uint64ToString(uint64_t X, char* sString) {
 static int RenderThreadMain(void* pData) {
 
 	uint64_t Second = clock64_resolution();
+	uint64_t Millisecond = Second / 1000;
 	uint64_t ThreadTimeStart = clock64();
 	uint64_t UpdateInterval = Second / 60;
 
@@ -386,6 +391,7 @@ static int RenderThreadMain(void* pData) {
 		}
 
 		// Update cell text rows
+		int16_t Row = 0;
 
 		// Algorithm name
 		SpinLock_Lock(&gAlgorithmNameLock);
@@ -393,67 +399,110 @@ static int RenderThreadMain(void* pData) {
 		char* sAlgorithmNameTemp = gsAlgorithmName;
 		if (sAlgorithmNameTemp == NULL)
 			sAlgorithmNameTemp = "";
-		UpdateCellCacheRow(0, sAlgorithmNameTemp, strlen(sAlgorithmNameTemp));
+		UpdateCellCacheRow(Row, sAlgorithmNameTemp, strlen(sAlgorithmNameTemp));
+		++Row;
 
 		SpinLock_Unlock(&gAlgorithmNameLock);
 
 		intptr_t Length;
-		intptr_t NumberLength;
 
 		// FPS
 		uint64_t NewFpsUpdateCount = ThreadDuration / FpsUpdateInterval;
 		if (NewFpsUpdateCount > FpsUpdateCount) {
-
 			char aFpsString[48] = "FPS: ";
 			Length = static_strlen("FPS: ");
-			NumberLength = Uint64ToString(
+			Length += Uint64ToString(
 				FramesRendered * Second / ((NewFpsUpdateCount - FpsUpdateCount) * FpsUpdateInterval),
 				aFpsString + Length
 			);
-			Length += NumberLength;
-			UpdateCellCacheRow(1, aFpsString, Length);
+			UpdateCellCacheRow(Row, aFpsString, Length);
 
 			FpsUpdateCount = NewFpsUpdateCount;
 			FramesRendered = 0;
-
 		}
+		++Row;
+
+		// Visual time
+		{
+			uint64_t VisualTime;
+			uint64_t CachedTimerStartTime = atomic_load_explicit(&TimerStartTime, memory_order_acquire);
+			uint64_t CachedTimerStopTime = atomic_load_explicit(&TimerStopTime, memory_order_relaxed);
+			if (CachedTimerStopTime == UINT64_MAX)
+				VisualTime = clock64() - CachedTimerStartTime; // Timer is running
+			else
+				VisualTime = CachedTimerStopTime - CachedTimerStartTime; // Timer stopped
+			VisualTime /= Millisecond;
+
+			char aVisualTimeString[48] = "Visual time: ";
+			Length = static_strlen("Visual time: ");
+			Length += Uint64ToString(VisualTime / 1000, aVisualTimeString + Length);
+
+			aVisualTimeString[Length++] = '.';
+			aVisualTimeString[Length++] = '0';
+			aVisualTimeString[Length++] = '0';
+			aVisualTimeString[Length++] = '0';
+
+			char aMilliString[3];
+			uintptr_t MilliLength = Uint64ToString(VisualTime % 1000, aMilliString);
+			memcpy(aVisualTimeString + Length - MilliLength, aMilliString, MilliLength);
+
+			aVisualTimeString[Length++] = ' ';
+			aVisualTimeString[Length++] = 's';
+
+			UpdateCellCacheRow(Row, aVisualTimeString, Length);
+		}
+		++Row;
+
+		// Empty
+		++Row;
 
 		// Array
-		char aArrayIndexString[48] = "Array #";
-		Length = static_strlen("Array #");
-		NumberLength = Uint64ToString(
-			Pool_AddressToIndex(&gArrayPropPool, pArrayProp),
-			aArrayIndexString + Length
-		);
-		Length += NumberLength;
-		UpdateCellCacheRow(3, aArrayIndexString, Length);
+		{
+			char aArrayIndexString[48] = "Array #";
+			Length = static_strlen("Array #");
+			Length += Uint64ToString(
+				Pool_AddressToIndex(&gArrayPropPool, pArrayProp),
+				aArrayIndexString + Length
+			);
+			UpdateCellCacheRow(Row, aArrayIndexString, Length);
+		}
+		++Row;
+
+		// Empty
+		++Row;
 
 		// Size
-		char aSizeString[48] = "Size: ";
-		Length = static_strlen("Size: ");
-		NumberLength = Uint64ToString(pArrayProp->Size, aSizeString + Length);
-		Length += NumberLength;
-		UpdateCellCacheRow(5, aSizeString, Length);
+		{
+			char aSizeString[48] = "Size: ";
+			Length = static_strlen("Size: ");
+			Length += Uint64ToString(pArrayProp->Size, aSizeString + Length);
+			UpdateCellCacheRow(Row, aSizeString, Length);
+		}
+		++Row;
 
 		// Reads
-		char aReadCountString[48] = "Reads: ";
-		Length = static_strlen("Reads: ");
-		NumberLength = Uint64ToString(
-			atomic_load_explicit(&pArrayProp->ReadCount, memory_order_relaxed),
-			aReadCountString + Length
-		);
-		Length += NumberLength;
-		UpdateCellCacheRow(6, aReadCountString, Length);
+		{
+			char aReadCountString[48] = "Reads: ";
+			Length = static_strlen("Reads: ");
+			Length += Uint64ToString(
+				atomic_load_explicit(&pArrayProp->ReadCount, memory_order_relaxed),
+				aReadCountString + Length
+			);
+			UpdateCellCacheRow(Row, aReadCountString, Length);
+		}
+		++Row;
 
 		// Write
-		char aWriteCountString[48] = "Writes: ";
-		Length = static_strlen("Writes: ");
-		NumberLength = Uint64ToString(
-			atomic_load_explicit(&pArrayProp->WriteCount, memory_order_relaxed),
-			aWriteCountString + Length
-		);
-		Length += NumberLength;
-		UpdateCellCacheRow(7, aWriteCountString, Length);
+		{
+			char aWriteCountString[48] = "Writes: ";
+			Length = static_strlen("Writes: ");
+			Length += Uint64ToString(
+				atomic_load_explicit(&pArrayProp->WriteCount, memory_order_relaxed),
+				aWriteCountString + Length
+			);
+			UpdateCellCacheRow(Row, aWriteCountString, Length);
+		}
+		++Row;
 
 		WriteConsoleOutputW(
 			ghAltBuffer,
@@ -465,7 +514,7 @@ static int RenderThreadMain(void* pData) {
 		++FramesRendered;
 
 		ThreadDuration = clock64() - ThreadTimeStart;
-		sleep64(UpdateInterval - (ThreadDuration % UpdateInterval));
+		//sleep64(UpdateInterval - (ThreadDuration % UpdateInterval));
 	}
 
 	return 0;
@@ -476,8 +525,11 @@ void Visualizer_Initialize(size_t ExtraThreadCount) {
 
 	Pool_Initialize(&gArrayPropPool, 16, sizeof(array_prop));
 	gsAlgorithmName = NULL;
-	atomic_store_explicit(&gfAlgorithmSleepMultiplier, 1.0, memory_order_relaxed);
-	atomic_store_explicit(&gfUserSleepMultiplier, 1.0, memory_order_relaxed);
+	gfDefaultDelay = (double)(clock64_resolution() * 10); // 10s
+	atomic_init(&gfAlgorithmSleepMultiplier, 1.0);
+	atomic_init(&gfUserSleepMultiplier, 1.0);
+	atomic_init(&TimerStopTime, 0);
+	atomic_init(&TimerStartTime, 0);
 
 	// New window style
 
@@ -528,24 +580,19 @@ void Visualizer_Initialize(size_t ExtraThreadCount) {
 
 	// Render thread
 
-	atomic_store_explicit(&gbRun, true, memory_order_relaxed);
-	thrd_create(&gRenderThread, RenderThreadMain, NULL);
-
-	// Other stuff
-
-	gfDefaultDelay = (double)(clock64_resolution() * 10); // 10s
 	Visualizer_pThreadPool = ThreadPool_Create(ExtraThreadCount);
+	atomic_init(&gbRun, true);
+	thrd_create(&gRenderThread, RenderThreadMain, NULL);
 }
 
 void Visualizer_Uninitialize() {
-
-	ThreadPool_Destroy(Visualizer_pThreadPool);
 
 	// Stop render thread
 
 	atomic_store_explicit(&gbRun, false, memory_order_relaxed);
 	int ThreadReturn;
 	thrd_join(gRenderThread, &ThreadReturn);
+	ThreadPool_Destroy(Visualizer_pThreadPool);
 
 	// Free alternate buffer
 
@@ -560,7 +607,7 @@ void Visualizer_Uninitialize() {
 
 	free(gaBufferCache);
 
-	// Free arrays & markers
+	// Free other stuff
 
 	Pool_Destroy(&gArrayPropPool);
 
@@ -648,7 +695,7 @@ static inline void UpdateMember(
 		swap(&pArrayMember->Value, &OldValue);
 
 	if (UpdateType & MemberUpdateType_Value)
-		atomic_fetch_add_explicit(&pColumn->ValueSum, Value - OldValue, memory_order_relaxed);
+		atomic_fetch_add_explicit(&pColumn->ValueSum, (visualizer_long)Value - OldValue, memory_order_relaxed);
 	if (UpdateType & MemberUpdateType_Attribute) {
 		if (bAddAttribute)
 			atomic_fetch_add_explicit(&pColumn->aMarkerCount[Attribute], 1, memory_order_relaxed);
@@ -969,3 +1016,18 @@ void Visualizer_ClearCorrectness(visualizer_array_handle hArray, intptr_t iPosit
 		Visualizer_MarkerAttribute_Incorrect;
 	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
 }
+
+void Visualizer_StartTimer() {
+	atomic_store_explicit(&TimerStopTime, UINT64_MAX, memory_order_relaxed);
+	atomic_store_explicit(&TimerStartTime, clock64(), memory_order_release);
+}
+
+void Visualizer_StopTimer() {
+	atomic_store_explicit(&TimerStopTime, clock64(), memory_order_relaxed);
+}
+
+void Visualizer_ResetTimer() {
+	atomic_store_explicit(&TimerStopTime, 0, memory_order_relaxed);
+	atomic_store_explicit(&TimerStartTime, 0, memory_order_release);
+}
+

@@ -61,15 +61,19 @@ static inline bool Semaphore_TryAcquireSingle(semaphore* pSemaphore) {
 		return false;
 
 	// Decrease available count
-	bool bResult = atomic_compare_exchange_weak_explicit(
-		pSemaphore,
-		&CachedSemaphore,
-		CachedSemaphore - 1,
-		memory_order_relaxed,
-		memory_order_relaxed
-	);
+	if (
+		!atomic_compare_exchange_weak_explicit(
+			pSemaphore,
+			&CachedSemaphore,
+			CachedSemaphore - 1,
+			memory_order_relaxed,
+			memory_order_relaxed
+		)
+	)
+		return false;
+	
 	atomic_thread_fence_light(pSemaphore, memory_order_acquire);
-	return bResult;
+	return true;
 #else
 	if (atomic_load_explicit(pSemaphore, memory_order_relaxed) <= 0)
 		return false;

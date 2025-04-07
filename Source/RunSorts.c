@@ -171,6 +171,7 @@ void RunSorts_RunSort(
 	visualizer_int* aArray,
 	intptr_t Length
 ) {
+	Visualizer_ResetTimer();
 	RunSorts_Second = clock64_resolution();
 
 	rand64_state RngState;
@@ -202,7 +203,9 @@ void RunSorts_RunSort(
 
 	Visualizer_ClearReadWriteCounter(hArray);
 	Visualizer_SetAlgorithmName(pSort->sName);
+	Visualizer_StartTimer();
 	pSort->Sort(hArray, aArray, Length);
+	Visualizer_StopTimer();
 
 	// Verify
 
