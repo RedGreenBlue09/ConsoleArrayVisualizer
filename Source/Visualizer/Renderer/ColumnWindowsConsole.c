@@ -107,8 +107,8 @@ static double gfDefaultDelay; // Delay for 1 element array
 static atomic double gfAlgorithmSleepMultiplier;
 static atomic double gfUserSleepMultiplier;
 
-static atomic uint64_t TimerStartTime;
-static atomic uint64_t TimerStopTime;
+static atomic uint64_t gTimerStartTime;
+static atomic uint64_t gTimerStopTime;
 
 thread_pool* Visualizer_pThreadPool;
 
@@ -365,7 +365,6 @@ static int RenderThreadMain(void* pData) {
 			}
 
 			atomic_store_fence_light(&pArrayProp->bResized, false);
-
 		}
 
 		// Update cell cache columns
@@ -424,8 +423,8 @@ static int RenderThreadMain(void* pData) {
 
 		// Visual time
 		{
-			uint64_t CachedTimerStartTime = atomic_load_explicit(&TimerStartTime, memory_order_acquire);
-			uint64_t CachedTimerStopTime = atomic_load_explicit(&TimerStopTime, memory_order_relaxed);
+			uint64_t CachedTimerStartTime = atomic_load_explicit(&gTimerStartTime, memory_order_acquire);
+			uint64_t CachedTimerStopTime = atomic_load_explicit(&gTimerStopTime, memory_order_relaxed);
 			if (CachedTimerStopTime == UINT64_MAX)
 				CachedTimerStopTime = clock64();
 			uint64_t VisualTime = (CachedTimerStopTime - CachedTimerStartTime) / Millisecond;
@@ -520,8 +519,8 @@ void Visualizer_Initialize(size_t ExtraThreadCount) {
 	gfDefaultDelay = (double)(clock64_resolution() * 10); // 10s
 	atomic_init(&gfAlgorithmSleepMultiplier, 1.0);
 	atomic_init(&gfUserSleepMultiplier, 1.0);
-	atomic_init(&TimerStopTime, 0);
-	atomic_init(&TimerStartTime, 0);
+	atomic_init(&gTimerStopTime, 0);
+	atomic_init(&gTimerStartTime, 0);
 
 	// New window style
 
@@ -1010,16 +1009,16 @@ void Visualizer_ClearCorrectness(visualizer_array_handle hArray, intptr_t iPosit
 }
 
 void Visualizer_StartTimer() {
-	atomic_store_explicit(&TimerStopTime, UINT64_MAX, memory_order_relaxed);
-	atomic_store_explicit(&TimerStartTime, clock64(), memory_order_release);
+	atomic_store_explicit(&gTimerStopTime, UINT64_MAX, memory_order_relaxed);
+	atomic_store_explicit(&gTimerStartTime, clock64(), memory_order_release);
 }
 
 void Visualizer_StopTimer() {
-	atomic_store_explicit(&TimerStopTime, clock64(), memory_order_relaxed);
+	atomic_store_explicit(&gTimerStopTime, clock64(), memory_order_relaxed);
 }
 
 void Visualizer_ResetTimer() {
-	atomic_store_explicit(&TimerStopTime, 0, memory_order_relaxed);
-	atomic_store_explicit(&TimerStartTime, 0, memory_order_release);
+	atomic_store_explicit(&gTimerStopTime, 0, memory_order_relaxed);
+	atomic_store_explicit(&gTimerStartTime, 0, memory_order_release);
 }
 

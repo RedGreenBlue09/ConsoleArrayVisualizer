@@ -87,7 +87,7 @@ static int sortMain(void* parameter) {
 
 void WeaveSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(n, 0.375, Visualizer_SleepScale_N) // TODO FIXME
+		Visualizer_ScaleSleepMultiplier(n, 2.0, Visualizer_SleepScale_NLogNLogN)
 	);
 	sort_main_parameter parameter = { arrayHandle, array, n, 0, 1 };
 	sortMain(&parameter);

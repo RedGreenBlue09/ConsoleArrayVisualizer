@@ -3,9 +3,6 @@
 
 #include "Visualizer.h"
 #include "Utils/Random.h"
-#include "Utils/Time.h"
-
-extern uint64_t RunSorts_Second;
 
 void DistributeSquareRoot(
 	rand64_state RngState,
@@ -13,7 +10,6 @@ void DistributeSquareRoot(
 	visualizer_int* aArray,
 	intptr_t Length
 ) {
-	Visualizer_SetAlgorithmName("Distribute: Square root");
 	Visualizer_SetAlgorithmSleepMultiplier(
 		Visualizer_ScaleSleepMultiplier(Length, 0.125, Visualizer_SleepScale_N)
 	);
@@ -29,10 +25,9 @@ void DistributeSquareRoot(
 void VerifySquareRoot(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
-	visualizer_int* aArray,
+	const visualizer_int* aArray,
 	intptr_t Length
 ) {
-	Visualizer_SetAlgorithmName("Verify distribute: Square root");
 	Visualizer_SetAlgorithmSleepMultiplier(
 		Visualizer_ScaleSleepMultiplier(Length, 0.0625, Visualizer_SleepScale_N)
 	);
@@ -46,9 +41,15 @@ void VerifySquareRoot(
 			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Incorrect);
 		Visualizer_Sleep(1.0);
 	}
+}
 
-	sleep64(RunSorts_Second * 3);
-
+void UnverifySquareRoot(
+	rand64_state RngState,
+	visualizer_array_handle hArray,
+	const visualizer_int* aArray,
+	intptr_t Length
+) {
+	double fSqrtMax = sqrt((double)(Length - 1));
 	for (intptr_t i = 0; i < Length; ++i) {
 		visualizer_int Value = (visualizer_int)round(sqrt((double)i) * fSqrtMax);
 		if (aArray[i] == Value)

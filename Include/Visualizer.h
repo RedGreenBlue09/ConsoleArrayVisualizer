@@ -23,7 +23,8 @@ typedef uint8_t visualizer_marker_attribute;
 typedef uint8_t visualizer_sleep_scale;
 #define Visualizer_SleepScale_N 0
 #define Visualizer_SleepScale_NLogN 1
-#define Visualizer_SleepScale_NN 2
+#define Visualizer_SleepScale_NLogNLogN 2
+#define Visualizer_SleepScale_NN 3
 
 //#define VISUALIZER_DISABLE_SLEEP 1
 

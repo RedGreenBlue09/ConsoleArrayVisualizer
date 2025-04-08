@@ -16,9 +16,6 @@ static inline void* calloc_guarded(size_t count, size_t size) {
 
 static inline void* realloc_guarded(void* p, size_t size) {
 	void* pNew = realloc(p, size);
-	if (!pNew) {
-		free(p);
-		abort();
-	}
+	if (!pNew) abort();
 	return pNew;
 }

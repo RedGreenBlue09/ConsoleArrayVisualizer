@@ -42,107 +42,54 @@ sort_info RunSorts_aSort[] = {
 
 uintptr_t RunSorts_nSort = static_arrlen(RunSorts_aSort);
 
-void DistributeLinear(
-	rand64_state RngState,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-);
+void DistributeLinear(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
+void VerifyLinear(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+void UnverifyLinear(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
 
-void VerifyLinear(
-	rand64_state RngState,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-);
+void DistributeRandom(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
+void VerifyRandom(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+void UnverifyRandom(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
 
-void DistributeRandom(
-	rand64_state RngState,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-);
+void DistributeSquareRoot(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
+void VerifySquareRoot(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+void UnverifySquareRoot(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
 
-void VerifyRandom(
-	rand64_state RngState,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-);
-
-void DistributeSquareRoot(
-	rand64_state RngState,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-);
-
-void VerifySquareRoot(
-	rand64_state RngState,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-);
-
-void DistributeSine(
-	rand64_state RngState,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-);
-
-void VerifySine(
-	rand64_state RngState,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-);
+void DistributeSine(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
+void VerifySine(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+void UnverifySine(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
 
 distribution_info RunSorts_aDistribution[] = {
 	{
 		"Linear",
 		DistributeLinear,
 		VerifyLinear,
+		UnverifyLinear,
 	},
 	{
 		"Random",
 		DistributeRandom,
 		VerifyRandom,
+		UnverifyRandom,
 	},
 	{
 		"Square Root",
 		DistributeSquareRoot,
 		VerifySquareRoot,
+		UnverifySquareRoot,
 	},
 	{
 		"Sine",
 		DistributeSine,
 		VerifySine,
+		UnverifySine,
 	},
 };
 
 uintptr_t RunSorts_nDistribution = static_arrlen(RunSorts_aDistribution);
 
-void ShuffleRandom(
-	rand64_state RngState,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-);
-
-void ShuffleSorted(
-	rand64_state RngState,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-);
-
-void ShuffleReversed(
-	rand64_state RngState,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-);
+void ShuffleRandom(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
+void ShuffleSorted(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
+void ShuffleReversed(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
 
 shuffle_info RunSorts_aShuffle[] = {
 	{
@@ -161,8 +108,6 @@ shuffle_info RunSorts_aShuffle[] = {
 
 uintptr_t RunSorts_nShuffle = static_arrlen(RunSorts_aShuffle);
 
-uint64_t RunSorts_Second;
-
 void RunSorts_RunSort(
 	sort_info* pSort,
 	distribution_info* pDistribution,
@@ -172,7 +117,7 @@ void RunSorts_RunSort(
 	intptr_t Length
 ) {
 	Visualizer_ResetTimer();
-	RunSorts_Second = clock64_resolution();
+	uint64_t Second = clock64_resolution();
 
 	rand64_state RngState;
 	srand64(&RngState, clock64());
@@ -197,7 +142,7 @@ void RunSorts_RunSort(
 
 	pShuffle->Shuffle(RngState, hArray, aArray, Length);
 
-	sleep64(RunSorts_Second);
+	sleep64(Second);
 
 	// Sort
 
@@ -215,5 +160,7 @@ void RunSorts_RunSort(
 	Visualizer_SetAlgorithmName(sVerifyName);
 
 	pDistribution->Verify(RngState, hArray, aArray, Length);
+	sleep64(Second * 3);
+	pDistribution->Unverify(RngState, hArray, aArray, Length);
 }
 
