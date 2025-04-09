@@ -26,8 +26,6 @@ static inline void SpinLock_Lock(spinlock* pLock) {
 		while (atomic_load_explicit(pLock, memory_order_relaxed) == true);
 		bExpected = false;
 	}
-	// Really hate this but it has to be done to be compatible with C memory model
-	// since fences there only sync with other fences, not operations on variables.
 	atomic_thread_fence_light(pLock, memory_order_acquire);
 #else
 	while (atomic_exchange_explicit(pLock, true, memory_order_relaxed) == true)

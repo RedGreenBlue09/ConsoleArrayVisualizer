@@ -118,6 +118,13 @@ void Visualizer_MoveMarker(
 	intptr_t iNewPosition
 );
 
+// Correctness
+
+void Visualizer_UpdateCorrectness(visualizer_array_handle hArray, intptr_t iPosition, bool bCorrect, double fSleepMultiplier);
+void Visualizer_ClearCorrectness(visualizer_array_handle hArray, intptr_t iPosition, bool bCorrect);
+
+// Other
+
 void Visualizer_SetAlgorithmName(char* sAlgorithmNameArg);
 void Visualizer_ClearReadWriteCounter(visualizer_array_handle hArray);
 

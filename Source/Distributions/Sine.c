@@ -41,11 +41,7 @@ void VerifySine(
 		visualizer_int Value = (visualizer_int)round(
 			(sin((double)i * gfPi / (double)Length - (0.5 * gfPi)) + 1.0) * fMax * 0.5
 		);
-		if (aArray[i] == Value)
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Correct);
-		else
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Incorrect);
-		Visualizer_Sleep(1.0);
+		Visualizer_UpdateCorrectness(hArray, i, aArray[i] == Value, 1.0);
 	}
 }
 
@@ -60,9 +56,6 @@ void UnverifySine(
 		visualizer_int Value = (visualizer_int)round(
 			(sin((double)i * gfPi / (double)Length - (0.5 * gfPi)) + 1.0) * fMax * 0.5
 		);
-		if (aArray[i] == Value)
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Correct });
-		else
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Incorrect });
+		Visualizer_ClearCorrectness(hArray, i, aArray[i] == Value);
 	}
 }

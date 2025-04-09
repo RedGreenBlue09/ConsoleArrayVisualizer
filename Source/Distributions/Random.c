@@ -37,11 +37,7 @@ void VerifyRandom(
 	for (intptr_t i = Length - 1; i >= 1; --i) {
 		fCurrentMax *= exp2(log2(randf64(&RngState)) / (double)(i + 1));
 		visualizer_int Value = (visualizer_int)round(fCurrentMax);
-		if (aArray[i] == Value)
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Correct);
-		else
-			Visualizer_CreateMarker(hArray, i, Visualizer_MarkerAttribute_Incorrect);
-		Visualizer_Sleep(1.0);
+		Visualizer_UpdateCorrectness(hArray, i, aArray[i] == Value, 1.0);
 	}
 }
 
@@ -55,9 +51,6 @@ void UnverifyRandom(
 	for (intptr_t i = Length - 1; i >= 1; --i) {
 		fCurrentMax *= exp2(log2(randf64(&RngState)) / (double)(i + 1));
 		visualizer_int Value = (visualizer_int)round(fCurrentMax);
-		if (aArray[i] == Value)
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Correct });
-		else
-			Visualizer_RemoveMarker((visualizer_marker) { hArray, i, Visualizer_MarkerAttribute_Incorrect });
+		Visualizer_ClearCorrectness(hArray, i, aArray[i] == Value);
 	}
 }

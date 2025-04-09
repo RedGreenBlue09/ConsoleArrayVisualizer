@@ -989,22 +989,21 @@ void Visualizer_ClearReadWriteCounter(visualizer_array_handle hArray) {
 	atomic_store_explicit(&pArrayProp->WriteCount, 0, memory_order_relaxed);
 }
 
-// FIXME: Proper impl
-void Visualizer_UpdateCorrectness(visualizer_array_handle hArray, intptr_t iPosition, bool bCorrect) {
+static const visualizer_marker_attribute gaCorrectnessAttribute[2] = {
+	Visualizer_MarkerAttribute_Incorrect,
+	Visualizer_MarkerAttribute_Correct
+};
+
+void Visualizer_UpdateCorrectness(visualizer_array_handle hArray, intptr_t iPosition, bool bCorrect, double fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
-	visualizer_marker_attribute Attribute =
-		bCorrect ?
-		Visualizer_MarkerAttribute_Correct : 
-		Visualizer_MarkerAttribute_Incorrect;
+	visualizer_marker_attribute Attribute = gaCorrectnessAttribute[bCorrect];
 	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, true, Attribute, 0);
+	Visualizer_Sleep(1.0);
 }
 
 void Visualizer_ClearCorrectness(visualizer_array_handle hArray, intptr_t iPosition, bool bCorrect) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
-	visualizer_marker_attribute Attribute =
-		bCorrect ?
-		Visualizer_MarkerAttribute_Correct :
-		Visualizer_MarkerAttribute_Incorrect;
+	visualizer_marker_attribute Attribute = gaCorrectnessAttribute[bCorrect];
 	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
 }
 
