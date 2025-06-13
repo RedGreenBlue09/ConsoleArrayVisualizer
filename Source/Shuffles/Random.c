@@ -14,7 +14,7 @@ void ShuffleRandom(
 	);
 
 	for (intptr_t i = Length - 1; i >= 1; --i) {
-		intptr_t iRandom = (intptr_t)rand64_bounded(&RngState, i + 1);
+		intptr_t iRandom = (intptr_t)rand64_bounded(&RngState, i);
 		Visualizer_UpdateSwap(hArray, i, iRandom, 1.0);
 		swap(&aArray[i], &aArray[iRandom]);
 	}

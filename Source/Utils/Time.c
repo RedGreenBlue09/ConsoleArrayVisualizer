@@ -2,7 +2,7 @@
 #include <Windows.h>
 #include <stdint.h>
 
-static uint64_t ClockRes = 0; // Doesn't have to be atomic
+static uint64_t ClockRes = 0; // Fixme: Multi-thread
 
 uint64_t clock64() {
 	LARGE_INTEGER TimeStruct;

@@ -79,7 +79,7 @@ typedef struct {
 	atomic bool     bRemoved;
 	atomic bool     bResized;
 	// atomic bool     bRangeUpdated;
-	intptr_t Size;
+	intptr_t        Size;
 	visualizer_int  ValueMin;
 	visualizer_int  ValueMax;
 	array_member*   aState;
@@ -624,8 +624,7 @@ visualizer_array_handle Visualizer_AddArray(
 		for (intptr_t i = 0; i < Size; ++i)
 			pArrayProp->aState[i] = (array_member){ aArrayState[i] };
 	else
-		for (intptr_t i = 0; i < Size; ++i)
-			pArrayProp->aState[i] = (array_member){ 0 };
+		memset(pArrayProp->aState, 0, Size * sizeof(*pArrayProp->aState));
 
 	if (ValueMax <= ValueMin)
 		ValueMax = ValueMin + 1;
@@ -649,6 +648,36 @@ void Visualizer_RemoveArray(visualizer_array_handle hArray) {
 
 	atomic_store_fence_light(&pArrayProp->bRemoved, true);
 }
+
+/*
+
+void Visualizer_ResizeArray(
+	visualizer_array_handle hArray,
+	intptr_t NewSize
+) {
+	assert(ValidateHandle(&gArrayPropPool, hArray));
+	pool_index Index = HandleToPoolIndex(hArray);
+	array_prop* pArrayProp = Pool_IndexToAddress(&gArrayPropPool, Index);
+
+	if ((NewSize <= 0) || (NewSize == pArrayProp->Size))
+		return;
+
+	// Realloc arrays
+	array_member* aNewArrayState = malloc_guarded(NewSize * sizeof(*aNewArrayState));
+	memcpy(aNewArrayState, pArrayProp->aState, NewSize * sizeof(*aNewArrayState));
+
+	// Initialize the new part
+	intptr_t OldSize = pArrayProp->Size;
+	memset(aNewArrayState + OldSize, 0, (NewSize - OldSize) * sizeof(*aNewArrayState));
+
+	// Update ArrayProp. FIXME: use spinlock
+	if (atomic_load_explicit(&pArrayProp->bResized, memory_order_relaxed))
+		free(pArrayProp->aState); // Renderer hasn't took over the new array
+	pArrayProp->aState = aNewArrayState;
+	pArrayProp->Size = NewSize;
+	atomic_store_explicit(&pArrayProp->bResized, true, memory_order_release);
+}
+*/
 
 // UNSUPPORTED: Multiple threads on the same member
 typedef uint8_t member_update_type;
@@ -703,81 +732,6 @@ void Visualizer_UpdateArrayState(visualizer_array_handle hArray, visualizer_int*
 	for (intptr_t i = 0; i < pArrayProp->Size; ++i)
 		UpdateMember(pArrayProp, i, MemberUpdateType_Value, false, 0, aState[i]);
 }
-
-// TODO: Implement array resize
-
-/*
-void Visualizer_UpdateArray(
-	visualizer_array_handle hArray,
-	intptr_t NewSize,
-	visualizer_int ValueMin,
-	visualizer_int ValueMax
-) {
-
-	assert(ValidateHandle(&gArrayPropPool, hArray));
-	pool_index Index = HandleToPoolIndex(hArray);
-	array_prop* pArrayProp = Pool_IndexToAddress(&gArrayPropPool, Index);
-
-	// Clear screen
-
-	uint32_t Written;
-	FillConsoleOutputAttribute(
-		ghAltBuffer,
-		ConsoleAttribute_Background,
-		gBufferInfo.dwSize.X * gBufferInfo.dwSize.Y,
-		(COORD){ 0, 0 },
-		&Written
-	);
-
-	pArrayProp->ValueMin = ValueMin;
-	pArrayProp->ValueMax = ValueMax;
-
-	// Handle array resize
-
-	if ((NewSize > 0) && (NewSize != pArrayProp->Size)) {
-
-		// Realloc arrays
-
-		visualizer_int* aResizedArrayState = realloc_guarded(
-			pArrayProp->aState,
-			NewSize * sizeof(visualizer_int)
-		);
-		visualizer_marker_attribute* aResizedAttribute = realloc_guarded(
-			pArrayProp->aAttribute,
-			NewSize * sizeof(visualizer_marker_attribute)
-		);
-
-		// Initialize the new part
-
-		intptr_t OldSize = pArrayProp->Size;
-
-		for (intptr_t i = OldSize; i < NewSize; ++i)
-			aResizedArrayState[i] = 0;
-
-		for (intptr_t i = OldSize; i < NewSize; ++i)
-			aResizedAttribute[i] = Visualizer_MarkerAttribute_Normal;
-
-		pArrayProp->aState = aResizedArrayState;
-		pArrayProp->aAttribute = aResizedAttribute;
-		pArrayProp->Size = NewSize;
-
-	}
-
-	// Re-render with new props
-
-	Visualizer_UpdateRequest UpdateRequest;
-	UpdateRequest.iArray = ArrayIndex;
-	UpdateRequest.UpdateType = Visualizer_UpdateType_NoUpdate;
-	intptr_t Size = pArrayProp->Size;
-	for (intptr_t i = 0; i < Size; ++i) {
-		UpdateRequest.iPosition = i;
-		Visualizer_UpdateItem(&UpdateRequest);
-	}
-
-	return;
-
-}
-*/
 
 // Marker helpers
 
@@ -989,6 +943,8 @@ void Visualizer_ClearReadWriteCounter(visualizer_array_handle hArray) {
 	atomic_store_explicit(&pArrayProp->WriteCount, 0, memory_order_relaxed);
 }
 
+// Correctness
+
 static const visualizer_marker_attribute gaCorrectnessAttribute[2] = {
 	Visualizer_MarkerAttribute_Incorrect,
 	Visualizer_MarkerAttribute_Correct
@@ -1006,6 +962,8 @@ void Visualizer_ClearCorrectness(visualizer_array_handle hArray, intptr_t iPosit
 	visualizer_marker_attribute Attribute = gaCorrectnessAttribute[bCorrect];
 	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
 }
+
+// Timer
 
 void Visualizer_StartTimer() {
 	atomic_store_explicit(&gTimerStopTime, UINT64_MAX, memory_order_relaxed);

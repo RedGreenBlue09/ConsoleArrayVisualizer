@@ -93,7 +93,7 @@ static int gappedInsertion(void* parameter) {
 	intptr_t start = insertionParameter->start;
 	intptr_t end = insertionParameter->end;
 	intptr_t gap = insertionParameter->gap;
-	insertionParameter->parameterRead = true;
+	atomic_store_fence_light(&insertionParameter->parameterRead, true);
 	insertionParameter = NULL;
 
 	visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, start + gap, Visualizer_MarkerAttribute_Pointer);
@@ -137,10 +137,14 @@ void ShellSortParallel(visualizer_array_handle arrayHandle, visualizer_int* arra
 		intptr_t nIteration = min2(gap, n - gap); // Worst case: n / 2
 
 		for (intptr_t i = 0; i < nIteration; ++i) {
-			insertion_parameter parameter = { arrayHandle, array, i, n, gap, false };
+			insertion_parameter parameter = { arrayHandle, array, i, n, gap };
+			atomic_store_explicit(&parameter.parameterRead, false, memory_order_relaxed);
+
 			jobs[i] = ThreadPool_InitJob(gappedInsertion, &parameter);
 			ThreadPool_AddJob(Visualizer_pThreadPool, &jobs[i]);
-			while (!parameter.parameterRead);
+
+			while (!atomic_load_explicit(&parameter.parameterRead, memory_order_relaxed));
+			atomic_thread_fence_light(&parameter.parameterRead, memory_order_acquire);
 		}
 
 		for (intptr_t i = 0; i < nIteration; ++i)

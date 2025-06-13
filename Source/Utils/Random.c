@@ -58,13 +58,12 @@ uint64_t rand64(rand64_state* state) {
 
 // Source: https://www.pcg-random.org/posts/bounded-rands.html
 
-uint64_t rand64_bounded(rand64_state* state, uint64_t range) {
-	--range;
-	uint64_t mask = UINT64_MAX >> (63 - log2_u64(range | 1));
+uint64_t rand64_bounded(rand64_state* state, uint64_t max_value) {
+	uint64_t mask = UINT64_MAX >> (63 - log2_u64(max_value | 1));
 	uint64_t x;
 	do {
 		x = rand64(state) & mask;
-	} while (x > range);
+	} while (x > max_value);
 	return x;
 }
 

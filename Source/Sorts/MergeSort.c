@@ -50,7 +50,7 @@ static void mergePass(visualizer_int* x, visualizer_int* y, size_t s, size_t n) 
 
 	// fewer than 2s elements remain
 	if (i + s < n) {
-	merge(x, y, i, i + s, n);
+		merge(x, y, i, i + s, n);
 		return;
 	}
 
@@ -60,49 +60,3 @@ static void mergePass(visualizer_int* x, visualizer_int* y, size_t s, size_t n) 
 
 }
 
-//
-
-static void iterativeMergeSort(visualizer_int* a, size_t n) {
-
-	if (n < 16) {
-		BinaryInsertion(a, 0, n);
-		return;
-	}
-
-	visualizer_int* b = malloc_guarded(n * sizeof(visualizer_int));
-
-	size_t s = 16; // segment size
-	size_t i;
-	for (i = 0; i < n - s; i += s)
-		BinaryInsertion(a, i, i + s);
-
-	BinaryInsertion(a, i, n);
-
-	visualizer_int* b2 = b;
-	while (s < n)
-	{
-		mergePass(a, b2, s, n); // merge from a to b
-		s += s;                    // double the segment size
-		swap(&a, &b2);
-
-		/*
-		if (s >= n)
-			break;
-
-		IMS_mergePass(b, a, s, n); // merge from b to a
-		s += s;                    // again, double the segment size
-		*/
-	}
-
-	free(b);
-
-}
-
-// Exports:
-
-void IterativeMergeSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
-
-	if (n < 2) return;
-	iterativeMergeSort(array, n);
-
-}

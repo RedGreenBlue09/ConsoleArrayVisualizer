@@ -8,7 +8,6 @@ static int isortCompare(const visualizer_int* a, const visualizer_int* b) {
 }
 
 static void partition(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t low, intptr_t high) {
-
 	intptr_t left;
 	intptr_t right;
 	intptr_t pivot;
@@ -32,7 +31,7 @@ begin:
 			--right;
 		}
 
-		if (left <= right) {
+		if (left < right) {
 			Visualizer_UpdateSwap(arrayHandle, left, right, 0.625);
 			swap(&array[left], &array[right]);
 			++left;
