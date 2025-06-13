@@ -13,6 +13,8 @@
 #include "Utils/SpinLock.h"
 #include "Utils/Time.h"
 
+// TODO: intptr_t --> uintptr_t
+
 // Buffer stuff
 static HANDLE ghAltBuffer = NULL;
 static CONSOLE_SCREEN_BUFFER_INFOEX gBufferInfo = { 0 };

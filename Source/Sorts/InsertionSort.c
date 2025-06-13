@@ -37,14 +37,21 @@ void BinaryInsertion(visualizer_int* array, intptr_t start, intptr_t end) {
 * Negative integer support     : Yes
 */
 
-void InsertionSort(visualizer_int* array, intptr_t n) {
+void InsertionSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	if (n < 2) return;
 
 	for (intptr_t i = 1; i < n; ++i) {
 		visualizer_int temp = array[i];
+		Visualizer_UpdateRead(arrayHandle, i, 1.0);
 		intptr_t j;
-		for (j = i; (j > 0) && (array[j - 1] > temp); --j)
+		for (j = i; j > 0; --j) {
+			Visualizer_UpdateRead(arrayHandle, j - 1, 1.0);
+			if (array[j - 1] <= temp)
+				break;
+			Visualizer_UpdateWrite(arrayHandle, j, array[j - 1], 1.0);
 			array[j] = array[j - 1];
+		}
+		Visualizer_UpdateWrite(arrayHandle, j, temp, 1.0);
 		array[j] = temp;
 	}
 }

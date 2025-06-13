@@ -13,7 +13,7 @@ void InsertionSort(visualizer_int* array, intptr_t n);
 void ShellSortTokuda(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 void ShellSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 void LeftRightQuickSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
-void IterativeMergeSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
+void IntroSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 void WeaveSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
 
@@ -25,6 +25,10 @@ sort_info RunSorts_aSort[] = {
 	{
 		"Left/Right Quicksort",
 		LeftRightQuickSort,
+	},
+	{
+		"Introsort",
+		IntroSort,
 	},
 	{
 		"Bottom-up Heapsort",
@@ -90,6 +94,7 @@ uintptr_t RunSorts_nDistribution = static_arrlen(RunSorts_aDistribution);
 void ShuffleRandom(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
 void ShuffleSorted(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
 void ShuffleReversed(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
+void ShuffleFinalMerge(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
 
 shuffle_info RunSorts_aShuffle[] = {
 	{
@@ -103,6 +108,10 @@ shuffle_info RunSorts_aShuffle[] = {
 	{
 		"Sorted",
 		ShuffleSorted,
+	},
+	{
+		"Final Merge",
+		ShuffleFinalMerge,
 	},
 };
 

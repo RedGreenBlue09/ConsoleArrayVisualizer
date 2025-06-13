@@ -2,11 +2,6 @@
 #include "Utils/Common.h"
 #include "Visualizer.h"
 
-
-static int isortCompare(const visualizer_int* a, const visualizer_int* b) {
-	return (*a > *b) - (*a < *b);
-}
-
 static void partition(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t low, intptr_t high) {
 	intptr_t left;
 	intptr_t right;
@@ -22,17 +17,17 @@ begin:
 	visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, pivot, Visualizer_MarkerAttribute_Pointer);
 	while (left <= right) {
 		while (array[left] < pivotValue) {
-			Visualizer_UpdateRead(arrayHandle, left, 0.625);
+			Visualizer_UpdateRead(arrayHandle, left, 1.0);
 			++left;
 
 		}
 		while (array[right] > pivotValue) {
-			Visualizer_UpdateRead(arrayHandle, right, 0.625);
+			Visualizer_UpdateRead(arrayHandle, right, 1.0);
 			--right;
 		}
 
 		if (left < right) {
-			Visualizer_UpdateSwap(arrayHandle, left, right, 0.625);
+			Visualizer_UpdateSwap(arrayHandle, left, right, 1.0);
 			swap(&array[left], &array[right]);
 			++left;
 			--right;
@@ -59,10 +54,10 @@ begin:
 		bigRight = high;
 	}
 
-	if (bigLeft < bigRight) partition(arrayHandle, array, bigLeft, bigRight);
-	if (smallLeft < smallRight) {
-		low = smallLeft;
-		high = smallRight;
+	if (smallLeft < smallRight) partition(arrayHandle, array, smallLeft, smallRight);
+	if (bigLeft < bigRight) {
+		low = bigLeft;
+		high = bigRight;
 		goto begin;
 	}
 	return;

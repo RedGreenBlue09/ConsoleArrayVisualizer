@@ -111,6 +111,12 @@
     <ClCompile Include="Source\Sorts\WeaveSort.c">
       <Filter>Source Files\Sorts</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Sorts\Intro.c">
+      <Filter>Source Files\Sorts</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shuffles\FinalMerge.c">
+      <Filter>Source Files\Shuffles</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\RunSorts.h">
