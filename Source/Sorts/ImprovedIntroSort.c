@@ -49,7 +49,6 @@ static inline uintptr_t MedianOf3(
 	Visualizer_UpdateRead2(arrayHandle, mid, right, 1.0);
 	if ((array[mid] > array[left]) ^ (array[mid] > array[right]))
 		return mid;
-	Visualizer_UpdateRead2(arrayHandle, right, mid, 1.0);
 	Visualizer_UpdateRead2(arrayHandle, right, left, 1.0);
 	if ((array[right] < array[mid]) ^ (array[right] < array[left]))
 		return right;
@@ -74,7 +73,7 @@ static uintptr_t MedianOf3Recursive(visualizer_array_handle arrayHandle, visuali
 		uintptr_t i;
 		uintptr_t iMedian;
 		for (i = 0; i < n; ++i) {
-			iMedian = MedianOf3(arrayHandle, array, part.start + i * 3, part.start + i * 3 + 1, part.start + i * 3 + 2);
+			iMedian = MedianOf3(arrayHandle, array, part.start + i * 3, part.start + i * 3 + 2, part.start + i * 3 + 1);
 			Visualizer_UpdateSwap(arrayHandle, iMedian, part.start + i, 1.0);
 			swap(&array[iMedian], &array[part.start + i]);
 		}
@@ -121,7 +120,7 @@ void ImprovedIntroSort(visualizer_array_handle arrayHandle, visualizer_int* arra
 
 	do {
 		partition_t part = stack[--stackSize];
-		while (part.n >= nSmallest) {
+		while (1) {
 			uintptr_t left = part.start;
 			uintptr_t right = part.start + part.n - 1;
 			uintptr_t pivot = GetPivot(arrayHandle, array, &part);
@@ -163,7 +162,10 @@ void ImprovedIntroSort(visualizer_array_handle arrayHandle, visualizer_int* arra
 
 			if (bigPart.n >= nSmallest)
 				stack[stackSize++] = bigPart;
-			part = smallPart;
+			if (smallPart.n >= nSmallest)
+				part = smallPart;
+			else
+				break;
 		}
 	} while (stackSize > 0);
 
