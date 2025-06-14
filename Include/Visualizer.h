@@ -90,7 +90,8 @@ void Visualizer_UpdateSwap(
 	double fSleepMultiplier
 );
 void Visualizer_UpdateReadWrite(
-	visualizer_array_handle hArray,
+	visualizer_array_handle hArrayA,
+	visualizer_array_handle hArrayB,
 	intptr_t iPositionA,
 	intptr_t iPositionB,
 	double fSleepMultiplier

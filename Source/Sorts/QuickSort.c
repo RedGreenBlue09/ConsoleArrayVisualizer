@@ -26,7 +26,7 @@ begin:
 			--right;
 		}
 
-		if (left < right) {
+		if (left <= right) {
 			Visualizer_UpdateSwap(arrayHandle, left, right, 1.0);
 			swap(&array[left], &array[right]);
 			++left;

@@ -850,21 +850,23 @@ void Visualizer_UpdateWrite(visualizer_array_handle hArray, intptr_t iPosition, 
 }
 
 void Visualizer_UpdateReadWrite(
-	visualizer_array_handle hArray,
+	visualizer_array_handle hArrayA,
+	visualizer_array_handle hArrayB,
 	intptr_t iPositionA,
 	intptr_t iPositionB,
 	double fSleepMultiplier
 ) {
-	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
+	array_prop* pArrayPropA = GetHandleData(&gArrayPropPool, hArrayA);
+	array_prop* pArrayPropB = GetHandleData(&gArrayPropPool, hArrayB);
 
-	atomic_fetch_add_explicit(&pArrayProp->ReadCount, 1, memory_order_relaxed);
-	atomic_fetch_add_explicit(&pArrayProp->WriteCount, 1, memory_order_relaxed);
-	visualizer_int NewValueA = pArrayProp->aState[iPositionB].Value;
-	AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
-	AddMarker(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
+	atomic_fetch_add_explicit(&pArrayPropA->WriteCount, 1, memory_order_relaxed);
+	atomic_fetch_add_explicit(&pArrayPropB->ReadCount, 1, memory_order_relaxed);
+	visualizer_int NewValueA = pArrayPropB->aState[iPositionB].Value;
+	AddMarkerWithValue(pArrayPropA, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
+	AddMarker(pArrayPropB, iPositionB, Visualizer_MarkerAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
-	RemoveMarkerHelper(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write);
-	RemoveMarkerHelper(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
+	RemoveMarkerHelper(pArrayPropA, iPositionA, Visualizer_MarkerAttribute_Write);
+	RemoveMarkerHelper(pArrayPropB, iPositionB, Visualizer_MarkerAttribute_Read);
 }
 
 void Visualizer_UpdateSwap(

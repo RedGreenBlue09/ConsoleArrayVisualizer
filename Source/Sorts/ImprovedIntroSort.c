@@ -4,7 +4,7 @@
 
 /*
 * ALGORITHM INFORMATION:
-* Time complexity (worst case) : O(n ^ 2)
+* Time complexity (worst case) : Unknown
 * Time complexity (avg. case)  : O(n * log(n))
 * Time complexity (best case)  : O(n * log(n))
 * Extra space (worst case)     : O(log(n))
@@ -36,51 +36,56 @@ static void InsertionSort(visualizer_array_handle arrayHandle, visualizer_int* a
 	}
 }
 
-static uintptr_t MedianOfMedians(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
-	const uintptr_t groupSize = 8;
-	uintptr_t n = part.n;
-
-	do {
-		uintptr_t remSize = (uintptr_t)n % groupSize;
-		n /= groupSize;
-
-		uintptr_t i;
-		uintptr_t iNew;
-		uintptr_t iOld;
-		for (i = 0; i < n; ++i) {
-			InsertionSort(arrayHandle, array, (partition_t){ part.start + i * groupSize, groupSize });
-			iNew = part.start + i;
-			iOld = part.start + i * groupSize + (groupSize / 2);
-			Visualizer_UpdateSwap(arrayHandle, iNew, iOld, 2.0);
-			swap(&array[iNew], &array[iOld]);
-		}
-		if (remSize > 0) {
-			InsertionSort(arrayHandle, array, (partition_t){ part.start + i * groupSize, remSize });
-			iNew = part.start + i;
-			iOld = part.start + i * groupSize + (remSize / 2);
-			Visualizer_UpdateSwap(arrayHandle, iNew, iOld, 2.0);
-			swap(&array[iNew], &array[iOld]);
-			++n;
-		}
-	} while (n >= groupSize);
-	return part.start;
-}
-
 // https://stackoverflow.com/a/55242934/13614676
 
-static uintptr_t MedianOf3(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
-	uintptr_t left = part.start;
-	uintptr_t right = part.start + part.n - 1;
-	uintptr_t mid = part.start + (part.n / 2);
-	Visualizer_UpdateRead2(arrayHandle, mid, left, 2.0);
-	Visualizer_UpdateRead2(arrayHandle, mid, right, 2.0);
+static inline uintptr_t MedianOf3(
+	visualizer_array_handle arrayHandle,
+	visualizer_int* array,
+	intptr_t left,
+	intptr_t right,
+	intptr_t mid
+) {
+	Visualizer_UpdateRead2(arrayHandle, mid, left, 1.0);
+	Visualizer_UpdateRead2(arrayHandle, mid, right, 1.0);
 	if ((array[mid] > array[left]) ^ (array[mid] > array[right]))
 		return mid;
-	Visualizer_UpdateRead2(arrayHandle, right, mid, 2.0);
-	Visualizer_UpdateRead2(arrayHandle, right, left, 2.0);
+	Visualizer_UpdateRead2(arrayHandle, right, mid, 1.0);
+	Visualizer_UpdateRead2(arrayHandle, right, left, 1.0);
 	if ((array[right] < array[mid]) ^ (array[right] < array[left]))
 		return right;
 	return left;
+}
+
+static inline uintptr_t MedianOf3Simple(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
+	return MedianOf3(arrayHandle, array, part.start, part.start + part.n - 1, part.start + (part.n / 2));
+}
+
+// This method is based on median of medians but it's faster & simpler.
+// The worst case partition size is not proved,
+// but it can defeat all tested quicksort adversary inputs.
+
+static uintptr_t MedianOf3Recursive(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
+	uintptr_t n = part.n;
+
+	do {
+		uintptr_t remSize = (uintptr_t)n % 3;
+		n /= 3;
+
+		uintptr_t i;
+		uintptr_t iMedian;
+		for (i = 0; i < n; ++i) {
+			iMedian = MedianOf3(arrayHandle, array, part.start + i * 3, part.start + i * 3 + 1, part.start + i * 3 + 2);
+			Visualizer_UpdateSwap(arrayHandle, iMedian, part.start + i, 1.0);
+			swap(&array[iMedian], &array[part.start + i]);
+		}
+		if (remSize > 0) {
+			// Since we can't calculate the median of 2, just pick the first value.
+			Visualizer_UpdateSwap(arrayHandle, part.start + i * 3, part.start + i, 1.0);
+			swap(&array[part.start + i * 3], &array[part.start + i]);
+			++n;
+		}
+	} while (n >= 3);
+	return part.start;
 }
 
 static uintptr_t GetPivot(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t* part) {
@@ -88,24 +93,28 @@ static uintptr_t GetPivot(visualizer_array_handle arrayHandle, visualizer_int* a
 		case 0:
 			return part->start + (part->n / 2);
 		case 1:
-			return MedianOf3(arrayHandle, array, *part);
+			return MedianOf3Simple(arrayHandle, array, *part);
 		case 2:
-			return MedianOf3(arrayHandle, array, *part);
+			return MedianOf3Simple(arrayHandle, array, *part);
 		case 3:
+			return MedianOf3Simple(arrayHandle, array, *part);
+		case 4:
 			part->badPivot = 0;
-			return MedianOfMedians(arrayHandle, array, *part);
+			return MedianOf3Recursive(arrayHandle, array, *part);
 		default:
 			ext_unreachable();
 	}
 }
 
-void IntroSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
+void ImprovedIntroSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
 		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_NLogN)
 	);
 
 	const uintptr_t nSmallest = 16;
 
+	// This static array can be big but if the stack can't hold this
+	// then it probably can't hold the worst case of the recursive algorithm either.
 	partition_t stack[sizeof(uintptr_t) * 8]; // CHAR_BIT == 8 but who cares
 	uint8_t stackSize = 0;
 	stack[stackSize++] = (partition_t){ 0, n, 0 };
@@ -139,7 +148,7 @@ void IntroSort(visualizer_array_handle arrayHandle, visualizer_int* array, intpt
 			Visualizer_RemoveMarker(pointer);
 
 			// Call tail optimization
-			// Is slower but prevents O(n) call stack in worst case
+			// Is slower but reduces stack size in the worst case to log2(n)
 			partition_t leftPart = { part.start, right + 1 - part.start, part.badPivot };
 			partition_t rightPart = { left, part.start + part.n - left, part.badPivot };
 			uint8_t bigLeft = (leftPart.n > rightPart.n);
@@ -148,6 +157,9 @@ void IntroSort(visualizer_array_handle arrayHandle, visualizer_int* array, intpt
 
 			if (smallPart.n < part.n / 4)
 				++bigPart.badPivot;
+			else
+				bigPart.badPivot = 0;
+			smallPart.badPivot = 0;
 
 			if (bigPart.n >= nSmallest)
 				stack[stackSize++] = bigPart;

@@ -58,13 +58,15 @@
     <ClCompile Include="Source\Main.c" />
     <ClCompile Include="Source\RunSorts.c" />
     <ClCompile Include="Source\Shuffles\FinalMerge.c" />
+    <ClCompile Include="Source\Shuffles\QuickSortAdversary.c" />
     <ClCompile Include="Source\Shuffles\Random.c" />
     <ClCompile Include="Source\Shuffles\Reversed.c" />
+    <ClCompile Include="Source\Shuffles\ReversedFinalMerge.c" />
     <ClCompile Include="Source\Shuffles\Sorted.c" />
     <ClCompile Include="Source\Sorts\FlashSort.c" />
     <ClCompile Include="Source\Sorts\HeapSort.c" />
     <ClCompile Include="Source\Sorts\InsertionSort.c" />
-    <ClCompile Include="Source\Sorts\Intro.c" />
+    <ClCompile Include="Source\Sorts\ImprovedIntroSort.c" />
     <ClCompile Include="Source\Sorts\MergeSort.c" />
     <ClCompile Include="Source\Sorts\PigeonholeSort.c" />
     <ClCompile Include="Source\Sorts\QuickSort.c" />
@@ -391,7 +393,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <Optimization>Full</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <CompileAs>CompileAsC</CompileAs>
       <EnableParallelCodeGeneration>
@@ -419,7 +421,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <Optimization>Full</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <CompileAs>CompileAsC</CompileAs>
       <EnableParallelCodeGeneration>
@@ -563,7 +565,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <Optimization>Full</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <CompileAs>CompileAsC</CompileAs>
       <EnableParallelCodeGeneration>
@@ -592,7 +594,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <Optimization>Full</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <CompileAs>CompileAsC</CompileAs>
       <EnableParallelCodeGeneration>

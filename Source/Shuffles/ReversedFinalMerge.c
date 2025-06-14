@@ -1,9 +1,10 @@
 
 #include "Visualizer.h"
+#include "Utils/Common.h"
 #include "Utils/Random.h"
 #include "Utils/GuardedMalloc.h"
 
-void ShuffleFinalMerge(
+void ShuffleReversedFinalMerge(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
@@ -29,6 +30,10 @@ void ShuffleFinalMerge(
 	for (intptr_t i = 0; i < nOdd; ++i) {
 		Visualizer_UpdateReadWrite(hArray, hTemp, i + nEven, i, 1.0);
 		aArray[i + nEven] = aTemp[i];
+	}
+	for (intptr_t i = 0; i < nOdd; ++i) {
+		Visualizer_UpdateSwap(hArray, i, Length - i - 1, 1.0);
+		swap(&aArray[i], &aArray[Length - i - 1]);
 	}
 
 	Visualizer_UpdateArrayState(hArray, aArray);

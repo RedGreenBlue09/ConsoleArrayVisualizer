@@ -111,10 +111,16 @@
     <ClCompile Include="Source\Sorts\WeaveSort.c">
       <Filter>Source Files\Sorts</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Sorts\Intro.c">
+    <ClCompile Include="Source\Sorts\ImprovedIntroSort.c">
       <Filter>Source Files\Sorts</Filter>
     </ClCompile>
     <ClCompile Include="Source\Shuffles\FinalMerge.c">
+      <Filter>Source Files\Shuffles</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shuffles\QuickSortAdversary.c">
+      <Filter>Source Files\Shuffles</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shuffles\ReversedFinalMerge.c">
       <Filter>Source Files\Shuffles</Filter>
     </ClCompile>
   </ItemGroup>
