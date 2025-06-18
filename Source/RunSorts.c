@@ -95,6 +95,7 @@ void ShuffleSorted(rand64_state, visualizer_array_handle, visualizer_int*, intpt
 void ShuffleReversed(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
 void ShuffleFinalMerge(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
 void ShuffleReversedFinalMerge(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
+void ShuffleMirrored(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
 void ShuffleQuickSortAdversary(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
 
 shuffle_info RunSorts_aShuffle[] = {
@@ -117,6 +118,10 @@ shuffle_info RunSorts_aShuffle[] = {
 	{
 		"Reversed Final Merge",
 		ShuffleReversedFinalMerge,
+	},
+	{
+		"Mirrored",
+		ShuffleMirrored,
 	},
 	{
 		"Quicksort Adversary",

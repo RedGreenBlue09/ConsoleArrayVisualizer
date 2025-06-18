@@ -48,14 +48,12 @@ static void shellSort(visualizer_array_handle arrayHandle, visualizer_int* array
 			Visualizer_MoveMarker(&pointer, i);
 
 			intptr_t j;
-			visualizer_int temp2;
 			for (j = i; j >= gap; j -= gap) {
 				Visualizer_UpdateRead(arrayHandle, j - gap, 1.0);
-				temp2 = array[j - gap];
-				if (temp2 <= temp)
+				if (array[j - gap] <= temp)
 					break;
-				Visualizer_UpdateWrite(arrayHandle, j, temp2, 1.0);
-				array[j] = temp2;
+				Visualizer_UpdateWrite(arrayHandle, j, array[j - gap], 1.0);
+				array[j] = array[j - gap];
 			}
 			Visualizer_UpdateWrite(arrayHandle, j, temp, 1.0);
 			array[j] = temp;

@@ -16,14 +16,16 @@ begin:
 
 	visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, pivot, Visualizer_MarkerAttribute_Pointer);
 	while (left <= right) {
+		Visualizer_UpdateRead(arrayHandle, left, 1.0);
 		while (array[left] < pivotValue) {
-			Visualizer_UpdateRead(arrayHandle, left, 1.0);
 			++left;
+			Visualizer_UpdateRead(arrayHandle, left, 1.0);
 
 		}
+		Visualizer_UpdateRead(arrayHandle, right, 1.0);
 		while (array[right] > pivotValue) {
-			Visualizer_UpdateRead(arrayHandle, right, 1.0);
 			--right;
+			Visualizer_UpdateRead(arrayHandle, right, 1.0);
 		}
 
 		if (left <= right) {

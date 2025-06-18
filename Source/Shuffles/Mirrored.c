@@ -3,7 +3,7 @@
 #include "Utils/Random.h"
 #include "Utils/GuardedMalloc.h"
 
-void ShuffleFinalMerge(
+void ShuffleMirrored(
 	rand64_state RngState,
 	visualizer_array_handle hArray,
 	visualizer_int* aArray,
@@ -27,8 +27,8 @@ void ShuffleFinalMerge(
 		aArray[i] = aArray[i * 2];
 	}
 	for (intptr_t i = 0; i < nOdd; ++i) {
-		Visualizer_UpdateReadWrite(hArray, hTemp, i + nEven, i, 1.0);
-		aArray[i + nEven] = aTemp[i];
+		Visualizer_UpdateReadWrite(hArray, hTemp, i + nEven, nOdd - 1 - i, 1.0);
+		aArray[i + nEven] = aTemp[nOdd - 1 - i];
 	}
 
 	Visualizer_UpdateArrayState(hArray, aArray);

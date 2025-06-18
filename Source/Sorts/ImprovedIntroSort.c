@@ -42,8 +42,8 @@ static inline uintptr_t MedianOf3(
 	visualizer_array_handle arrayHandle,
 	visualizer_int* array,
 	intptr_t left,
-	intptr_t right,
-	intptr_t mid
+	intptr_t mid,
+	intptr_t right
 ) {
 	Visualizer_UpdateRead2(arrayHandle, mid, left, 1.0);
 	Visualizer_UpdateRead2(arrayHandle, mid, right, 1.0);
@@ -55,8 +55,14 @@ static inline uintptr_t MedianOf3(
 	return left;
 }
 
-static inline uintptr_t MedianOf3Simple(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
-	return MedianOf3(arrayHandle, array, part.start, part.start + part.n - 1, part.start + (part.n / 2));
+static uintptr_t MedianOf3Simple(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
+	return MedianOf3(
+		arrayHandle,
+		array,
+		part.start + part.n / 4,
+		part.start + part.n / 2,
+		part.start + part.n * 3 / 4
+	);
 }
 
 // This method is based on median of medians but it's faster & simpler.
@@ -73,7 +79,7 @@ static uintptr_t MedianOf3Recursive(visualizer_array_handle arrayHandle, visuali
 		uintptr_t i;
 		uintptr_t iMedian;
 		for (i = 0; i < n; ++i) {
-			iMedian = MedianOf3(arrayHandle, array, part.start + i * 3, part.start + i * 3 + 2, part.start + i * 3 + 1);
+			iMedian = MedianOf3(arrayHandle, array, part.start + i * 3, part.start + i * 3 + 1, part.start + i * 3 + 2);
 			Visualizer_UpdateSwap(arrayHandle, iMedian, part.start + i, 1.0);
 			swap(&array[iMedian], &array[part.start + i]);
 		}
@@ -98,7 +104,6 @@ static uintptr_t GetPivot(visualizer_array_handle arrayHandle, visualizer_int* a
 		case 3:
 			return MedianOf3Simple(arrayHandle, array, *part);
 		case 4:
-			part->badPivot = 0;
 			return MedianOf3Recursive(arrayHandle, array, *part);
 		default:
 			ext_unreachable();
@@ -128,13 +133,15 @@ void ImprovedIntroSort(visualizer_array_handle arrayHandle, visualizer_int* arra
 
 			visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, pivot, Visualizer_MarkerAttribute_Pointer);
 			while (left <= right) {
+				Visualizer_UpdateRead(arrayHandle, left, 1.0);
 				while (array[left] < pivotValue) {
-					Visualizer_UpdateRead(arrayHandle, left, 1.0);
 					++left;
+					Visualizer_UpdateRead(arrayHandle, left, 1.0);
 				}
+				Visualizer_UpdateRead(arrayHandle, right, 1.0);
 				while (array[right] > pivotValue) {
-					Visualizer_UpdateRead(arrayHandle, right, 1.0);
 					--right;
+					Visualizer_UpdateRead(arrayHandle, right, 1.0);
 				}
 
 				if (left <= right) {

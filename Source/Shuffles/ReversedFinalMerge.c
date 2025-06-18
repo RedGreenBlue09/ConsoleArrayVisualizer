@@ -14,10 +14,10 @@ void ShuffleReversedFinalMerge(
 		Visualizer_ScaleSleepMultiplier(Length, 0.125, Visualizer_SleepScale_N)
 	);
 
-	visualizer_int* aTemp = calloc_guarded(Length / 2, sizeof(visualizer_int));
-	visualizer_array_handle hTemp = Visualizer_AddArray(Length / 2, aTemp, 0, (visualizer_int)Length - 1);
 	intptr_t nOdd = Length / 2;
 	intptr_t nEven = Length / 2 + Length % 2;
+	visualizer_int* aTemp = calloc_guarded(nOdd, sizeof(visualizer_int));
+	visualizer_array_handle hTemp = Visualizer_AddArray(nOdd, aTemp, 0, (visualizer_int)Length - 1);
 
 	for (intptr_t i = 0; i < nOdd; ++i) {
 		Visualizer_UpdateReadWrite(hTemp, hArray, i, i * 2 + 1, 1.0);

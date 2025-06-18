@@ -62,6 +62,7 @@
     <ClCompile Include="Source\Shuffles\Random.c" />
     <ClCompile Include="Source\Shuffles\Reversed.c" />
     <ClCompile Include="Source\Shuffles\ReversedFinalMerge.c" />
+    <ClCompile Include="Source\Shuffles\Mirrored.c" />
     <ClCompile Include="Source\Shuffles\Sorted.c" />
     <ClCompile Include="Source\Sorts\FlashSort.c" />
     <ClCompile Include="Source\Sorts\HeapSort.c" />
