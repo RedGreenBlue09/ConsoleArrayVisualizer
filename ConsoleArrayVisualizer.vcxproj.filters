@@ -123,6 +123,12 @@
     <ClCompile Include="Source\Shuffles\ReversedFinalMerge.c">
       <Filter>Source Files\Shuffles</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Shuffles\Mirrored.c">
+      <Filter>Source Files\Shuffles</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Distributions\Gaussian.c">
+      <Filter>Source Files\Distributions</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\RunSorts.h">

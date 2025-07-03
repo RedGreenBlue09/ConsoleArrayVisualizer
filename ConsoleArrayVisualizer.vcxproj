@@ -53,6 +53,7 @@
   <ItemGroup>
     <ClCompile Include="Source\Distributions\Linear.c" />
     <ClCompile Include="Source\Distributions\Random.c" />
+    <ClCompile Include="Source\Distributions\Gaussian.c" />
     <ClCompile Include="Source\Distributions\Sine.c" />
     <ClCompile Include="Source\Distributions\SquareRoot.c" />
     <ClCompile Include="Source\Main.c" />

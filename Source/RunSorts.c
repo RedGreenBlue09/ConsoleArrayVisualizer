@@ -53,6 +53,10 @@ void DistributeRandom(rand64_state, visualizer_array_handle, visualizer_int*, in
 void VerifyRandom(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
 void UnverifyRandom(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
 
+void DistributeGaussian(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
+void VerifyGaussian(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+void UnverifyGaussian(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+
 void DistributeSquareRoot(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
 void VerifySquareRoot(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
 void UnverifySquareRoot(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
@@ -73,6 +77,12 @@ distribution_info RunSorts_aDistribution[] = {
 		DistributeRandom,
 		VerifyRandom,
 		UnverifyRandom,
+	},
+	{
+		"Gaussian",
+		DistributeGaussian,
+		VerifyGaussian,
+		UnverifyGaussian,
 	},
 	{
 		"Square Root",

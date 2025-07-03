@@ -38,6 +38,7 @@ set(ConsoleArrayVisualizer_HEADER_FILES
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Include/Visualizer.h"
 )
 set(ConsoleArrayVisualizer_SOURCE_FILES
+	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Distributions/Gaussian.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Distributions/Linear.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Distributions/Random.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Distributions/Sine.c"
@@ -45,6 +46,7 @@ set(ConsoleArrayVisualizer_SOURCE_FILES
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Main.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/RunSorts.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Shuffles/FinalMerge.c"
+	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Shuffles/Mirrored.c
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Shuffles/QuicksortAdversary.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Shuffles/Random.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Shuffles/Reversed.c"
