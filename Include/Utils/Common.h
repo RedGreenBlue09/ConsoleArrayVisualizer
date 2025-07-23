@@ -36,11 +36,11 @@
 #endif
 
 #if _MSC_VER
-ext_noreturn ext_forceinline void ext_unreachable() { __assume(0); }
+static ext_noreturn ext_forceinline void ext_unreachable() { __assume(0); }
 #elif __GNUC__
-ext_noreturn ext_forceinline void ext_unreachable() { __builtin_unreachable(); }
+static ext_noreturn ext_forceinline void ext_unreachable() { __builtin_unreachable(); }
 #else
-ext_noreturn ext_forceinline void ext_unreachable() {}
+static ext_noreturn ext_forceinline void ext_unreachable() {}
 #endif
 
 #define only_reachable(X) {if (!(X)) ext_unreachable();}

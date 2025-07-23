@@ -39,7 +39,6 @@ void VerifyGaussian(
 		Visualizer_ScaleSleepMultiplier(Length, 0.0625, Visualizer_SleepScale_N)
 	);
 
-	double fSampleLength = 4.0;
 	double fMax = (double)(Length - 1);
 	for (intptr_t i = 0; i < Length; ++i) {
 		double fX = (double)(Length - 1 - i) * gfSampleLength / fMax;

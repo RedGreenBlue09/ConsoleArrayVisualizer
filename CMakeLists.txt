@@ -46,7 +46,7 @@ set(ConsoleArrayVisualizer_SOURCE_FILES
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Main.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/RunSorts.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Shuffles/FinalMerge.c"
-	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Shuffles/Mirrored.c
+	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Shuffles/Mirrored.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Shuffles/QuicksortAdversary.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Shuffles/Random.c"
 	"${ConsoleArrayVisualizer_SOURCE_DIR}/Source/Shuffles/Reversed.c"
