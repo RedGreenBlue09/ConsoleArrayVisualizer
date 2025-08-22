@@ -2,12 +2,45 @@
 #include "Utils/ThreadPool.h"
 
 #include "Utils/GuardedMalloc.h"
+#include "Utils/Time.h"
 
 typedef struct {
 	thread_pool* pThreadPool;
 	size_t iThread;
 	atomic bool bParameterReadDone;
 } worker_thread_parameter;
+
+// Ideally, a stack would be better than a queue as it allows
+// threads to sleep more oftenly, but I'm unable to find code for
+// a scalable concurrent stack.
+
+typedef struct {
+	uint64_t SpinDuration;
+	uint64_t YieldDuration;
+	uint64_t StartTime;
+} backoff_parameter;
+
+static void BackoffInit(
+	backoff_parameter* pParameter,
+	uint64_t SpinDurationDivisor,
+	uint64_t YieldDurationDivisor
+) {
+	uint64_t Second = clock64_resolution();
+	pParameter->SpinDuration = Second / SpinDurationDivisor;
+	pParameter->YieldDuration = Second / YieldDurationDivisor;
+}
+
+static void BackoffBegin(backoff_parameter* pParameter) {
+	pParameter->StartTime = clock64();
+}
+
+static void BackoffSleep(backoff_parameter Parameter) {
+	uint64_t FreeDuration = clock64() - Parameter.StartTime;
+	if (FreeDuration >= Parameter.YieldDuration) // Force sleep for a minimum duration.
+		thrd_sleep(&(struct timespec) { .tv_nsec = 1 }, NULL);
+	else if (FreeDuration >= Parameter.SpinDuration)
+		thrd_yield();
+}
 
 static int WorkerThreadFunction(void* Parameter) {
 	worker_thread_parameter* pWorkerParameter = Parameter;
@@ -16,12 +49,15 @@ static int WorkerThreadFunction(void* Parameter) {
 	atomic_store_fence_light(&pWorkerParameter->bParameterReadDone, true);
 	pWorkerParameter = NULL;
 
-	thread_pool_worker_thread* pWorkerThread = &pThreadPool->aWorkerThread[iThread];
+	backoff_parameter BackoffParameter;
+	BackoffInit(&BackoffParameter, 2048, 16);
 
+	thread_pool_worker_thread* pWorkerThread = &pThreadPool->aWorkerThread[iThread];
+	BackoffBegin(&BackoffParameter);
 	while (atomic_load_explicit(&pWorkerThread->bRun, memory_order_relaxed)) {
 		thread_pool_job* pJob = atomic_load_explicit(&pWorkerThread->pJob, memory_order_relaxed);
 		if (!pJob) {
-			thrd_yield();
+			BackoffSleep(BackoffParameter);
 			continue;
 		}
 		atomic_thread_fence_light(&pWorkerThread->pJob, memory_order_acquire);
@@ -33,6 +69,8 @@ static int WorkerThreadFunction(void* Parameter) {
 		atomic_thread_fence(memory_order_release); // FIXME: Prevent the reorder of the above line
 		ConcurrentQueue_Push(pThreadPool->pThreadQueue, iThread);
 		Semaphore_ReleaseSingle(&pThreadPool->StatusSemaphore);
+
+		BackoffBegin(&BackoffParameter);
 	}
 
 	return 0;
@@ -94,8 +132,11 @@ thread_pool_job ThreadPool_InitJob(thrd_start_t pFunction, void* Parameter) {
 }
 
 void ThreadPool_AddJob(thread_pool* ThreadPool, thread_pool_job* pJob) {
-	while (!Semaphore_TryAcquireSingle(&ThreadPool->StatusSemaphore))
-		thrd_yield();
+	backoff_parameter BackoffParameter;
+	BackoffInit(&BackoffParameter, 2048, 16);
+	BackoffBegin(&BackoffParameter);
+	while (!Semaphore_TryAcquireSingle(&ThreadPool->StatusSemaphore)) 
+		BackoffSleep(BackoffParameter);
 
 	size_t iThread = ConcurrentQueue_Pop(ThreadPool->pThreadQueue);
 
@@ -119,7 +160,10 @@ void ThreadPool_AddJobRecursive(thread_pool* ThreadPool, thread_pool_job* pJob) 
 }
 
 void ThreadPool_WaitForJob(thread_pool_job* pJob) {
+	backoff_parameter BackoffParameter;
+	BackoffInit(&BackoffParameter, 2048, 16);
+	BackoffBegin(&BackoffParameter);
 	while (!atomic_load_explicit(&pJob->bFinished, memory_order_relaxed))
-		thrd_yield();
+		BackoffSleep(BackoffParameter);
 	atomic_thread_fence_light(&pJob->bFinished, memory_order_acquire);
 }
