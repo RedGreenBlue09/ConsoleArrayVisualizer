@@ -161,7 +161,7 @@ static inline void lfring_catchup(struct lfring* q, lfatomic_t tail, lfatomic_t 
 static inline size_t lfring_dequeue(struct lfring* q, bool nonempty) {
 	size_t hidx, n = lfring_pow2(q->order + 1);
 	lfatomic_t head, entry, entry_new, ecycle, hcycle, tail;
-	size_t attempt;
+	//size_t attempt;
 
 	if (!nonempty && atomic_load(&q->threshold) < 0) {
 		return LFRING_EMPTY;
@@ -171,8 +171,8 @@ static inline size_t lfring_dequeue(struct lfring* q, bool nonempty) {
 		head = atomic_fetch_add_explicit(&q->head, 1, memory_order_acq_rel);
 		hcycle = (head << 1) | (2 * n - 1);
 		hidx = lfring_map(head, n);
-		attempt = 0;
-	again:
+		//attempt = 0;
+	//again:
 		entry = atomic_load_explicit(&q->array[hidx], memory_order_acquire);
 
 		do {
@@ -188,8 +188,9 @@ static inline size_t lfring_dequeue(struct lfring* q, bool nonempty) {
 				if (entry == entry_new)
 					break;
 			} else {
-				if (++attempt <= 10000)
-					goto again;
+				// This causes deadlock with backoff sleeping
+				//if (++attempt <= 10000)
+				//	goto again;
 				entry_new = hcycle ^ ((~entry) & n);
 			}
 		} while (lfring_cmp(ecycle, < , hcycle) &&

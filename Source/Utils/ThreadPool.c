@@ -37,7 +37,7 @@ static void BackoffBegin(backoff_parameter* pParameter) {
 static void BackoffSleep(backoff_parameter Parameter) {
 	uint64_t FreeDuration = clock64() - Parameter.StartTime;
 	if (FreeDuration >= Parameter.YieldDuration) // Force sleep for a minimum duration.
-		thrd_sleep(&(struct timespec) { .tv_nsec = 1 }, NULL);
+		thrd_sleep(&(struct timespec){ .tv_nsec = 1 }, NULL);
 	else if (FreeDuration >= Parameter.SpinDuration)
 		thrd_yield();
 }
