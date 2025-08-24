@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <threads.h>
 
-#include "Utils\Atomic.h"
+#include "Utils/Atomic.h"
 
 typedef void thread_pool_job_function(uint8_t iThread, void* Parameter);
 typedef atomic size_t thread_pool_wait_group;

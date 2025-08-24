@@ -5,12 +5,6 @@
 #include "Utils/GuardedMalloc.h"
 #include "Utils/Time.h"
 
-typedef struct {
-	thread_pool* pThreadPool;
-	uint8_t iThread;
-	atomic bool bParameterReadDone;
-} worker_thread_parameter;
-
 // Backoff
 
 typedef struct {
@@ -48,7 +42,7 @@ void ThreadPool_WaitGroup_Init(thread_pool_wait_group* pWaitGroup, size_t Thread
 }
 
 void ThreadPool_WaitGroup_Increase(thread_pool_wait_group* pWaitGroup, size_t ThreadCount) {
-	// This should be use before AddJob(). As a result, AddJob() create a fence for us.
+	// This should be used before AddJob(). As a result, AddJob() creates a fence for us.
 	atomic_fetch_add_explicit(pWaitGroup, ThreadCount, memory_order_relaxed);
 }
 
@@ -112,6 +106,12 @@ static uint8_t StackPopFreeThread(thread_pool* pThreadPool) {
 }
 
 //
+
+typedef struct {
+	thread_pool* pThreadPool;
+	uint8_t iThread;
+	atomic bool bParameterReadDone;
+} worker_thread_parameter;
 
 static int WorkerThreadFunction(void* Parameter) {
 	worker_thread_parameter* pWorkerParameter = Parameter;
