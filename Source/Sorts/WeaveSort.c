@@ -19,7 +19,7 @@ typedef struct {
 	intptr_t gap;
 } circle_parameter;
 
-static int circle(void* parameter) {
+static void circle(uint8_t iThread, void* parameter) {
 	circle_parameter* circleParameter = parameter;
 	visualizer_array_handle arrayHandle = circleParameter->arrayHandle;
 	visualizer_int* array = circleParameter->array;
@@ -35,19 +35,20 @@ static int circle(void* parameter) {
 			right -= gap;
 		}
 
+		thread_pool_wait_group waitGroup;
+		ThreadPool_WaitGroup_Init(&waitGroup, 2);
 		circle_parameter leftParameter = { arrayHandle, array, start, right, gap };
 		circle_parameter rightParameter = { arrayHandle, array, left, stop, gap };
-		thread_pool_job leftJob = ThreadPool_InitJob(circle, &leftParameter);
-		thread_pool_job rightJob = ThreadPool_InitJob(circle, &rightParameter);
+		thread_pool_job leftJob = ThreadPool_InitJob(circle, &leftParameter, &waitGroup);
+		thread_pool_job rightJob = ThreadPool_InitJob(circle, &rightParameter, &waitGroup);
 
-		ThreadPool_AddJobRecursive(Visualizer_pThreadPool, &leftJob);
-		ThreadPool_AddJobRecursive(Visualizer_pThreadPool, &rightJob);
+		ThreadPool_AddJobRecursive(Visualizer_pThreadPool, &leftJob, iThread);
+		ThreadPool_AddJobRecursive(Visualizer_pThreadPool, &rightJob, iThread);
 
-		ThreadPool_WaitForJob(&leftJob);
-		ThreadPool_WaitForJob(&rightJob);
+		ThreadPool_WaitGroup_Wait(&waitGroup);
 	}
 
-	return 0;
+	return;
 }
 
 typedef struct {
@@ -58,7 +59,7 @@ typedef struct {
 	intptr_t gap;
 } sort_main_parameter;
 
-static int sortMain(void* parameter) {
+static void sortMain(uint8_t iThread, void* parameter) {
 	sort_main_parameter* sortParameter = parameter;
 	visualizer_array_handle arrayHandle = sortParameter->arrayHandle;
 	visualizer_int* array = sortParameter->array;
@@ -67,28 +68,33 @@ static int sortMain(void* parameter) {
 	intptr_t gap = sortParameter->gap;
 
 	if (gap < n) {
+		thread_pool_wait_group waitGroup;
+		ThreadPool_WaitGroup_Init(&waitGroup, 2);
 		sort_main_parameter leftParameter = { arrayHandle, array, n, start, gap * 2 };
 		sort_main_parameter rightParameter = { arrayHandle, array, n, start + gap, gap * 2 };
-		thread_pool_job leftJob = ThreadPool_InitJob(sortMain, &leftParameter);
-		thread_pool_job rightJob = ThreadPool_InitJob(sortMain, &rightParameter);
+		thread_pool_job leftJob = ThreadPool_InitJob(sortMain, &leftParameter, &waitGroup);
+		thread_pool_job rightJob = ThreadPool_InitJob(sortMain, &rightParameter, &waitGroup);
+		
+		ThreadPool_AddJobRecursive(Visualizer_pThreadPool, &leftJob, iThread);
+		ThreadPool_AddJobRecursive(Visualizer_pThreadPool, &rightJob, iThread);
 
-		ThreadPool_AddJobRecursive(Visualizer_pThreadPool, &leftJob);
-		ThreadPool_AddJobRecursive(Visualizer_pThreadPool, &rightJob);
-
-		ThreadPool_WaitForJob(&leftJob);
-		ThreadPool_WaitForJob(&rightJob);
+		ThreadPool_WaitGroup_Wait(&waitGroup);
 
 		circle_parameter circleParameter = { arrayHandle, array, start, n - gap + start, gap };
-		circle(&circleParameter);
+		circle(iThread, &circleParameter);
 	}
 
-	return 0;
+	return;
 }
 
 void WeaveSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
 		Visualizer_ScaleSleepMultiplier(n, 2.0, Visualizer_SleepScale_NLogNLogN)
 	);
+	thread_pool_wait_group waitGroup;
+	ThreadPool_WaitGroup_Init(&waitGroup, 1);
 	sort_main_parameter parameter = { arrayHandle, array, n, 0, 1 };
-	sortMain(&parameter);
+	thread_pool_job job = ThreadPool_InitJob(sortMain, &parameter, &waitGroup);
+	ThreadPool_AddJob(Visualizer_pThreadPool, &job);
+	ThreadPool_WaitGroup_Wait(&waitGroup);
 }

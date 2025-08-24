@@ -516,7 +516,7 @@ void Visualizer_Initialize(size_t ExtraThreadCount) {
 
 	// Render thread
 
-	Visualizer_pThreadPool = ThreadPool_Create(ExtraThreadCount);
+	Visualizer_pThreadPool = ThreadPool_Create((uint8_t)ExtraThreadCount);
 	atomic_init(&gbRun, true);
 	thrd_create(&gRenderThread, RenderThreadMain, NULL);
 }

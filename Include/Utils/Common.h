@@ -2,7 +2,7 @@
 
 #define static_arrlen(X) (sizeof(X) / sizeof(*(X)))
 #define static_strlen(X) (static_arrlen(X) - 1)
-#define member_size(type, member) (sizeof(((type*)0)->member))
+#define sizeof_member(type, member) (sizeof(((type*)0)->member))
 
 #define swap(X, Y) {typeof(*(X)) Temp = *(X); *(X) = *(Y); *(Y) = Temp;}
 

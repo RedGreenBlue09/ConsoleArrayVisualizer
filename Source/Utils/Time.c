@@ -62,10 +62,15 @@ void sleep64(uint64_t Duration) {
 		NtQueryTimerResolution(&TimerResPeriod, &Unused, &Unused2);
 	}
 
+	int64_t TimerDuration;
+	if (ClockRes == 10000000) // Skip exepensive division.
+		TimerDuration = (int64_t)Duration;
+	else
+		TimerDuration = (int64_t)(Duration * 10000000 / ClockRes);
+
 	// Most of the times, waitable timer will sleep more than
 	// the specified time by 1 TimerResPeriod or less.
-	int64_t TimerDuration = (int64_t)(Duration * 10000000 / ClockRes) - TimerResPeriod;
-	WaitableTimerSleep(TimerDuration);
+	WaitableTimerSleep(TimerDuration - TimerResPeriod);
 	
 	uint64_t TargetClockTime = StartClockTime + Duration;
 	while (clock64() < TargetClockTime);

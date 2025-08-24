@@ -84,7 +84,7 @@ typedef struct {
 	atomic bool parameterRead;
 } insertion_parameter;
 
-static int gappedInsertion(void* parameter) {
+static void gappedInsertion(uint8_t iThread, void* parameter) {
 	insertion_parameter* insertionParameter = parameter;
 	visualizer_array_handle arrayHandle = insertionParameter->arrayHandle;
 	visualizer_int* array = insertionParameter->array;
@@ -115,7 +115,7 @@ static int gappedInsertion(void* parameter) {
 	}
 	Visualizer_RemoveMarker(pointer);
 
-	return 0;
+	return;
 }
 void ShellSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
@@ -128,24 +128,22 @@ void ShellSortParallel(visualizer_array_handle arrayHandle, visualizer_int* arra
 	intptr_t pass = nGaps - 1;
 	while (gaps[pass] > n) --pass;
 
-	thread_pool_job* jobs = malloc_guarded(sizeof(*jobs) * (n / 2));
-
 	for (--pass; pass >= 0; --pass) {
 		intptr_t gap = gaps[pass];
 		intptr_t nIteration = min2(gap, n - gap); // Worst case: n / 2
 
+		thread_pool_wait_group waitGroup;
+		ThreadPool_WaitGroup_Init(&waitGroup, nIteration);
+		
 		for (intptr_t i = 0; i < nIteration; ++i) {
-			insertion_parameter parameter = { arrayHandle, array, i, n, gap };
-			atomic_store_explicit(&parameter.parameterRead, false, memory_order_relaxed);
-
-			jobs[i] = ThreadPool_InitJob(gappedInsertion, &parameter);
-			ThreadPool_AddJob(Visualizer_pThreadPool, &jobs[i]);
+			insertion_parameter parameter = { arrayHandle, array, i, n, gap, false };
+			thread_pool_job Job = ThreadPool_InitJob(gappedInsertion, &parameter, &waitGroup);
+			ThreadPool_AddJob(Visualizer_pThreadPool, &Job);
 
 			while (!atomic_load_explicit(&parameter.parameterRead, memory_order_relaxed));
 			atomic_thread_fence_light(&parameter.parameterRead, memory_order_acquire);
 		}
 
-		for (intptr_t i = 0; i < nIteration; ++i)
-			ThreadPool_WaitForJob(&jobs[i]);
+		ThreadPool_WaitGroup_Wait(&waitGroup);
 	}
 }
