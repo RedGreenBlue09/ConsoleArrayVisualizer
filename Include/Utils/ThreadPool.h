@@ -41,6 +41,7 @@ typedef struct {
 
 typedef struct {
 	uint8_t ThreadCount;
+	uint8_t TlsSlotCount;
 	atomic thread_pool_stack_head StackHead;
 	thread_pool_worker_thread aWorkerThread[];
 } thread_pool;
@@ -60,5 +61,10 @@ void ThreadPool_WaitGroup_Init(thread_pool_wait_group* pWaitGroup, size_t Thread
 void ThreadPool_WaitGroup_Increase(thread_pool_wait_group* pWaitGroup, size_t ThreadCount);
 void ThreadPool_WaitGroup_Wait(thread_pool_wait_group* pWaitGroup);
 
+// Get the size of each TLS. The TLS is an array of pointers.
 size_t ThreadPool_TlsSize();
-void* ThreadPool_TlsGet(thread_pool* pThreadPool, uint8_t iThread);
+// Get the pointer to the specified slot in the thread's TLS.
+void* ThreadPool_TlsGet(thread_pool* pThreadPool, uint8_t iThread, uint8_t Slot);
+// Allocate an index to all TLS using arena. Use the index with TlsGet(). 
+uint8_t ThreadPool_TlsArenaAlloc(thread_pool* pThreadPool, size_t Size);
+void ThreadPool_TlsArenaFree(thread_pool* pThreadPool, size_t Size);

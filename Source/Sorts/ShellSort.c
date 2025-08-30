@@ -97,20 +97,20 @@ static void gappedInsertion(uint8_t iThread, void* parameter) {
 	visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, start + gap, Visualizer_MarkerAttribute_Pointer);
 	for (intptr_t i = start + gap; i < end; i += gap) {
 		visualizer_int temp = array[i];
-		Visualizer_UpdateRead(arrayHandle, i, 1.0);
+		Visualizer_UpdateReadT(iThread, arrayHandle, i, 1.0);
 		Visualizer_MoveMarker(&pointer, i);
 
 		intptr_t j;
 		visualizer_int temp2;
 		for (j = i; j >= start + gap; j -= gap) {
-			Visualizer_UpdateRead(arrayHandle, j - gap, 1.0);
+			Visualizer_UpdateReadT(iThread, arrayHandle, j - gap, 1.0);
 			temp2 = array[j - gap];
 			if (temp2 <= temp)
 				break;
-			Visualizer_UpdateWrite(arrayHandle, j, temp2, 1.0);
+			Visualizer_UpdateWriteT(iThread, arrayHandle, j, temp2, 1.0);
 			array[j] = temp2;
 		}
-		Visualizer_UpdateWrite(arrayHandle, j, temp, 1.0);
+		Visualizer_UpdateWriteT(iThread, arrayHandle, j, temp, 1.0);
 		array[j] = temp;
 	}
 	Visualizer_RemoveMarker(pointer);

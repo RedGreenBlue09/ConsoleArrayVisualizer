@@ -3,11 +3,11 @@
 #include "Utils/ThreadPool.h"
 #include "Visualizer.h"
 
-static void step(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t x, intptr_t y) {
-	Visualizer_UpdateRead2(arrayHandle, x, y, 1.0);
+static void step(uint8_t iThread, visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t x, intptr_t y) {
+	Visualizer_UpdateRead2T(iThread, arrayHandle, x, y, 1.0);
 	if (array[x] > array[y]) {
 		swap(&array[x], &array[y]);
-		Visualizer_UpdateSwap(arrayHandle, x, y, 1.0);
+		Visualizer_UpdateSwapT(iThread, arrayHandle, x, y, 1.0);
 	}
 }
 
@@ -30,7 +30,7 @@ static void circle(uint8_t iThread, void* parameter) {
 	if ((stop - start) / gap >= 1) {
 		intptr_t left = start, right = stop;
 		while (left < right) {
-			step(arrayHandle, array, left, right);
+			step(iThread, arrayHandle, array, left, right);
 			left += gap;
 			right -= gap;
 		}

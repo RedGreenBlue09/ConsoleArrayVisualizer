@@ -62,7 +62,88 @@ begin:
 		high = bigRight;
 		goto begin;
 	}
-	return;
+}
+
+
+typedef struct {
+	visualizer_array_handle arrayHandle;
+	visualizer_int* array;
+	intptr_t low;
+	intptr_t high;
+	thread_pool_wait_group* waitGroup;
+} partition_parameter;
+
+static void partitionParallel(uint8_t iThread, void* parameter) {
+	partition_parameter* partitionParameter = parameter;
+	visualizer_array_handle arrayHandle = partitionParameter->arrayHandle;
+	visualizer_int* array = partitionParameter->array;
+	intptr_t low = partitionParameter->low;
+	intptr_t high = partitionParameter->high;
+	thread_pool_wait_group* waitGroup = partitionParameter->waitGroup;
+	intptr_t left;
+	intptr_t right;
+	intptr_t pivot;
+	visualizer_int pivotValue;
+
+begin:
+	left = low;
+	right = high;
+	pivot = low + (high - low + 1) / 2;
+	pivotValue = array[pivot];
+
+	visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, pivot, Visualizer_MarkerAttribute_Pointer);
+	while (left <= right) {
+		Visualizer_UpdateReadT(iThread, arrayHandle, left, 1.0);
+		while (array[left] < pivotValue) {
+			++left;
+			Visualizer_UpdateReadT(iThread, arrayHandle, left, 1.0);
+
+		}
+		Visualizer_UpdateReadT(iThread, arrayHandle, right, 1.0);
+		while (array[right] > pivotValue) {
+			--right;
+			Visualizer_UpdateReadT(iThread, arrayHandle, right, 1.0);
+		}
+
+		if (left <= right) {
+			Visualizer_UpdateSwapT(iThread, arrayHandle, left, right, 1.0);
+			swap(&array[left], &array[right]);
+			++left;
+			--right;
+		}
+	}
+	Visualizer_RemoveMarker(pointer);
+
+	// Call tail optimization
+	// Is slower but prevents O(n) call stack in worst case
+
+	intptr_t smallLeft;
+	intptr_t smallRight;
+	intptr_t bigLeft;
+	intptr_t bigRight;
+	if ((right - low) > (high - left)) {
+		smallLeft = left;
+		smallRight = high;
+		bigLeft = low;
+		bigRight = right;
+	} else {
+		smallLeft = low;
+		smallRight = right;
+		bigLeft = left;
+		bigRight = high;
+	}
+
+	if (smallLeft < smallRight) {
+		ThreadPool_WaitGroup_Increase(waitGroup, 1);
+		partition_parameter partitionParameterNew = { arrayHandle, array, smallLeft, smallRight, waitGroup };
+		thread_pool_job leftJob = ThreadPool_InitJob(partitionParallel, &partitionParameterNew, waitGroup);
+		ThreadPool_AddJobRecursive(Visualizer_pThreadPool, &leftJob, iThread);
+	}
+	if (bigLeft < bigRight) {
+		low = bigLeft;
+		high = bigRight;
+		goto begin;
+	}
 }
 
 // Exports
@@ -86,6 +167,21 @@ void LeftRightQuickSort(visualizer_array_handle arrayHandle, visualizer_int* arr
 	if (n < 2) return;
 
 	partition(arrayHandle, array, 0, n - 1);
+}
 
-	return;
+//
+
+void LeftRightQuickSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
+	Visualizer_SetAlgorithmSleepMultiplier(
+		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_NLogN)
+	);
+
+	if (n < 2) return;
+
+	thread_pool_wait_group waitGroup;
+	ThreadPool_WaitGroup_Init(&waitGroup, 1);
+	partition_parameter partitionParameterNew = { arrayHandle, array, 0, n - 1, &waitGroup };
+	thread_pool_job leftJob = ThreadPool_InitJob(partitionParallel, &partitionParameterNew, &waitGroup);
+	ThreadPool_AddJob(Visualizer_pThreadPool, &leftJob);
+	ThreadPool_WaitGroup_Wait(&waitGroup);
 }

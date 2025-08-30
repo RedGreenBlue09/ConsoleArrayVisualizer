@@ -55,54 +55,27 @@ typedef struct {
 	visualizer_marker_attribute Attribute;
 } visualizer_marker;
 
-// Read
+// Read & Write (main thread)
 
-void Visualizer_UpdateRead(
-	visualizer_array_handle hArray,
-	intptr_t iPosition,
-	double fSleepMultiplier
-);
-void Visualizer_UpdateRead2(
-	visualizer_array_handle hArray,
-	intptr_t iPositionA,
-	intptr_t iPositionB,
-	double fSleepMultiplier
-);
-void Visualizer_UpdateReadMulti(
-	visualizer_array_handle hArray,
-	intptr_t iStartPosition,
-	intptr_t Length,
-	double fSleepMultiplier
-);
+void Visualizer_UpdateRead(visualizer_array_handle hArray, intptr_t iPosition, double fSleepMultiplier);
+void Visualizer_UpdateRead2(visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier);
+void Visualizer_UpdateReadMulti(visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, double fSleepMultiplier);
 
-// Write
+void Visualizer_UpdateWrite(visualizer_array_handle hArray, intptr_t iPosition, visualizer_int NewValue, double fSleepMultiplier);
+void Visualizer_UpdateSwap(visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier);
+void Visualizer_UpdateReadWrite(visualizer_array_handle hArrayA, visualizer_array_handle hArrayB, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier);
+void Visualizer_UpdateWriteMulti(visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, visualizer_int* aNewValue, double fSleepMultiplier);
 
-void Visualizer_UpdateWrite(
-	visualizer_array_handle hArray,
-	intptr_t iPosition,
-	visualizer_int NewValue,
-	double fSleepMultiplier
-);
-void Visualizer_UpdateSwap(
-	visualizer_array_handle hArray,
-	intptr_t iPositionA,
-	intptr_t iPositionB,
-	double fSleepMultiplier
-);
-void Visualizer_UpdateReadWrite(
-	visualizer_array_handle hArrayA,
-	visualizer_array_handle hArrayB,
-	intptr_t iPositionA,
-	intptr_t iPositionB,
-	double fSleepMultiplier
-);
-void Visualizer_UpdateWriteMulti(
-	visualizer_array_handle hArray,
-	intptr_t iStartPosition,
-	intptr_t Length,
-	visualizer_int* aNewValue,
-	double fSleepMultiplier
-);
+// Read & Write (thread pool)
+
+void Visualizer_UpdateReadT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPosition, double fSleepMultiplier);
+void Visualizer_UpdateRead2T(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier);
+void Visualizer_UpdateReadMultiT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, double fSleepMultiplier);
+
+void Visualizer_UpdateWriteT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPosition, visualizer_int NewValue, double fSleepMultiplier);
+void Visualizer_UpdateSwapT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier);
+void Visualizer_UpdateReadWriteT(uint8_t iThread, visualizer_array_handle hArrayA, visualizer_array_handle hArrayB, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier);
+void Visualizer_UpdateWriteMultiT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, visualizer_int* aNewValue, double fSleepMultiplier);
 
 // Marker
 
@@ -127,7 +100,7 @@ void Visualizer_ClearCorrectness(visualizer_array_handle hArray, intptr_t iPosit
 // Other
 
 void Visualizer_SetAlgorithmName(char* sAlgorithmNameArg);
-void Visualizer_ClearReadWriteCounter(visualizer_array_handle hArray);
+void Visualizer_ClearReadWriteCounter();
 
 // Timer
 void Visualizer_StartTimer();

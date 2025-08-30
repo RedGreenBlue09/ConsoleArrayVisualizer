@@ -15,6 +15,7 @@ sort_function ImprovedIntroSort;
 sort_function BottomUpHeapSort;
 sort_function WeaveSortParallel;
 sort_function ShellSortParallel;
+sort_function LeftRightQuickSortParallel;
 
 sort_info RunSorts_aSort[] = {
 	{
@@ -40,6 +41,10 @@ sort_info RunSorts_aSort[] = {
 	{
 		"Parallel Shellsort (Tokuda's gaps)",
 		ShellSortParallel,
+	},
+	{
+		"Parallel Left/Right Quicksort",
+		LeftRightQuickSortParallel,
 	},
 };
 
@@ -179,7 +184,7 @@ void RunSorts_RunSort(
 
 	// Sort
 
-	Visualizer_ClearReadWriteCounter(hArray);
+	Visualizer_ClearReadWriteCounter();
 	Visualizer_SetAlgorithmName(pSort->sName);
 	Visualizer_StartTimer();
 	pSort->pSort(hArray, aArray, Length);

@@ -10,9 +10,6 @@
 #include "Utils/Time.h"
 
 int main(int argc, char** argv) {
-
-	//sleep64(50000000);
-	
 	if (argc < 7) {
 		printf("Usage:\n");
 		printf("	%s\n", argv[0]);

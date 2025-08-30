@@ -73,7 +73,7 @@ uint32_t div_low_u64_u32(uint64_t A, uint32_t B, uint32_t *pRem) {
 	R2 = A1 % B1;
 	C2 = Q2 * B0;
 	C3 = (R2 << 16) | A01;
-    if (C2 > C3)
+	if (C2 > C3)
 		Q2 -= (C2 - C3 > B) ? 2 : 1;
 	uint16_t Q1 = (uint16_t)Q2;
 
@@ -83,7 +83,7 @@ uint32_t div_low_u64_u32(uint64_t A, uint32_t B, uint32_t *pRem) {
 	R2 = A10 % B1;
 	C2 = Q2 * B0;
 	C3 = (R2 << 16) | A00;
-    if (C2 > C3)
+	if (C2 > C3)
 		Q2 -= (C2 - C3 > B) ? 2 : 1;
 	uint16_t Q0 = (uint16_t)Q2;
 
@@ -585,7 +585,7 @@ uint64_t div_u128_u64(uint128_split A, uint64_t B, uint64_t *pRem) {
 	Q2 = div_u64(A.High, B1, &R2);
 	C2 = Q2 * B0;
 	C3 = (R2 << 32) | A01;
-    if (C2 > C3)
+	if (C2 > C3)
 		Q2 -= (C2 - C3 > B) ? 2 : 1;
 	uint32_t Q1 = (uint32_t)Q2;
 
@@ -594,7 +594,7 @@ uint64_t div_u128_u64(uint128_split A, uint64_t B, uint64_t *pRem) {
 	Q2 = div_u64(A10, B1, &R2);
 	C2 = Q2 * B0;
 	C3 = (R2 << 32) | A00;
-    if (C2 > C3)
+	if (C2 > C3)
 		Q2 -= (C2 - C3 > B) ? 2 : 1;
 	uint32_t Q0 = (uint32_t)Q2;
 

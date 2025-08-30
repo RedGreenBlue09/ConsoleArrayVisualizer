@@ -166,6 +166,7 @@ thread_pool* ThreadPool_Create(uint8_t ThreadCount) {
 	// Init
 
 	pThreadPool->ThreadCount = ThreadCount;
+	pThreadPool->TlsSlotCount = 0;
 	atomic_init(&pThreadPool->StackHead, (thread_pool_stack_head){ 0, 0 });
 
 	for (uint8_t i = 0; i < ThreadCount; ++i) {
@@ -243,6 +244,18 @@ size_t ThreadPool_TlsSize() {
 	return sizeof(thread_pool_worker_thread) - offsetof(thread_pool_worker_thread, TlsBegin);
 }
 
-void* ThreadPool_TlsGet(thread_pool* pThreadPool, uint8_t iThread) {
+void* ThreadPool_TlsGet(thread_pool* pThreadPool, uint8_t iThread, uint8_t Slot) {
 	return (void*)&pThreadPool->aWorkerThread[iThread].TlsBegin;
+}
+
+uint8_t ThreadPool_TlsArenaAlloc(thread_pool* pThreadPool, size_t Size) {
+	assert(Size <= ThreadPool_TlsSize() - (pThreadPool->TlsSlotCount * sizeof(void*)));
+	uint8_t Result = pThreadPool->TlsSlotCount;
+	pThreadPool->TlsSlotCount += (uint8_t)(Size / sizeof(void*) + (Size % sizeof(void*) > 0));
+	return Result;
+}
+
+void ThreadPool_TlsArenaFree(thread_pool* pThreadPool, size_t Size) {
+	assert(Size <= pThreadPool->TlsSlotCount * sizeof(void*));
+	pThreadPool->TlsSlotCount -= (uint8_t)(Size / sizeof(void*) + (Size % sizeof(void*) > 0));
 }
