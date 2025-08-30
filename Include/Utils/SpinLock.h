@@ -13,8 +13,11 @@ static inline void SpinLock_Init(spinlock* pLock) {
 
 static inline void SpinLock_Lock(spinlock* pLock) {
 #if defined(MACHINE_ARM32) || (defined(MACHINE_ARM64) && !defined(MACHINE_ARM64_ATOMICS))
-	bool bExpected = false;
-	while (
+	bool bExpected;
+	do {
+		while (atomic_load_explicit(pLock, memory_order_relaxed) == true);
+		bExpected = false;
+	} while (
 		!atomic_compare_exchange_weak_explicit(
 			pLock,
 			&bExpected,
@@ -22,14 +25,12 @@ static inline void SpinLock_Lock(spinlock* pLock) {
 			memory_order_relaxed,
 			memory_order_relaxed
 		)
-	) {
-		while (atomic_load_explicit(pLock, memory_order_relaxed) == true);
-		bExpected = false;
-	}
+	);
 	atomic_thread_fence_light(pLock, memory_order_acquire);
 #else
-	while (atomic_exchange_explicit(pLock, true, memory_order_relaxed) == true)
+	do {
 		while (atomic_load_explicit(pLock, memory_order_relaxed) == true);
+	} while (atomic_exchange_explicit(pLock, true, memory_order_relaxed) == true);
 	atomic_thread_fence_light(pLock, memory_order_acquire);
 #endif
 }

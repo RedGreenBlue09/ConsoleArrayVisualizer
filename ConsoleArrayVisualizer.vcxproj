@@ -402,7 +402,7 @@
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
-      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument -Wno-empty-body %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)/%(RelativeDir)/</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
     </ClCompile>
@@ -430,7 +430,7 @@
       </EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
-      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument -Wno-empty-body %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)/%(RelativeDir)/</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
     </ClCompile>
@@ -575,7 +575,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
-      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument -Wno-empty-body %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)/%(RelativeDir)/</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
     </ClCompile>
@@ -604,7 +604,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
-      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-flto -Wno-c2x-extensions -Wno-unused-function -Wno-unused-command-line-argument -Wno-empty-body %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)/%(RelativeDir)/</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)/%(RelativeDir)/</ObjectFileName>
     </ClCompile>

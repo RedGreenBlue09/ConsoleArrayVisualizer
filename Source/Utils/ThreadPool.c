@@ -75,7 +75,7 @@ static void StackPushFreeThread(thread_pool* pThreadPool, uint8_t iEntry) {
 		pEntry->iNextEntry = (uint8_t)OldHead.iEntry;
 		NewHead = (thread_pool_stack_head){ iEntry, OldHead.Version };
 	} while (
-		!atomic_compare_exchange_weak_explicit(
+		!atomic_compare_exchange_strong_explicit(
 			&pThreadPool->StackHead,
 			&OldHead,
 			NewHead,
@@ -94,7 +94,7 @@ static uint8_t StackPopFreeThread(thread_pool* pThreadPool) {
 		thread_pool_stack_entry* pEntry = StackGetEntry(pThreadPool, (uint8_t)OldHead.iEntry);
 		NewHead = (thread_pool_stack_head){ pEntry->iNextEntry, OldHead.Version + 1 };
 	} while (
-		!atomic_compare_exchange_weak_explicit(
+		!atomic_compare_exchange_strong_explicit(
 			&pThreadPool->StackHead,
 			&OldHead,
 			NewHead,
