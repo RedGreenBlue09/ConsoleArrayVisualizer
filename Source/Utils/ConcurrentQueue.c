@@ -57,7 +57,7 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 
-#include "Utils/Machine.h"
+#include "Utils/IntMath.h"
 
 #define LFRING_EMPTY SIZE_MAX
 

@@ -14,16 +14,16 @@
 */
 
 typedef struct {
-	uintptr_t start;
-	uintptr_t n;
+	intptr_t start;
+	intptr_t n;
 	uint8_t badPivot;
 } partition_t;
 
 static void InsertionSort(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
-	for (uintptr_t i = part.start + 1; i < part.n; ++i) {
+	for (intptr_t i = part.start + 1; i < part.n; ++i) {
 		visualizer_int temp = array[i];
 		Visualizer_UpdateRead(arrayHandle, i, 1.0);
-		uintptr_t j;
+		intptr_t j;
 		for (j = i; j > 0; --j) {
 			Visualizer_UpdateRead(arrayHandle, j - 1, 1.0);
 			if (array[j - 1] <= temp)
@@ -38,7 +38,7 @@ static void InsertionSort(visualizer_array_handle arrayHandle, visualizer_int* a
 
 // https://stackoverflow.com/a/55242934/13614676
 
-static inline uintptr_t MedianOf3(
+static inline intptr_t MedianOf3(
 	visualizer_array_handle arrayHandle,
 	visualizer_int* array,
 	intptr_t left,
@@ -55,13 +55,13 @@ static inline uintptr_t MedianOf3(
 	return left;
 }
 
-static uintptr_t MedianOf3Simple(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
+static intptr_t MedianOf3Simple(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
 	return MedianOf3(
 		arrayHandle,
 		array,
-		part.start + part.n / 4,
-		part.start + part.n / 2,
-		part.start + part.n * 3 / 4
+		part.start + (part.n >> 2),
+		part.start + (part.n >> 1),
+		part.start + ((part.n * 3) >> 2)
 	);
 }
 
@@ -69,15 +69,15 @@ static uintptr_t MedianOf3Simple(visualizer_array_handle arrayHandle, visualizer
 // The worst case partition size is not proved,
 // but it can defeat all tested quicksort adversary inputs.
 
-static uintptr_t MedianOf3Recursive(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
-	uintptr_t n = part.n;
+static intptr_t MedianOf3Recursive(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
+	intptr_t n = part.n;
 
 	do {
-		uintptr_t remSize = (uintptr_t)n % 3;
+		intptr_t remSize = (uintptr_t)n % 3;
 		n /= 3;
 
-		uintptr_t i;
-		uintptr_t iMedian;
+		intptr_t i;
+		intptr_t iMedian;
 		for (i = 0; i < n; ++i) {
 			iMedian = MedianOf3(arrayHandle, array, part.start + i * 3, part.start + i * 3 + 1, part.start + i * 3 + 2);
 			Visualizer_UpdateSwap(arrayHandle, iMedian, part.start + i, 1.0);
@@ -93,10 +93,10 @@ static uintptr_t MedianOf3Recursive(visualizer_array_handle arrayHandle, visuali
 	return part.start;
 }
 
-static uintptr_t GetPivot(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t* part) {
+static intptr_t GetPivot(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t* part) {
 	switch (part->badPivot) {
 		case 0:
-			return part->start + (part->n / 2);
+			return part->start + (part->n >> 1);
 		case 1:
 			return MedianOf3Simple(arrayHandle, array, *part);
 		case 2:
@@ -115,20 +115,20 @@ void ImprovedIntroSort(visualizer_array_handle arrayHandle, visualizer_int* arra
 		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_NLogN)
 	);
 
-	const uintptr_t nSmallest = 16;
+	const intptr_t nSmallest = 16;
 
 	// This static array can be big but if the stack can't hold this
 	// then it probably can't hold the worst case of the recursive algorithm either.
-	partition_t stack[sizeof(uintptr_t) * 8]; // CHAR_BIT == 8 but who cares
+	partition_t stack[sizeof(intptr_t) * 8]; // CHAR_BIT == 8 but who cares
 	uint8_t stackSize = 0;
 	stack[stackSize++] = (partition_t){ 0, n, 0 };
 
 	do {
 		partition_t part = stack[--stackSize];
 		while (1) {
-			uintptr_t left = part.start;
-			uintptr_t right = part.start + part.n - 1;
-			uintptr_t pivot = GetPivot(arrayHandle, array, &part);
+			intptr_t left = part.start;
+			intptr_t right = part.start + part.n - 1;
+			intptr_t pivot = GetPivot(arrayHandle, array, &part);
 			visualizer_int pivotValue = array[pivot];
 
 			visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, pivot, Visualizer_MarkerAttribute_Pointer);
@@ -161,7 +161,7 @@ void ImprovedIntroSort(visualizer_array_handle arrayHandle, visualizer_int* arra
 			partition_t smallPart = bigLeft ? rightPart : leftPart;
 			partition_t bigPart = bigLeft ? leftPart : rightPart;
 
-			if (smallPart.n < part.n / 4)
+			if (smallPart.n < part.n >> 2)
 				++bigPart.badPivot;
 			else
 				bigPart.badPivot = 0;

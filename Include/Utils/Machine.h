@@ -39,6 +39,3 @@
 		#endif
 	#endif
 #endif
-
-uint8_t log2_uptr(uintptr_t X);
-uint8_t log2_u64(uint64_t X);

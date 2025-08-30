@@ -9,12 +9,12 @@
 #include "Utils/Time.h"
 #include "Utils/Random.h"
 
-void ShellSortTokuda(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
-void ShellSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
-void LeftRightQuickSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
-void ImprovedIntroSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
-void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
-void WeaveSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n);
+sort_function ShellSortTokuda;
+sort_function LeftRightQuickSort;
+sort_function ImprovedIntroSort;
+sort_function BottomUpHeapSort;
+sort_function WeaveSortParallel;
+sort_function ShellSortParallel;
 
 sort_info RunSorts_aSort[] = {
 	{
@@ -45,25 +45,25 @@ sort_info RunSorts_aSort[] = {
 
 uintptr_t RunSorts_nSort = static_arrlen(RunSorts_aSort);
 
-void DistributeLinear(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-void VerifyLinear(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
-void UnverifyLinear(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+distribute_function DistributeLinear;
+verify_function VerifyLinear;
+unverify_function UnverifyLinear;
 
-void DistributeRandom(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-void VerifyRandom(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
-void UnverifyRandom(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+distribute_function DistributeRandom;
+verify_function VerifyRandom;
+unverify_function UnverifyRandom;
 
-void DistributeGaussian(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-void VerifyGaussian(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
-void UnverifyGaussian(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+distribute_function DistributeGaussian;
+verify_function VerifyGaussian;
+unverify_function UnverifyGaussian;
 
-void DistributeSquareRoot(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-void VerifySquareRoot(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
-void UnverifySquareRoot(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+distribute_function DistributeSquareRoot;
+verify_function VerifySquareRoot;
+unverify_function UnverifySquareRoot;
 
-void DistributeSine(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-void VerifySine(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
-void UnverifySine(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+distribute_function DistributeSine;
+verify_function VerifySine;
+unverify_function UnverifySine;
 
 distribution_info RunSorts_aDistribution[] = {
 	{
@@ -100,13 +100,13 @@ distribution_info RunSorts_aDistribution[] = {
 
 uintptr_t RunSorts_nDistribution = static_arrlen(RunSorts_aDistribution);
 
-void ShuffleRandom(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-void ShuffleSorted(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-void ShuffleReversed(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-void ShuffleFinalMerge(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-void ShuffleReversedFinalMerge(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-void ShuffleMirrored(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-void ShuffleQuickSortAdversary(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
+shuffle_function ShuffleRandom;
+shuffle_function ShuffleSorted;
+shuffle_function ShuffleReversed;
+shuffle_function ShuffleFinalMerge;
+shuffle_function ShuffleReversedFinalMerge;
+shuffle_function ShuffleMirrored;
+shuffle_function ShuffleQuickSortAdversary;
 
 shuffle_info RunSorts_aShuffle[] = {
 	{
@@ -164,7 +164,7 @@ void RunSorts_RunSort(
 	strcat_s(sDistributionName, static_arrlen(sDistributionName), pDistribution->sName);
 	Visualizer_SetAlgorithmName(sDistributionName);
 
-	pDistribution->Distribute(RngState, hArray, aArray, Length);
+	pDistribution->pDistribute(RngState, hArray, aArray, Length);
 
 	// Shuffle
 	
@@ -173,7 +173,7 @@ void RunSorts_RunSort(
 	strcat_s(sShuffleName, static_arrlen(sShuffleName), pShuffle->sName);
 	Visualizer_SetAlgorithmName(sShuffleName);
 
-	pShuffle->Shuffle(RngState, hArray, aArray, Length);
+	pShuffle->pShuffle(RngState, hArray, aArray, Length);
 
 	sleep64(Second);
 
@@ -182,7 +182,7 @@ void RunSorts_RunSort(
 	Visualizer_ClearReadWriteCounter(hArray);
 	Visualizer_SetAlgorithmName(pSort->sName);
 	Visualizer_StartTimer();
-	pSort->Sort(hArray, aArray, Length);
+	pSort->pSort(hArray, aArray, Length);
 	Visualizer_StopTimer();
 
 	// Verify
@@ -192,8 +192,8 @@ void RunSorts_RunSort(
 	strcat_s(sVerifyName, static_arrlen(sVerifyName), pDistribution->sName);
 	Visualizer_SetAlgorithmName(sVerifyName);
 
-	pDistribution->Verify(RngState, hArray, aArray, Length);
+	pDistribution->pVerify(RngState, hArray, aArray, Length);
 	sleep64(Second * 3);
-	pDistribution->Unverify(RngState, hArray, aArray, Length);
+	pDistribution->pUnverify(RngState, hArray, aArray, Length);
 }
 

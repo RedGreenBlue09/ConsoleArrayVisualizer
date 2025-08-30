@@ -2,6 +2,8 @@
 #include <Windows.h>
 #include <stdint.h>
 
+#include "Utils/IntMath.h"
+
 static uint64_t ClockRes = 0; // Fixme: Multi-thread
 
 uint64_t clock64() {
@@ -63,10 +65,11 @@ void sleep64(uint64_t Duration) {
 	}
 
 	int64_t TimerDuration;
+	uint64_t Rem;
 	if (ClockRes == 10000000) // Skip exepensive division.
 		TimerDuration = (int64_t)Duration;
 	else
-		TimerDuration = (int64_t)(Duration * 10000000 / ClockRes);
+		TimerDuration = (int64_t)div_u64(Duration * 10000000, ClockRes, &Rem);
 
 	// Most of the times, waitable timer will sleep more than
 	// the specified time by 1 TimerResPeriod or less.

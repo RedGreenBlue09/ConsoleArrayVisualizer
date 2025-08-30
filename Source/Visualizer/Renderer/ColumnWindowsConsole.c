@@ -7,6 +7,7 @@
 #include "Utils/Atomic.h"
 #include "Utils/Common.h"
 #include "Utils/GuardedMalloc.h"
+#include "Utils/IntMath.h"
 #include "Utils/LinkedList.h"
 #include "Utils/MemoryPool.h"
 #include "Utils/SpinLock.h"
@@ -122,7 +123,8 @@ static bool ValidateHandle(pool* pPool, visualizer_array_handle hHandle) {
 // Returns iB
 static inline intptr_t NearestNeighborScale(intptr_t iA, intptr_t nA, intptr_t nB) {
 	// Worst case: If nB = 2^15 then nA can only be 2^48
-	return ((int64_t)iA * nB + ((uintptr_t)nB / 2)) / nA;
+	uint64_t Rem;
+	return (intptr_t)div_u64(((uint64_t)iA * nB + (nB >> 1)), (uintptr_t)nA, &Rem);
 }
 
 static void UpdateCellCacheRow(int16_t iRow, const char* sText, intptr_t nText) {
@@ -182,7 +184,8 @@ static ColumnUpdateParam GetColumnUpdateParam(array_prop* pArrayProp, intptr_t i
 
 	// NOTE: Precision loss: This force it to have a precision = range
 	// Fix is possible but does it worth it?
-	visualizer_int Value = (visualizer_int)(ValueSum / pColumn->MemberCount);
+	uint64_t Rem;
+	visualizer_int Value = (visualizer_int)div_u64(ValueSum, pColumn->MemberCount, &Rem);
 
 	// Find the attribute that have the most occurrences. TODO: SIMD
 	uint8_t MaxAttrCount = aMarkerCount[0];
@@ -210,7 +213,7 @@ static ColumnUpdateParam GetColumnUpdateParam(array_prop* pArrayProp, intptr_t i
 
 	// Scale the value to the corresponding screen height
 
-	SHORT Height = (SHORT)((visualizer_ulong)AbsoluteValue * gBufferInfo.dwSize.Y / AbsoluteValueMax);
+	SHORT Height = (SHORT)div_u64(AbsoluteValue * gBufferInfo.dwSize.Y, AbsoluteValueMax, &Rem);
 
 	return (ColumnUpdateParam){ true, ConsoleAttr, Height };
 }
@@ -349,14 +352,15 @@ static int RenderThreadMain(void* pData) {
 		SpinLock_Unlock(&gAlgorithmNameLock);
 
 		intptr_t Length;
+		uint64_t Rem;
 
 		// FPS
-		uint64_t NewFpsUpdateCount = ThreadDuration / FpsUpdateInterval;
+		uint64_t NewFpsUpdateCount = div_u64(ThreadDuration, FpsUpdateInterval, &Rem);
 		if (NewFpsUpdateCount > FpsUpdateCount) {
 			char aFpsString[48] = "FPS: ";
 			Length = static_strlen("FPS: ");
 			Length += Uint64ToString(
-				FramesRendered * Second / ((NewFpsUpdateCount - FpsUpdateCount) * FpsUpdateInterval),
+				FramesRendered * div_u64(Second, (NewFpsUpdateCount - FpsUpdateCount) * FpsUpdateInterval, &Rem),
 				aFpsString + Length
 			);
 			UpdateCellCacheRow(Row, aFpsString, Length);
@@ -372,7 +376,7 @@ static int RenderThreadMain(void* pData) {
 			uint64_t CachedTimerStopTime = atomic_load_explicit(&gTimerStopTime, memory_order_relaxed);
 			if (CachedTimerStopTime == UINT64_MAX)
 				CachedTimerStopTime = clock64();
-			uint64_t VisualTime = (CachedTimerStopTime - CachedTimerStartTime) / Millisecond;
+			uint64_t VisualTime = div_u64(CachedTimerStopTime - CachedTimerStartTime, Millisecond, &Rem);
 
 			char aVisualTimeString[48] = "Visual time: ";
 			Length = static_strlen("Visual time: ");
@@ -450,7 +454,8 @@ static int RenderThreadMain(void* pData) {
 		++FramesRendered;
 
 		ThreadDuration = clock64() - ThreadTimeStart;
-		sleep64(UpdateInterval - (ThreadDuration % UpdateInterval));
+		div_u64(ThreadDuration, UpdateInterval, &Rem);
+		sleep64(UpdateInterval - Rem);
 	}
 
 	return 0;

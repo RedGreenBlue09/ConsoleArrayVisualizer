@@ -75,7 +75,7 @@
     <ClCompile Include="Source\Sorts\ShellSort.c" />
     <ClCompile Include="Source\Sorts\WeaveSort.c" />
     <ClCompile Include="Source\Utils\ConcurrentQueue.c" />
-    <ClCompile Include="Source\Utils\Machine.c" />
+    <ClCompile Include="Source\Utils\IntMath.c" />
     <ClCompile Include="Source\Utils\MemoryPool.c" />
     <ClCompile Include="Source\Utils\ThreadPool.c" />
     <ClCompile Include="Source\Utils\Time.c" />
@@ -88,6 +88,7 @@
     <ClInclude Include="Include\Utils\Common.h" />
     <ClInclude Include="Include\Utils\ConcurrentQueue.h" />
     <ClInclude Include="Include\Utils\GuardedMalloc.h" />
+    <ClInclude Include="Include\Utils\IntMath.h" />
     <ClInclude Include="Include\Utils\LinkedList.h" />
     <ClInclude Include="Include\Utils\MemoryPool.h" />
     <ClInclude Include="Include\Utils\Random.h" />
