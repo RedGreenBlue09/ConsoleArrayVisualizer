@@ -12,7 +12,7 @@ static inline void SpinLock_Init(spinlock* pLock) {
 }
 
 static inline void SpinLock_Lock(spinlock* pLock) {
-#if defined(MACHINE_ARM32) || (defined(MACHINE_ARM64) && !defined(MACHINE_ARM64_ATOMICS))
+#if MACHINE_LLSC_ATOMICS
 	bool bExpected;
 	do {
 		while (atomic_load_explicit(pLock, memory_order_relaxed) == true);

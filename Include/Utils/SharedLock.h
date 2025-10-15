@@ -30,7 +30,7 @@ static inline void SharedLock_UnlockExclusive(sharedlock* pLock) {
 }
 
 static inline void SharedLock_LockShared(sharedlock* pLock) {
-#if defined(MACHINE_ARM32) || (defined(MACHINE_ARM64) && !defined(MACHINE_ARM64_ATOMICS))
+#if MACHINE_LLSC_ATOMICS
 	// CAS version, is slower on x86 but might be faster on ARM
 	uint8_t CachedLock;
 	do {

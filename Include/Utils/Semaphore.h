@@ -14,7 +14,7 @@ static inline void Semaphore_Init(semaphore* pSemaphore, int8_t MaxCount) {
 }
 
 static inline void Semaphore_AcquireSingle(semaphore* pSemaphore) {
-#if defined(MACHINE_ARM32) || (defined(MACHINE_ARM64) && !defined(MACHINE_ARM64_ATOMICS))
+#if MACHINE_LLSC_ATOMICS
 	// CAS version, is slower on x86 but might be faster on ARM
 	// This version can support more threads if we use unsigned type
 	int8_t CachedSemaphore;
@@ -53,7 +53,7 @@ static inline void Semaphore_AcquireSingle(semaphore* pSemaphore) {
 }
 
 static inline bool Semaphore_TryAcquireSingle(semaphore* pSemaphore) {
-#if defined(MACHINE_ARM32) || (defined(MACHINE_ARM64) && !defined(MACHINE_ARM64_ATOMICS))
+#if MACHINE_LLSC_ATOMICS
 	// CAS version, is slower on x86 but might be faster on ARM
 	// This version can support more threads if we use unsigned type
 	int8_t CachedSemaphore = atomic_load_explicit(pSemaphore, memory_order_relaxed);

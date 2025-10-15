@@ -61,7 +61,7 @@ void ThreadPool_WaitGroup_Wait(thread_pool_wait_group* pWaitGroup) {
 
 // Treiber stack
 // Not scalable but should give good efficiency (sleep time, latency)
-// when contention is low. In reality, the thread pool is rarely the bottleneck.
+// when contention is low. In practice, the thread pool is rarely the bottleneck.
 
 static thread_pool_stack_entry* StackGetEntry(thread_pool* pThreadPool, uint8_t iEntry) {
 	return &pThreadPool->aWorkerThread[iEntry].StackEntry;
@@ -75,7 +75,7 @@ static void StackPushFreeThread(thread_pool* pThreadPool, uint8_t iEntry) {
 		pEntry->iNextEntry = (uint8_t)OldHead.iEntry;
 		NewHead = (thread_pool_stack_head){ iEntry, OldHead.Version };
 	} while (
-		!atomic_compare_exchange_strong_explicit(
+		!atomic_compare_exchange_weak_explicit(
 			&pThreadPool->StackHead,
 			&OldHead,
 			NewHead,
@@ -94,7 +94,7 @@ static uint8_t StackPopFreeThread(thread_pool* pThreadPool) {
 		thread_pool_stack_entry* pEntry = StackGetEntry(pThreadPool, (uint8_t)OldHead.iEntry);
 		NewHead = (thread_pool_stack_head){ pEntry->iNextEntry, OldHead.Version + 1 };
 	} while (
-		!atomic_compare_exchange_strong_explicit(
+		!atomic_compare_exchange_weak_explicit(
 			&pThreadPool->StackHead,
 			&OldHead,
 			NewHead,
@@ -120,32 +120,25 @@ static int WorkerThreadFunction(void* Parameter) {
 	atomic_store_fence_light(&pWorkerParameter->bParameterReadDone, true);
 	pWorkerParameter = NULL;
 
-
 	backoff_parameter BackoffParameter;
 	BackoffInit(&BackoffParameter, 2048, 16);
 
 	thread_pool_worker_thread* pWorkerThread = &pThreadPool->aWorkerThread[iThread];
+	thread_pool_job* pJob = &pWorkerThread->Job;
+
 	BackoffBegin(&BackoffParameter);
 	while (atomic_load_explicit(&pWorkerThread->bRun, memory_order_relaxed)) {
-		thread_pool_job* pJob = atomic_load_explicit(&pWorkerThread->pJob, memory_order_relaxed);
-		if (!pJob) {
+		if (!atomic_load_explicit(&pWorkerThread->bJobAvailable, memory_order_relaxed)) {
 			BackoffSleep(BackoffParameter);
 			continue;
 		}
-		atomic_thread_fence_light(&pWorkerThread->pJob, memory_order_acquire);
+		atomic_thread_fence_light(&pWorkerThread->bJobAvailable, memory_order_acquire);
 
-		thread_pool_job_function* pFunction   = pJob->pFunction;
-		void*                     Parameter   = pJob->Parameter;
-		thread_pool_wait_group*   pWaitGroup  = pJob->pWaitGroup;
-		uint8_t                   iStackEntry = pJob->iStackEntry;
-		atomic_store_fence_light(&pJob->bJobRead, true);
-		
-		pFunction(iThread, Parameter);
-		
-		ThreadPool_WaitGroup_DecreaseSingle(pWaitGroup);
-		atomic_store_explicit(&pWorkerThread->pJob, NULL, memory_order_relaxed);
-		StackPushFreeThread(pThreadPool, iStackEntry);
+		pJob->pFunction(iThread, pJob->Parameter);
+		ThreadPool_WaitGroup_DecreaseSingle(pJob->pWaitGroup);
 
+		atomic_store_explicit(&pWorkerThread->bJobAvailable, false, memory_order_relaxed);
+		StackPushFreeThread(pThreadPool, pJob->iStackEntry);
 		BackoffBegin(&BackoffParameter);
 	}
 
@@ -160,7 +153,7 @@ thread_pool* ThreadPool_Create(uint8_t ThreadCount) {
 
 	thread_pool* pThreadPool;
 	size_t StructSize = sizeof(*pThreadPool) + sizeof(pThreadPool->aWorkerThread[0]) * ThreadCount;
-	
+
 	pThreadPool = malloc_guarded(StructSize);
 
 	// Init
@@ -171,8 +164,8 @@ thread_pool* ThreadPool_Create(uint8_t ThreadCount) {
 
 	for (uint8_t i = 0; i < ThreadCount; ++i) {
 		pThreadPool->aWorkerThread[i].StackEntry = (thread_pool_stack_entry){ i, i + 1 };
-		atomic_init(&pThreadPool->aWorkerThread[i].pJob, NULL);
 		atomic_init(&pThreadPool->aWorkerThread[i].bRun, true);
+		atomic_init(&pThreadPool->aWorkerThread[i].bJobAvailable, false);
 
 		worker_thread_parameter WorkerParameter = { pThreadPool, i, false };
 		thrd_create(&pThreadPool->aWorkerThread[i].Thread, WorkerThreadFunction, &WorkerParameter);
@@ -213,12 +206,9 @@ void ThreadPool_AddJob(thread_pool* pThreadPool, thread_pool_job* pJob) {
 	while ((pJob->iStackEntry = StackPopFreeThread(pThreadPool)) == UINT8_MAX)
 		BackoffSleep(BackoffParameter);
 
-	atomic_init(&pJob->bJobRead, false);
 	uint8_t iThread = StackGetEntry(pThreadPool, pJob->iStackEntry)->iThread;
-	atomic_store_fence_light(&pThreadPool->aWorkerThread[iThread].pJob, pJob);
-
-	while (!atomic_load_explicit(&pJob->bJobRead, memory_order_relaxed));
-	atomic_thread_fence_light(&pJob->bJobRead, memory_order_acquire);
+	pThreadPool->aWorkerThread[iThread].Job = *pJob;
+	atomic_store_fence_light(&pThreadPool->aWorkerThread[iThread].bJobAvailable, true);
 }
 
 void ThreadPool_AddJobRecursive(thread_pool* pThreadPool, thread_pool_job* pJob, uint8_t iCurrentThread) {
@@ -229,12 +219,9 @@ void ThreadPool_AddJobRecursive(thread_pool* pThreadPool, thread_pool_job* pJob,
 		pJob->pFunction(iCurrentThread, pJob->Parameter);
 		ThreadPool_WaitGroup_DecreaseSingle(pJob->pWaitGroup);
 	} else {
-		atomic_init(&pJob->bJobRead, false);
 		uint8_t iThread = StackGetEntry(pThreadPool, pJob->iStackEntry)->iThread;
-		atomic_store_fence_light(&pThreadPool->aWorkerThread[iThread].pJob, pJob);
-
-		while (!atomic_load_explicit(&pJob->bJobRead, memory_order_relaxed));
-		atomic_thread_fence_light(&pJob->bJobRead, memory_order_acquire);
+		pThreadPool->aWorkerThread[iThread].Job = *pJob;
+		atomic_store_fence_light(&pThreadPool->aWorkerThread[iThread].bJobAvailable, true);
 	}
 }
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stddef.h>
 #include <threads.h>
 
 #include "Utils/Atomic.h"
@@ -8,14 +7,12 @@
 typedef void thread_pool_job_function(uint8_t iThread, void* Parameter);
 typedef atomic size_t thread_pool_wait_group;
 
-// TODO: Wait groups allow waiting for jobs without an array of jobs. Maybe I should do that instead?
 typedef struct {
 	thread_pool_job_function* pFunction;
 	void* Parameter;
 	thread_pool_wait_group* pWaitGroup;
 	// Internal stuff
 	uint8_t iStackEntry;
-	atomic bool bJobRead;
 } thread_pool_job;
 
 typedef struct {
@@ -34,8 +31,9 @@ typedef struct {
 	// Align first element to leave some space for TLS and separate the cachelines
 	alignas(sizeof(void*) * 16) thread_pool_stack_entry StackEntry;
 	thrd_t Thread;
-	thread_pool_job* atomic pJob;
 	atomic bool bRun;
+	atomic bool bJobAvailable;
+	thread_pool_job Job;
 	void* TlsBegin;
 } thread_pool_worker_thread;
 

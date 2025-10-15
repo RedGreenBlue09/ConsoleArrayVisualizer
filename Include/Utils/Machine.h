@@ -39,3 +39,5 @@
 		#endif
 	#endif
 #endif
+
+#define MACHINE_LLSC_ATOMICS (MACHINE_ARM32 || (MACHINE_ARM64 && !MACHINE_ARM64_ATOMICS))

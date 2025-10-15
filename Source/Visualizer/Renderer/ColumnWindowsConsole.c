@@ -55,8 +55,6 @@ typedef struct {
 	atomic bool bUpdated;
 	// I tested SharedLock + atomic variables against this SpinLock solution.
 	// SpinLock is much faster because it has fewer atomic operations.
-	// The SharedLock solution is only faster if a many threads fights for the same column,
-	// which is extremely rare.
 	spinlock Lock;
 	// Worst case: 2^24 members each containing 2^8 repeated attributes
 	// This will break rendering but will still work due to unsigned integer wrapping.
