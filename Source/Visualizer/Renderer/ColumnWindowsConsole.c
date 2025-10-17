@@ -96,9 +96,9 @@ static atomic bool gbRun;
 static spinlock gAlgorithmNameLock;
 static char* gsAlgorithmName; // NULL terminated
 
-static double gfDefaultDelay; // Delay for 1 element array
-static double gfAlgorithmSleepMultiplier;
-static atomic double gfUserSleepMultiplier;
+static floatptr_t gfDefaultDelay; // Delay for 1 element array
+static floatptr_t gfAlgorithmSleepMultiplier;
+static atomic floatptr_t gfUserSleepMultiplier;
 
 static atomic uint64_t gTimerStartTime;
 static atomic uint64_t gTimerStopTime;
@@ -503,7 +503,7 @@ void Visualizer_Initialize(size_t ExtraThreadCount) {
 	Pool_Initialize(&gArrayPropPool, 16, sizeof(array_prop));
 	gsAlgorithmName = malloc_guarded(sizeof(*gsAlgorithmName));
 	*gsAlgorithmName = '\0';
-	gfDefaultDelay = (double)(clock64_resolution() * 10); // 10s
+	gfDefaultDelay = (floatptr_t)(clock64_resolution() * 10); // 10s
 	gfAlgorithmSleepMultiplier = 1.0;
 	atomic_init(&gfUserSleepMultiplier, 1.0);
 	atomic_init(&gTimerStopTime, 0);
@@ -783,16 +783,16 @@ static inline void MoveMarkerHelper(
 
 // Delays
 
-void Visualizer_SetAlgorithmSleepMultiplier(double fAlgorithmSleepMultiplier) {
+void Visualizer_SetAlgorithmSleepMultiplier(floatptr_t fAlgorithmSleepMultiplier) {
 	// Doesn't make sense to be atomic as it is only set at the beginning of the algorithm.
 	gfAlgorithmSleepMultiplier = fAlgorithmSleepMultiplier;
 }
 
-void Visualizer_SetUserSleepMultiplier(double fUserSleepMultiplier) {
+void Visualizer_SetUserSleepMultiplier(floatptr_t fUserSleepMultiplier) {
 	atomic_store_explicit(&gfUserSleepMultiplier, fUserSleepMultiplier, memory_order_relaxed);
 }
 
-void Visualizer_Sleep(double fSleepMultiplier) {
+void Visualizer_Sleep(floatptr_t fSleepMultiplier) {
 #ifdef VISUALIZER_DISABLE_SLEEP
 #else
 	sleep64(
@@ -811,7 +811,7 @@ void Visualizer_Sleep(double fSleepMultiplier) {
 static inline void Visualizer_UpdateReadHelper(
 	array_prop* pArrayProp,
 	intptr_t iPosition,
-	double fSleepMultiplier,
+	floatptr_t fSleepMultiplier,
 	rw_counter* pRwCounter
 ) {
 	atomic_fetch_add_explicit(&pRwCounter->ReadCount, 1, memory_order_relaxed);
@@ -824,7 +824,7 @@ static inline void Visualizer_UpdateRead2Helper(
 	array_prop* pArrayProp,
 	intptr_t iPositionA,
 	intptr_t iPositionB,
-	double fSleepMultiplier,
+	floatptr_t fSleepMultiplier,
 	rw_counter* pRwCounter
 ) {
 	atomic_fetch_add_explicit(&pRwCounter->ReadCount, 2, memory_order_relaxed);
@@ -839,7 +839,7 @@ static inline void Visualizer_UpdateReadMultiHelper(
 	array_prop* pArrayProp,
 	intptr_t iStartPosition,
 	intptr_t Length,
-	double fSleepMultiplier,
+	floatptr_t fSleepMultiplier,
 	rw_counter* pRwCounter
 ) {
 	assert(Length <= 16);
@@ -856,7 +856,7 @@ static inline void Visualizer_UpdateWriteHelper(
 	array_prop* pArrayProp,
 	intptr_t iPosition,
 	visualizer_int NewValue,
-	double fSleepMultiplier,
+	floatptr_t fSleepMultiplier,
 	rw_counter* pRwCounter
 ) {
 	atomic_fetch_add_explicit(&pRwCounter->WriteCount, 1, memory_order_relaxed);
@@ -870,7 +870,7 @@ static inline void Visualizer_UpdateReadWriteHelper(
 	array_prop* pArrayPropB,
 	intptr_t iPositionA,
 	intptr_t iPositionB,
-	double fSleepMultiplier,
+	floatptr_t fSleepMultiplier,
 	rw_counter* pRwCounterA,
 	rw_counter* pRwCounterB
 ) {
@@ -888,7 +888,7 @@ static inline void Visualizer_UpdateSwapHelper(
 	array_prop* pArrayProp,
 	intptr_t iPositionA,
 	intptr_t iPositionB,
-	double fSleepMultiplier,
+	floatptr_t fSleepMultiplier,
 	rw_counter* pRwCounter
 ) {
 	atomic_fetch_add_explicit(&pRwCounter->ReadCount, 2, memory_order_relaxed);
@@ -907,7 +907,7 @@ static inline void Visualizer_UpdateWriteMultiHelper(
 	intptr_t iStartPosition,
 	intptr_t Length,
 	visualizer_int* aNewValue,
-	double fSleepMultiplier,
+	floatptr_t fSleepMultiplier,
 	rw_counter* pRwCounter
 ) {
 
@@ -923,80 +923,80 @@ static inline void Visualizer_UpdateWriteMultiHelper(
 
 // Read & Write (main thread)
 
-void Visualizer_UpdateRead(visualizer_array_handle hArray, intptr_t iPosition, double fSleepMultiplier) {
+void Visualizer_UpdateRead(visualizer_array_handle hArray, intptr_t iPosition, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	Visualizer_UpdateReadHelper(pArrayProp, iPosition, fSleepMultiplier, &pArrayProp->RwCounter);
 }
 
-void Visualizer_UpdateRead2(visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
+void Visualizer_UpdateRead2(visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	Visualizer_UpdateRead2Helper(pArrayProp, iPositionA, iPositionB, fSleepMultiplier, &pArrayProp->RwCounter);
 }
 
-void Visualizer_UpdateReadMulti(visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, double fSleepMultiplier) {
+void Visualizer_UpdateReadMulti(visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	Visualizer_UpdateReadMultiHelper(pArrayProp, iStartPosition, Length, fSleepMultiplier, &pArrayProp->RwCounter);
 }
 
-void Visualizer_UpdateWrite(visualizer_array_handle hArray, intptr_t iPosition, visualizer_int NewValue, double fSleepMultiplier) {
+void Visualizer_UpdateWrite(visualizer_array_handle hArray, intptr_t iPosition, visualizer_int NewValue, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	Visualizer_UpdateWriteHelper(pArrayProp, iPosition, NewValue, fSleepMultiplier, &pArrayProp->RwCounter);
 	
 }
 
-void Visualizer_UpdateSwap(visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
+void Visualizer_UpdateSwap(visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	Visualizer_UpdateSwapHelper(pArrayProp, iPositionA, iPositionB, fSleepMultiplier, &pArrayProp->RwCounter);
 	
 }
 
-void Visualizer_UpdateReadWrite(visualizer_array_handle hArrayA, visualizer_array_handle hArrayB, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
+void Visualizer_UpdateReadWrite(visualizer_array_handle hArrayA, visualizer_array_handle hArrayB, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayPropA = GetHandleData(&gArrayPropPool, hArrayA);
 	array_prop* pArrayPropB = GetHandleData(&gArrayPropPool, hArrayA);
 	Visualizer_UpdateReadWriteHelper(pArrayPropA, pArrayPropB, iPositionA, iPositionB, fSleepMultiplier, &pArrayPropA->RwCounter, &pArrayPropB->RwCounter);
 	
 }
 
-void Visualizer_UpdateWriteMulti(visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, visualizer_int* aNewValue, double fSleepMultiplier) {
+void Visualizer_UpdateWriteMulti(visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, visualizer_int* aNewValue, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	Visualizer_UpdateWriteMultiHelper(pArrayProp, iStartPosition, Length, aNewValue, fSleepMultiplier, &pArrayProp->RwCounter);
 }
 
 // Read & Write (thread pool)
 
-void Visualizer_UpdateReadT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPosition, double fSleepMultiplier) {
+void Visualizer_UpdateReadT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPosition, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	renderer_tls* pTls = ThreadPool_TlsGet(Visualizer_pThreadPool, iThread, 0);
 	Visualizer_UpdateReadHelper(pArrayProp, iPosition, fSleepMultiplier, &pTls->RwCounter);
 }
 
-void Visualizer_UpdateRead2T(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
+void Visualizer_UpdateRead2T(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	renderer_tls* pTls = ThreadPool_TlsGet(Visualizer_pThreadPool, iThread, 0);
 	Visualizer_UpdateRead2Helper(pArrayProp, iPositionA, iPositionB, fSleepMultiplier, &pTls->RwCounter);
 }
 
-void Visualizer_UpdateReadMultiT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, double fSleepMultiplier) {
+void Visualizer_UpdateReadMultiT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	renderer_tls* pTls = ThreadPool_TlsGet(Visualizer_pThreadPool, iThread, 0);
 	Visualizer_UpdateReadMultiHelper(pArrayProp, iStartPosition, Length, fSleepMultiplier, &pTls->RwCounter);
 }
 
-void Visualizer_UpdateWriteT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPosition, visualizer_int NewValue, double fSleepMultiplier) {
+void Visualizer_UpdateWriteT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPosition, visualizer_int NewValue, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	renderer_tls* pTls = ThreadPool_TlsGet(Visualizer_pThreadPool, iThread, 0);
 	Visualizer_UpdateWriteHelper(pArrayProp, iPosition, NewValue, fSleepMultiplier, &pTls->RwCounter);
 
 }
 
-void Visualizer_UpdateSwapT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
+void Visualizer_UpdateSwapT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	renderer_tls* pTls = ThreadPool_TlsGet(Visualizer_pThreadPool, iThread, 0);
 	Visualizer_UpdateSwapHelper(pArrayProp, iPositionA, iPositionB, fSleepMultiplier, &pTls->RwCounter);
 
 }
 
-void Visualizer_UpdateReadWriteT(uint8_t iThread, visualizer_array_handle hArrayA, visualizer_array_handle hArrayB, intptr_t iPositionA, intptr_t iPositionB, double fSleepMultiplier) {
+void Visualizer_UpdateReadWriteT(uint8_t iThread, visualizer_array_handle hArrayA, visualizer_array_handle hArrayB, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayPropA = GetHandleData(&gArrayPropPool, hArrayA);
 	array_prop* pArrayPropB = GetHandleData(&gArrayPropPool, hArrayA);
 	renderer_tls* pTls = ThreadPool_TlsGet(Visualizer_pThreadPool, iThread, 0);
@@ -1004,7 +1004,7 @@ void Visualizer_UpdateReadWriteT(uint8_t iThread, visualizer_array_handle hArray
 
 }
 
-void Visualizer_UpdateWriteMultiT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, visualizer_int* aNewValue, double fSleepMultiplier) {
+void Visualizer_UpdateWriteMultiT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, visualizer_int* aNewValue, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	renderer_tls* pTls = ThreadPool_TlsGet(Visualizer_pThreadPool, iThread, 0);
 	Visualizer_UpdateWriteMultiHelper(pArrayProp, iStartPosition, Length, aNewValue, fSleepMultiplier, &pTls->RwCounter);
@@ -1065,7 +1065,7 @@ static const visualizer_marker_attribute gaCorrectnessAttribute[2] = {
 	Visualizer_MarkerAttribute_Correct
 };
 
-void Visualizer_UpdateCorrectness(visualizer_array_handle hArray, intptr_t iPosition, bool bCorrect, double fSleepMultiplier) {
+void Visualizer_UpdateCorrectness(visualizer_array_handle hArray, intptr_t iPosition, bool bCorrect, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	visualizer_marker_attribute Attribute = gaCorrectnessAttribute[bCorrect];
 	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, true, Attribute, 0);

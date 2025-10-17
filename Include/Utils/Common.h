@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utils/Machine.h"
+
 #define static_arrlen(X) (sizeof(X) / sizeof(*(X)))
 #define static_strlen(X) (static_arrlen(X) - 1)
 #define sizeof_member(type, member) (sizeof(((type*)0)->member))
@@ -44,3 +46,11 @@ static ext_noreturn ext_forceinline void ext_unreachable() {}
 #endif
 
 #define only_reachable(X) {if (!(X)) ext_unreachable();}
+
+// Make 32-bit code faster
+
+#if MACHINE_PTR64
+typedef double floatptr_t;
+#elif MACHINE_PTR32
+typedef float floatptr_t;
+#endif

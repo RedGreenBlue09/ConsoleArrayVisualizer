@@ -4,10 +4,10 @@
 #include "Visualizer.h"
 
 static void step(uint8_t iThread, visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t x, intptr_t y) {
-	Visualizer_UpdateRead2T(iThread, arrayHandle, x, y, 1.0);
+	Visualizer_UpdateRead2T(iThread, arrayHandle, x, y, 1.0f);
 	if (array[x] > array[y]) {
 		swap(&array[x], &array[y]);
-		Visualizer_UpdateSwapT(iThread, arrayHandle, x, y, 1.0);
+		Visualizer_UpdateSwapT(iThread, arrayHandle, x, y, 1.0f);
 	}
 }
 
@@ -89,7 +89,7 @@ static void sortMain(uint8_t iThread, void* parameter) {
 
 void WeaveSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(n, 2.0, Visualizer_SleepScale_NLogNLogN)
+		Visualizer_ScaleSleepMultiplier(n, 2.0f, Visualizer_SleepScale_NLogNLogN)
 	);
 	thread_pool_wait_group waitGroup;
 	ThreadPool_WaitGroup_Init(&waitGroup, 1);

@@ -1,13 +1,16 @@
 
-#define _CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES 1
-#define _CRT_SECURE_NO_WARNINGS 1
-
 #include <stdio.h>
 #include <string.h>
 
 #include "RunSorts.h"
 #include "Utils/GuardedMalloc.h"
 #include "Utils/Time.h"
+
+#if MACHINE_PTR64
+#define PRIfPTR "lf"
+#elif MACHINE_PTR32
+#define PRIfPTR "f"
+#endif
 
 int main(int argc, char** argv) {
 	if (argc < 7) {
@@ -38,7 +41,7 @@ int main(int argc, char** argv) {
 
 	size_t ExtraThreadCount = 0;
 	if (
-		sscanf(argv[1], "%zu %n", &ExtraThreadCount, &ReadChars) != 1 ||
+		sscanf_s(argv[1], "%zu %n", &ExtraThreadCount, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[1]) ||
 		ExtraThreadCount > 125
 	) {
@@ -48,7 +51,7 @@ int main(int argc, char** argv) {
 
 	intptr_t ArrayLength = 0;
 	if (
-		sscanf(argv[2], "%ti %n", &ArrayLength, &ReadChars) != 1 ||
+		sscanf_s(argv[2], "%ti %n", &ArrayLength, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[2]) ||
 		ArrayLength <= 0
 	) {
@@ -56,9 +59,9 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	double fSleepMultiplier = 1.0;
+	floatptr_t fSleepMultiplier = 1.0;
 	if (
-		sscanf(argv[3], "%lf %n", &fSleepMultiplier, &ReadChars) != 1 ||
+		sscanf_s(argv[3], "%"PRIfPTR" %n", &fSleepMultiplier, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[3]) ||
 		fSleepMultiplier < 0.0
 	) {
@@ -68,7 +71,7 @@ int main(int argc, char** argv) {
 
 	uintptr_t iDistribution = 0;
 	if (
-		sscanf(argv[4], "%tu %n", &iDistribution, &ReadChars) != 1 ||
+		sscanf_s(argv[4], "%tu %n", &iDistribution, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[4]) ||
 		iDistribution >= RunSorts_nDistribution
 	) {
@@ -78,7 +81,7 @@ int main(int argc, char** argv) {
 
 	uintptr_t iShuffle = 0;
 	if (
-		sscanf(argv[5], "%tu %n", &iShuffle, &ReadChars) != 1 ||
+		sscanf_s(argv[5], "%tu %n", &iShuffle, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[5]) ||
 		iShuffle >= RunSorts_nShuffle
 	) {
@@ -96,7 +99,7 @@ int main(int argc, char** argv) {
 	for (int i = 6; i < argc; ++i) {
 		uintptr_t iAlgorithm = 0;
 		if (
-			sscanf(argv[i], "%tu %n", &iAlgorithm, &ReadChars) != 1 ||
+			sscanf_s(argv[i], "%tu %n", &iAlgorithm, &ReadChars) != 1 ||
 			ReadChars != strlen(argv[i]) ||
 			iAlgorithm >= RunSorts_nSort
 		) {

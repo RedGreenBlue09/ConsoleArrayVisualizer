@@ -16,20 +16,20 @@ begin:
 
 	visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, pivot, Visualizer_MarkerAttribute_Pointer);
 	while (left <= right) {
-		Visualizer_UpdateRead(arrayHandle, left, 1.0);
+		Visualizer_UpdateRead(arrayHandle, left, 1.0f);
 		while (array[left] < pivotValue) {
 			++left;
-			Visualizer_UpdateRead(arrayHandle, left, 1.0);
+			Visualizer_UpdateRead(arrayHandle, left, 1.0f);
 
 		}
-		Visualizer_UpdateRead(arrayHandle, right, 1.0);
+		Visualizer_UpdateRead(arrayHandle, right, 1.0f);
 		while (array[right] > pivotValue) {
 			--right;
-			Visualizer_UpdateRead(arrayHandle, right, 1.0);
+			Visualizer_UpdateRead(arrayHandle, right, 1.0f);
 		}
 
 		if (left <= right) {
-			Visualizer_UpdateSwap(arrayHandle, left, right, 1.0);
+			Visualizer_UpdateSwap(arrayHandle, left, right, 1.0f);
 			swap(&array[left], &array[right]);
 			++left;
 			--right;
@@ -93,20 +93,20 @@ begin:
 
 	visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, pivot, Visualizer_MarkerAttribute_Pointer);
 	while (left <= right) {
-		Visualizer_UpdateReadT(iThread, arrayHandle, left, 1.0);
+		Visualizer_UpdateReadT(iThread, arrayHandle, left, 1.0f);
 		while (array[left] < pivotValue) {
 			++left;
-			Visualizer_UpdateReadT(iThread, arrayHandle, left, 1.0);
+			Visualizer_UpdateReadT(iThread, arrayHandle, left, 1.0f);
 
 		}
-		Visualizer_UpdateReadT(iThread, arrayHandle, right, 1.0);
+		Visualizer_UpdateReadT(iThread, arrayHandle, right, 1.0f);
 		while (array[right] > pivotValue) {
 			--right;
-			Visualizer_UpdateReadT(iThread, arrayHandle, right, 1.0);
+			Visualizer_UpdateReadT(iThread, arrayHandle, right, 1.0f);
 		}
 
 		if (left <= right) {
-			Visualizer_UpdateSwapT(iThread, arrayHandle, left, right, 1.0);
+			Visualizer_UpdateSwapT(iThread, arrayHandle, left, right, 1.0f);
 			swap(&array[left], &array[right]);
 			++left;
 			--right;
@@ -161,7 +161,7 @@ begin:
 
 void LeftRightQuickSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_NLogN)
+		Visualizer_ScaleSleepMultiplier(n, 1.0f, Visualizer_SleepScale_NLogN)
 	);
 
 	if (n < 2) return;
@@ -173,7 +173,7 @@ void LeftRightQuickSort(visualizer_array_handle arrayHandle, visualizer_int* arr
 
 void LeftRightQuickSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_NLogN)
+		Visualizer_ScaleSleepMultiplier(n, 1.0f, Visualizer_SleepScale_NLogN)
 	);
 
 	if (n < 2) return;

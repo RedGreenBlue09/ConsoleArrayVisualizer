@@ -13,9 +13,9 @@ typedef struct {
 extern sort_info RunSorts_aSort[];
 extern uintptr_t RunSorts_nSort;
 
-typedef void distribute_function(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
-typedef void verify_function(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
-typedef void unverify_function(rand64_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+typedef void distribute_function(randptr_state, visualizer_array_handle, visualizer_int*, intptr_t);
+typedef void verify_function(randptr_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+typedef void unverify_function(randptr_state, visualizer_array_handle, const visualizer_int*, intptr_t);
 
 typedef struct {
 	char sName[56];
@@ -27,7 +27,7 @@ typedef struct {
 extern distribution_info RunSorts_aDistribution[];
 extern uintptr_t RunSorts_nDistribution;
 
-typedef void shuffle_function(rand64_state, visualizer_array_handle, visualizer_int*, intptr_t);
+typedef void shuffle_function(randptr_state, visualizer_array_handle, visualizer_int*, intptr_t);
 
 typedef struct {
 	char sName[56];

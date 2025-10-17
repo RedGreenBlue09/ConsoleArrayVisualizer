@@ -38,20 +38,24 @@ void BinaryInsertion(visualizer_int* array, intptr_t start, intptr_t end) {
 */
 
 void InsertionSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
+	Visualizer_SetAlgorithmSleepMultiplier(
+		Visualizer_ScaleSleepMultiplier(n, 1.0f, Visualizer_SleepScale_NN)
+	);
+	
 	if (n < 2) return;
-
+	
 	for (intptr_t i = 1; i < n; ++i) {
 		visualizer_int temp = array[i];
-		Visualizer_UpdateRead(arrayHandle, i, 1.0);
+		Visualizer_UpdateRead(arrayHandle, i, 1.0f);
 		intptr_t j;
 		for (j = i; j > 0; --j) {
-			Visualizer_UpdateRead(arrayHandle, j - 1, 1.0);
+			Visualizer_UpdateRead(arrayHandle, j - 1, 1.0f);
 			if (array[j - 1] <= temp)
 				break;
-			Visualizer_UpdateWrite(arrayHandle, j, array[j - 1], 1.0);
+			Visualizer_UpdateWrite(arrayHandle, j, array[j - 1], 1.0f);
 			array[j] = array[j - 1];
 		}
-		Visualizer_UpdateWrite(arrayHandle, j, temp, 1.0);
+		Visualizer_UpdateWrite(arrayHandle, j, temp, 1.0f);
 		array[j] = temp;
 	}
 }

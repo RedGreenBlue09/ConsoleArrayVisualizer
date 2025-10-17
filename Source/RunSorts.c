@@ -157,12 +157,12 @@ void RunSorts_RunSort(
 	Visualizer_ResetTimer();
 	uint64_t Second = clock64_resolution();
 
-	rand64_state RngState;
-	srand64(&RngState, clock64());
+	randptr_state RngState;
+	srandptr(&RngState, (uintptr_t)clock64());
 
 	// Distribute
 
-	Visualizer_ClearReadWriteCounter(hArray);
+	Visualizer_ClearReadWriteCounter();
 
 	char sDistributionName[static_strlen("Distribution: ") + static_arrlen(pDistribution->sName)] = "";
 	strcat_s(sDistributionName, static_arrlen(sDistributionName), "Distribution: ");

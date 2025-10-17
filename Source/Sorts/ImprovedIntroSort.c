@@ -22,16 +22,16 @@ typedef struct {
 static void InsertionSort(visualizer_array_handle arrayHandle, visualizer_int* array, partition_t part) {
 	for (intptr_t i = part.start + 1; i < part.n; ++i) {
 		visualizer_int temp = array[i];
-		Visualizer_UpdateRead(arrayHandle, i, 1.0);
+		Visualizer_UpdateRead(arrayHandle, i, 1.0f);
 		intptr_t j;
 		for (j = i; j > 0; --j) {
-			Visualizer_UpdateRead(arrayHandle, j - 1, 1.0);
+			Visualizer_UpdateRead(arrayHandle, j - 1, 1.0f);
 			if (array[j - 1] <= temp)
 				break;
-			Visualizer_UpdateWrite(arrayHandle, j, array[j - 1], 1.0);
+			Visualizer_UpdateWrite(arrayHandle, j, array[j - 1], 1.0f);
 			array[j] = array[j - 1];
 		}
-		Visualizer_UpdateWrite(arrayHandle, j, temp, 1.0);
+		Visualizer_UpdateWrite(arrayHandle, j, temp, 1.0f);
 		array[j] = temp;
 	}
 }
@@ -45,11 +45,11 @@ static inline intptr_t MedianOf3(
 	intptr_t mid,
 	intptr_t right
 ) {
-	Visualizer_UpdateRead2(arrayHandle, mid, left, 1.0);
-	Visualizer_UpdateRead2(arrayHandle, mid, right, 1.0);
+	Visualizer_UpdateRead2(arrayHandle, mid, left, 1.0f);
+	Visualizer_UpdateRead2(arrayHandle, mid, right, 1.0f);
 	if ((array[mid] > array[left]) ^ (array[mid] > array[right]))
 		return mid;
-	Visualizer_UpdateRead2(arrayHandle, right, left, 1.0);
+	Visualizer_UpdateRead2(arrayHandle, right, left, 1.0f);
 	if ((array[right] < array[mid]) ^ (array[right] < array[left]))
 		return right;
 	return left;
@@ -80,12 +80,12 @@ static intptr_t MedianOf3Recursive(visualizer_array_handle arrayHandle, visualiz
 		intptr_t iMedian;
 		for (i = 0; i < n; ++i) {
 			iMedian = MedianOf3(arrayHandle, array, part.start + i * 3, part.start + i * 3 + 1, part.start + i * 3 + 2);
-			Visualizer_UpdateSwap(arrayHandle, iMedian, part.start + i, 1.0);
+			Visualizer_UpdateSwap(arrayHandle, iMedian, part.start + i, 1.0f);
 			swap(&array[iMedian], &array[part.start + i]);
 		}
 		if (remSize > 0) {
 			// Since we can't calculate the median of 2, just pick the first value.
-			Visualizer_UpdateSwap(arrayHandle, part.start + i * 3, part.start + i, 1.0);
+			Visualizer_UpdateSwap(arrayHandle, part.start + i * 3, part.start + i, 1.0f);
 			swap(&array[part.start + i * 3], &array[part.start + i]);
 			++n;
 		}
@@ -112,7 +112,7 @@ static intptr_t GetPivot(visualizer_array_handle arrayHandle, visualizer_int* ar
 
 void ImprovedIntroSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_NLogN)
+		Visualizer_ScaleSleepMultiplier(n, 1.0f, Visualizer_SleepScale_NLogN)
 	);
 
 	const intptr_t nSmallest = 16;
@@ -133,19 +133,19 @@ void ImprovedIntroSort(visualizer_array_handle arrayHandle, visualizer_int* arra
 
 			visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, pivot, Visualizer_MarkerAttribute_Pointer);
 			while (left <= right) {
-				Visualizer_UpdateRead(arrayHandle, left, 1.0);
+				Visualizer_UpdateRead(arrayHandle, left, 1.0f);
 				while (array[left] < pivotValue) {
 					++left;
-					Visualizer_UpdateRead(arrayHandle, left, 1.0);
+					Visualizer_UpdateRead(arrayHandle, left, 1.0f);
 				}
-				Visualizer_UpdateRead(arrayHandle, right, 1.0);
+				Visualizer_UpdateRead(arrayHandle, right, 1.0f);
 				while (array[right] > pivotValue) {
 					--right;
-					Visualizer_UpdateRead(arrayHandle, right, 1.0);
+					Visualizer_UpdateRead(arrayHandle, right, 1.0f);
 				}
 
 				if (left <= right) {
-					Visualizer_UpdateSwap(arrayHandle, left, right, 1.0);
+					Visualizer_UpdateSwap(arrayHandle, left, right, 1.0f);
 					swap(&array[left], &array[right]);
 					++left;
 					--right;

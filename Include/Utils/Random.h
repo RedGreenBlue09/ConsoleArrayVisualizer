@@ -36,6 +36,7 @@ typedef rand64_state randptr_state;
 #define srandptr_u64 srand64
 #define randptr rand64
 #define randptr_bounded rand64_bounded
+#define randfptr randf64
 
 #elif MACHINE_PTR32
 
@@ -45,5 +46,6 @@ typedef rand32_state randptr_state;
 #define srandptr_u64 srand32_u64
 #define randptr rand32
 #define randptr_bounded rand32_bounded
+#define randfptr randf32
 
 #endif

@@ -44,18 +44,18 @@ static void shellSort(visualizer_array_handle arrayHandle, visualizer_int* array
 		visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, gap, Visualizer_MarkerAttribute_Pointer);
 		for (intptr_t i = gap; i < n; ++i) {
 			visualizer_int temp = array[i];
-			Visualizer_UpdateRead(arrayHandle, i, 1.0);
+			Visualizer_UpdateRead(arrayHandle, i, 1.0f);
 			Visualizer_MoveMarker(&pointer, i);
 
 			intptr_t j;
 			for (j = i; j >= gap; j -= gap) {
-				Visualizer_UpdateRead(arrayHandle, j - gap, 1.0);
+				Visualizer_UpdateRead(arrayHandle, j - gap, 1.0f);
 				if (array[j - gap] <= temp)
 					break;
-				Visualizer_UpdateWrite(arrayHandle, j, array[j - gap], 1.0);
+				Visualizer_UpdateWrite(arrayHandle, j, array[j - gap], 1.0f);
 				array[j] = array[j - gap];
 			}
-			Visualizer_UpdateWrite(arrayHandle, j, temp, 1.0);
+			Visualizer_UpdateWrite(arrayHandle, j, temp, 1.0f);
 			array[j] = temp;
 		}
 		Visualizer_RemoveMarker(pointer);
@@ -67,7 +67,7 @@ static void shellSort(visualizer_array_handle arrayHandle, visualizer_int* array
 
 void ShellSortTokuda(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(n, 0.25, Visualizer_SleepScale_NLogN)
+		Visualizer_ScaleSleepMultiplier(n, 0.25f, Visualizer_SleepScale_NLogN)
 	);
 	shellSort(arrayHandle, array, n, gapsTokuda, static_arrlen(gapsTokuda));
 	return;
@@ -97,20 +97,20 @@ static void gappedInsertion(uint8_t iThread, void* parameter) {
 	visualizer_marker pointer = Visualizer_CreateMarker(arrayHandle, start + gap, Visualizer_MarkerAttribute_Pointer);
 	for (intptr_t i = start + gap; i < end; i += gap) {
 		visualizer_int temp = array[i];
-		Visualizer_UpdateReadT(iThread, arrayHandle, i, 1.0);
+		Visualizer_UpdateReadT(iThread, arrayHandle, i, 1.0f);
 		Visualizer_MoveMarker(&pointer, i);
 
 		intptr_t j;
 		visualizer_int temp2;
 		for (j = i; j >= start + gap; j -= gap) {
-			Visualizer_UpdateReadT(iThread, arrayHandle, j - gap, 1.0);
+			Visualizer_UpdateReadT(iThread, arrayHandle, j - gap, 1.0f);
 			temp2 = array[j - gap];
 			if (temp2 <= temp)
 				break;
-			Visualizer_UpdateWriteT(iThread, arrayHandle, j, temp2, 1.0);
+			Visualizer_UpdateWriteT(iThread, arrayHandle, j, temp2, 1.0f);
 			array[j] = temp2;
 		}
-		Visualizer_UpdateWriteT(iThread, arrayHandle, j, temp, 1.0);
+		Visualizer_UpdateWriteT(iThread, arrayHandle, j, temp, 1.0f);
 		array[j] = temp;
 	}
 	Visualizer_RemoveMarker(pointer);
@@ -119,7 +119,7 @@ static void gappedInsertion(uint8_t iThread, void* parameter) {
 }
 void ShellSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(n, 0.25, Visualizer_SleepScale_N) // TODO FIXME
+		Visualizer_ScaleSleepMultiplier(n, 0.25f, Visualizer_SleepScale_N) // TODO FIXME
 	);
 
 	intptr_t nGaps = static_arrlen(gapsTokuda);

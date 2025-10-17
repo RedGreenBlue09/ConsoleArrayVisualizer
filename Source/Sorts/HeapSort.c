@@ -73,7 +73,7 @@ void BUHS_SiftDown(visualizer_array_handle arrayHandle, visualizer_int* array, i
 
 		if (right < end) {
 
-			Visualizer_UpdateRead2(arrayHandle, right, left, 0.25);
+			Visualizer_UpdateRead2(arrayHandle, right, left, 1.0f);
 			if ((array[right] > array[left])) {
 				j = right;
 			} else {
@@ -88,12 +88,12 @@ void BUHS_SiftDown(visualizer_array_handle arrayHandle, visualizer_int* array, i
 	}
 
 	while (array[i] > array[j]) {
-		Visualizer_UpdateRead2(arrayHandle, i, j, 0.25);
+		Visualizer_UpdateRead2(arrayHandle, i, j, 1.0f);
 		j = (j - 1) / 2;
 	}
 
 	while (j > i) {
-		Visualizer_UpdateSwap(arrayHandle, i, j, 0.25);
+		Visualizer_UpdateSwap(arrayHandle, i, j, 1.0f);
 		swap(&array[i], &array[j]);
 		j = (j - 1) / 2;
 	}
@@ -111,7 +111,7 @@ void BUHS_SiftDown(visualizer_array_handle arrayHandle, visualizer_int* array, i
 
 void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
-		Visualizer_ScaleSleepMultiplier(n, 1.0, Visualizer_SleepScale_NLogN)
+		Visualizer_ScaleSleepMultiplier(n, 0.25f, Visualizer_SleepScale_NLogN)
 	);
 
 	intptr_t length = n;
@@ -120,7 +120,7 @@ void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array
 		BUHS_SiftDown(arrayHandle, array, i, length);
 
 	for (intptr_t i = length - 1; i > 0; --i) {
-		Visualizer_UpdateSwap(arrayHandle, 0, i, 0.25);
+		Visualizer_UpdateSwap(arrayHandle, 0, i, 1.0f);
 		swap(&array[0], &array[i]);
 		BUHS_SiftDown(arrayHandle, array, 0, i);
 	}
