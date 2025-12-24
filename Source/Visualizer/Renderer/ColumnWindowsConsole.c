@@ -48,23 +48,21 @@ typedef struct {
 	uint8_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 } array_member;
 
-
 typedef struct {
 	atomic bool bUpdated;
-	// I tested SharedLock + atomic variables against this SpinLock solution.
-	// SpinLock is much faster because it has fewer atomic operations.
 	spinlock Lock;
 	// Worst case: 2^24 members each containing 2^8 repeated attributes
 	// This will break rendering but will still work due to unsigned integer wrapping.
-	usize MemberCount;
+	usize MemberCount; // Doesn't have to be duplicated per-thread but it's simpler to keep it this way.
 	visualizer_long ValueSum;
 	uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
 } column_info;
 
 typedef struct {
-	alignas(sizeof(void*) * 16) atomic uint64_t ReadCount;
+	alignas(sizeof(void*) * 16) column_info* aColumn;
+	atomic uint64_t ReadCount;
 	atomic uint64_t WriteCount;
-} rw_counter;
+} array_tls;
 
 typedef struct {
 	llist_node      Node;
@@ -76,9 +74,7 @@ typedef struct {
 	array_member*   aState;
 
 	usize           ColumnCount;
-	column_info*    aColumn;
-
-	rw_counter*     aRwCounter;
+	array_tls*      aTls;
 } array_prop;
 
 static pool gArrayPropPool;
@@ -158,29 +154,35 @@ typedef struct {
 } ColumnUpdateParam;
 
 static ColumnUpdateParam GetColumnUpdateParam(array_prop* pArrayProp, usize iColumn) {
-	if (!atomic_load_explicit(&pArrayProp->aColumn[iColumn].bUpdated, memory_order_relaxed))
-		return (ColumnUpdateParam){ false, 0, 0 };
+	usize ThreadCount = Visualizer_pThreadPool->ThreadCount;
+	for (usize iThread = 0; iThread < ThreadCount; ++iThread)
+		if (atomic_load_explicit(&pArrayProp->aTls[iThread].aColumn[iColumn].bUpdated, memory_order_relaxed))
+			goto HasUpdate;
+	return (ColumnUpdateParam){ false, 0, 0 };
 
+	HasUpdate:
 	// Choose the correct value & attribute
 
-	column_info* pColumn = &pArrayProp->aColumn[iColumn];
-	visualizer_long ValueSum;
-	uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount];
+	visualizer_long ValueSum = 0;
+	uint32_t aMarkerCount[Visualizer_MarkerAttribute_EnumCount] = { 0 };
 
-	//SharedLock_LockExclusive(&pColumn->SharedLock);
-	SpinLock_Lock(&pColumn->Lock);
+	for (usize iThread = 0; iThread < ThreadCount; ++iThread) {
+		column_info* pColumn = &pArrayProp->aTls[iThread].aColumn[iColumn];
 
-	pColumn->bUpdated = false;
-	ValueSum = pColumn->ValueSum;
-	memcpy(aMarkerCount, (uint32_t*)&pColumn->aMarkerCount, sizeof(aMarkerCount));
+		SpinLock_Lock(&pColumn->Lock);
 
-	//SharedLock_UnlockExclusive(&pColumn->SharedLock);
-	SpinLock_Unlock(&pColumn->Lock);
+		atomic_store_explicit(&pColumn->bUpdated, false, memory_order_relaxed);
+		ValueSum += pColumn->ValueSum;
+		for (usize iMarker = 0; iMarker < Visualizer_MarkerAttribute_EnumCount; ++iMarker)
+			aMarkerCount[iMarker] += pColumn->aMarkerCount[iMarker]; // Possible with SIMD
+
+		SpinLock_Unlock(&pColumn->Lock);
+	}
 
 	// NOTE: Precision loss: This force it to have a precision = range
 	// Fix is possible but does it worth it?
 	uint64_t Rem;
-	visualizer_int Value = (visualizer_int)div_u64(ValueSum, pColumn->MemberCount, &Rem);
+	visualizer_int Value = (visualizer_int)div_u64(ValueSum, pArrayProp->aTls->aColumn[iColumn].MemberCount, &Rem);
 
 	// Find the attribute that have the most occurrences. TODO: SIMD
 	uint8_t MaxAttrCount = aMarkerCount[0];
@@ -303,8 +305,7 @@ static int RenderThreadMain(void* pData) {
 		if (atomic_load_explicit(&pArrayProp->bRemoved, memory_order_relaxed)) {
 			atomic_thread_fence_light(&pArrayProp->bRemoved, memory_order_acquire);
 			free(pArrayProp->aState);
-			free(pArrayProp->aColumn);
-			free(pArrayProp->aRwCounter);
+			free(pArrayProp->aTls);
 			Pool_DeallocateAddress(&gArrayPropPool, pArrayProp);
 			gpArrayPropHead = NULL;
 
@@ -418,8 +419,8 @@ static int RenderThreadMain(void* pData) {
 		uint64_t ReadCount = 0;
 		uint64_t WriteCount = 0;
 		for (uint8_t i = 0; i < Visualizer_pThreadPool->ThreadCount; ++i) {
-			ReadCount += atomic_load_explicit(&pArrayProp->aRwCounter[i].ReadCount, memory_order_relaxed);
-			WriteCount += atomic_load_explicit(&pArrayProp->aRwCounter[i].WriteCount, memory_order_relaxed);
+			ReadCount += atomic_load_explicit(&pArrayProp->aTls[i].ReadCount, memory_order_relaxed);
+			WriteCount += atomic_load_explicit(&pArrayProp->aTls[i].WriteCount, memory_order_relaxed);
 		}
 
 		// Reads
@@ -572,21 +573,32 @@ visualizer_array Visualizer_AddArray(
 
 	pArrayProp->Size = Size;
 	pArrayProp->aState = malloc_guarded(Size * sizeof(*pArrayProp->aState));
-	pArrayProp->ColumnCount = min2(Size, gBufferInfo.dwSize.X);
-
-	pArrayProp->aColumn = calloc_guarded(pArrayProp->ColumnCount, sizeof(*pArrayProp->aColumn));
-	pArrayProp->aRwCounter = calloc_guarded(Visualizer_pThreadPool->ThreadCount, sizeof(*pArrayProp->aRwCounter));
-
-	for (usize iMember = 0; iMember < Size; ++iMember) { // Window resize? Nah, too expensive.
-		usize iColumn = NearestNeighborScale(iMember, Size, pArrayProp->ColumnCount);
-		++pArrayProp->aColumn[iColumn].MemberCount;
-	}
 
 	if (aArrayState)
 		for (usize i = 0; i < Size; ++i)
 			pArrayProp->aState[i] = (array_member){ aArrayState[i] };
 	else
 		memset(pArrayProp->aState, 0, Size * sizeof(*pArrayProp->aState));
+
+	pArrayProp->ColumnCount = min2(Size, gBufferInfo.dwSize.X);
+
+	usize ThreadCount = Visualizer_pThreadPool->ThreadCount;
+	usize ColumnArraySize = pArrayProp->ColumnCount * sizeof(*pArrayProp->aTls->aColumn);
+	// Group allocations
+	uint8_t* aBuffer = calloc_guarded((sizeof(*pArrayProp->aTls) + ColumnArraySize) * ThreadCount, 1);
+
+	pArrayProp->aTls = (void*)aBuffer; // Only need to free this
+	aBuffer += sizeof(*pArrayProp->aTls) * ThreadCount;
+
+	for (usize iThread = 0; iThread < ThreadCount; ++iThread) { // Window resize? Nah, too expensive
+		column_info* aColumn = (void*)aBuffer;
+		aBuffer += ColumnArraySize;
+		pArrayProp->aTls[iThread].aColumn = aColumn;
+		for (usize iMember = 0; iMember < Size; ++iMember) {
+			usize iColumn = NearestNeighborScale(iMember, Size, pArrayProp->ColumnCount);
+			++aColumn[iColumn].MemberCount;
+		}
+	}
 
 	if (ValueMax <= ValueMin)
 		ValueMax = ValueMin + 1;
@@ -595,8 +607,8 @@ visualizer_array Visualizer_AddArray(
 	atomic_init(&pArrayProp->bRemoved, false);
 
 	for (uint8_t i = 0; i < Visualizer_pThreadPool->ThreadCount; ++i) {
-		atomic_init(&pArrayProp->aRwCounter[i].ReadCount, 0);
-		atomic_init(&pArrayProp->aRwCounter[i].WriteCount, 0);
+		atomic_init(&pArrayProp->aTls[i].ReadCount, 0);
+		atomic_init(&pArrayProp->aTls[i].WriteCount, 0);
 	}
 
 	if (!gpArrayPropHead) // TODO: Multi array
@@ -649,6 +661,7 @@ typedef uint8_t member_update_type;
 #define MemberUpdateType_Value          (1 << 1)
 
 static ext_forceinline void UpdateMember(
+	usize iThread,
 	array_prop* pArrayProp,
 	usize iPosition,
 	member_update_type UpdateType,
@@ -661,7 +674,7 @@ static ext_forceinline void UpdateMember(
 	// Most branches are known at compile time and can be optimized
 
 	usize iColumn = NearestNeighborScale(iPosition, pArrayProp->Size, pArrayProp->ColumnCount);
-	column_info* pColumn = &pArrayProp->aColumn[iColumn];
+	column_info* pColumn = &pArrayProp->aTls[iThread].aColumn[iColumn];
 
 	if (UpdateType & MemberUpdateType_Attribute) {
 		if (bAddAttribute)
@@ -692,26 +705,18 @@ static ext_forceinline void UpdateMember(
 void Visualizer_UpdateArrayState(visualizer_array hArray, visualizer_int* aState) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	for (usize i = 0; i < pArrayProp->Size; ++i)
-		UpdateMember(pArrayProp, i, MemberUpdateType_Value, false, 0, aState[i]);
+		UpdateMember(0, pArrayProp, i, MemberUpdateType_Value, false, 0, aState[i]);
 }
 
 // Marker helpers
 
-static inline void AddMarker(
-	array_prop* pArrayProp,
-	usize iPosition,
-	visualizer_marker_attribute Attribute
-) {
-	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, true, Attribute, 0);
+static inline void AddMarker(usize iThread, array_prop* pArrayProp, usize iPosition, visualizer_marker_attribute Attribute) {
+	UpdateMember(iThread, pArrayProp, iPosition, MemberUpdateType_Attribute, true, Attribute, 0);
 }
 
-static inline void AddMarkerWithValue(
-	array_prop* pArrayProp,
-	usize iPosition,
-	visualizer_marker_attribute Attribute,
-	visualizer_int Value
-) {
+static inline void AddMarkerWithValue(usize iThread, array_prop* pArrayProp, usize iPosition, visualizer_marker_attribute Attribute, visualizer_int Value) {
 	UpdateMember(
+		iThread,
 		pArrayProp,
 		iPosition,
 		MemberUpdateType_Attribute | MemberUpdateType_Value,
@@ -721,19 +726,14 @@ static inline void AddMarkerWithValue(
 	);
 }
 
-static inline void RemoveMarkerHelper(array_prop* pArrayProp, usize iPosition, visualizer_marker_attribute Attribute) {
-	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
+static inline void RemoveMarkerHelper(usize iThread, array_prop* pArrayProp, usize iPosition, visualizer_marker_attribute Attribute) {
+	UpdateMember(iThread, pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
 }
 
 // It does not update the iPosition member
-static inline void MoveMarkerHelper(
-	array_prop* pArrayProp,
-	usize iPosition,
-	usize iNewPosition,
-	visualizer_marker_attribute Attribute
-) {
-	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
-	UpdateMember(pArrayProp, iNewPosition, MemberUpdateType_Attribute, true, Attribute, 0);
+static inline void MoveMarkerHelper(usize iThread, array_prop* pArrayProp, usize iPosition, usize iNewPosition, visualizer_marker_attribute Attribute) {
+	UpdateMember(iThread, pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
+	UpdateMember(iThread, pArrayProp, iNewPosition, MemberUpdateType_Attribute, true, Attribute, 0);
 }
 
 // Delays
@@ -770,10 +770,10 @@ void Visualizer_UpdateRead(
 	floatptr_t fSleepMultiplier
 ) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
-	atomic_fetch_add_explicit(&pArrayProp->aRwCounter[iThread].ReadCount, 1, memory_order_relaxed);
-	AddMarker(pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
+	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].ReadCount, 1, memory_order_relaxed);
+	AddMarker(iThread, pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
-	RemoveMarkerHelper(pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
+	RemoveMarkerHelper(iThread, pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
 }
 
 void Visualizer_UpdateRead2(
@@ -784,12 +784,12 @@ void Visualizer_UpdateRead2(
 	floatptr_t fSleepMultiplier
 ) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
-	atomic_fetch_add_explicit(&pArrayProp->aRwCounter[iThread].ReadCount, 2, memory_order_relaxed);
-	AddMarker(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
-	AddMarker(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
+	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].ReadCount, 2, memory_order_relaxed);
+	AddMarker(iThread, pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
+	AddMarker(iThread, pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
-	RemoveMarkerHelper(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
-	RemoveMarkerHelper(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
+	RemoveMarkerHelper(iThread, pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
+	RemoveMarkerHelper(iThread, pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
 }
 
 void Visualizer_UpdateReadMulti(
@@ -801,12 +801,12 @@ void Visualizer_UpdateReadMulti(
 ) {
 	assert(Length <= 16);
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
-	atomic_fetch_add_explicit(&pArrayProp->aRwCounter[iThread].ReadCount, Length, memory_order_relaxed);
+	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].ReadCount, Length, memory_order_relaxed);
 	for (usize i = 0; i < Length; ++i)
-		AddMarker(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Read);
+		AddMarker(iThread, pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
 	for (usize i = 0; i < Length; ++i)
-		RemoveMarkerHelper(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Read);
+		RemoveMarkerHelper(iThread, pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Read);
 }
 
 void Visualizer_UpdateWrite(
@@ -817,10 +817,10 @@ void Visualizer_UpdateWrite(
 	floatptr_t fSleepMultiplier
 ) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
-	atomic_fetch_add_explicit(&pArrayProp->aRwCounter[iThread].WriteCount, 1, memory_order_relaxed);
-	AddMarkerWithValue(pArrayProp, iPosition, Visualizer_MarkerAttribute_Write, NewValue);
+	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].WriteCount, 1, memory_order_relaxed);
+	AddMarkerWithValue(iThread, pArrayProp, iPosition, Visualizer_MarkerAttribute_Write, NewValue);
 	Visualizer_Sleep(fSleepMultiplier);
-	RemoveMarkerHelper(pArrayProp, iPosition, Visualizer_MarkerAttribute_Write);
+	RemoveMarkerHelper(iThread, pArrayProp, iPosition, Visualizer_MarkerAttribute_Write);
 }
 
 void Visualizer_UpdateReadWrite(
@@ -833,14 +833,14 @@ void Visualizer_UpdateReadWrite(
 ) {
 	array_prop* pArrayPropA = GetHandleData(&gArrayPropPool, hArrayA);
 	array_prop* pArrayPropB = GetHandleData(&gArrayPropPool, hArrayB);
-	atomic_fetch_add_explicit(&pArrayPropA->aRwCounter[iThread].WriteCount, 1, memory_order_relaxed);
-	atomic_fetch_add_explicit(&pArrayPropB->aRwCounter[iThread].ReadCount, 1, memory_order_relaxed);
+	atomic_fetch_add_explicit(&pArrayPropA->aTls[iThread].WriteCount, 1, memory_order_relaxed);
+	atomic_fetch_add_explicit(&pArrayPropB->aTls[iThread].ReadCount, 1, memory_order_relaxed);
 	visualizer_int NewValueA = pArrayPropB->aState[iPositionB].Value;
-	AddMarkerWithValue(pArrayPropA, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
-	AddMarker(pArrayPropB, iPositionB, Visualizer_MarkerAttribute_Read);
+	AddMarkerWithValue(iThread, pArrayPropA, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
+	AddMarker(iThread, pArrayPropB, iPositionB, Visualizer_MarkerAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
-	RemoveMarkerHelper(pArrayPropA, iPositionA, Visualizer_MarkerAttribute_Write);
-	RemoveMarkerHelper(pArrayPropB, iPositionB, Visualizer_MarkerAttribute_Read);
+	RemoveMarkerHelper(iThread, pArrayPropA, iPositionA, Visualizer_MarkerAttribute_Write);
+	RemoveMarkerHelper(iThread, pArrayPropB, iPositionB, Visualizer_MarkerAttribute_Read);
 }
 
 void Visualizer_UpdateSwap(
@@ -851,15 +851,15 @@ void Visualizer_UpdateSwap(
 	floatptr_t fSleepMultiplier
 ) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
-	atomic_fetch_add_explicit(&pArrayProp->aRwCounter[iThread].ReadCount, 2, memory_order_relaxed);
-	atomic_fetch_add_explicit(&pArrayProp->aRwCounter[iThread].WriteCount, 2, memory_order_relaxed);
+	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].ReadCount, 2, memory_order_relaxed);
+	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].WriteCount, 2, memory_order_relaxed);
 	visualizer_int NewValueA = pArrayProp->aState[iPositionB].Value;
 	visualizer_int NewValueB = pArrayProp->aState[iPositionA].Value;
-	AddMarkerWithValue(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
-	AddMarkerWithValue(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write, NewValueB);
+	AddMarkerWithValue(iThread, pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write, NewValueA);
+	AddMarkerWithValue(iThread, pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write, NewValueB);
 	Visualizer_Sleep(fSleepMultiplier);
-	RemoveMarkerHelper(pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write);
-	RemoveMarkerHelper(pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write);
+	RemoveMarkerHelper(iThread, pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write);
+	RemoveMarkerHelper(iThread, pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write);
 }
 
 void Visualizer_UpdateWriteMulti(
@@ -872,30 +872,30 @@ void Visualizer_UpdateWriteMulti(
 ) {
 	assert(Length <= 16);
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
-	atomic_fetch_add_explicit(&pArrayProp->aRwCounter[iThread].WriteCount, Length, memory_order_relaxed);
+	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].WriteCount, Length, memory_order_relaxed);
 	for (usize i = 0; i < Length; ++i)
-		AddMarkerWithValue(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Write, aNewValue[i]);
+		AddMarkerWithValue(iThread, pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Write, aNewValue[i]);
 	Visualizer_Sleep(fSleepMultiplier);
 	for (usize i = 0; i < Length; ++i)
-		RemoveMarkerHelper(pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Write);
+		RemoveMarkerHelper(iThread, pArrayProp, iStartPosition + i, Visualizer_MarkerAttribute_Write);
 }
 
 // Marker
 
 visualizer_marker Visualizer_CreateMarker(usize iThread, visualizer_array hArray, usize iPosition, visualizer_marker_attribute Attribute) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
-	AddMarker(pArrayProp, iPosition, Attribute);
+	AddMarker(iThread, pArrayProp, iPosition, Attribute);
 	return (visualizer_marker){ hArray, iPosition, Attribute };
 }
 
 void Visualizer_RemoveMarker(usize iThread, visualizer_marker Marker) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, Marker.hArray);
-	RemoveMarkerHelper(pArrayProp, Marker.iPosition, Marker.Attribute);
+	RemoveMarkerHelper(iThread, pArrayProp, Marker.iPosition, Marker.Attribute);
 }
 
 void Visualizer_MoveMarker(usize iThread, visualizer_marker* pMarker, usize iNewPosition) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, pMarker->hArray);
-	MoveMarkerHelper(pArrayProp, pMarker->iPosition, iNewPosition, pMarker->Attribute);
+	MoveMarkerHelper(iThread, pArrayProp, pMarker->iPosition, iNewPosition, pMarker->Attribute);
 	pMarker->iPosition = iNewPosition;
 }
 
@@ -916,8 +916,8 @@ void Visualizer_SetAlgorithmName(char* sAlgorithmName) {
 void Visualizer_ClearReadWriteCounter() {
 	array_prop* pArrayProp = gpArrayPropHead; // TODO: Multiple arrays
 	for (uint8_t i = 0; i < Visualizer_pThreadPool->ThreadCount; ++i) {
-		atomic_store_explicit(&pArrayProp->aRwCounter[i].ReadCount, 0, memory_order_relaxed);
-		atomic_store_explicit(&pArrayProp->aRwCounter[i].WriteCount, 0, memory_order_relaxed);
+		atomic_store_explicit(&pArrayProp->aTls[i].ReadCount, 0, memory_order_relaxed);
+		atomic_store_explicit(&pArrayProp->aTls[i].WriteCount, 0, memory_order_relaxed);
 	}
 }
 
@@ -931,14 +931,14 @@ static const visualizer_marker_attribute gaCorrectnessAttribute[2] = {
 void Visualizer_UpdateCorrectness(usize iThread, visualizer_array hArray, usize iPosition, bool bCorrect, floatptr_t fSleepMultiplier) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	visualizer_marker_attribute Attribute = gaCorrectnessAttribute[bCorrect];
-	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, true, Attribute, 0);
+	UpdateMember(iThread, pArrayProp, iPosition, MemberUpdateType_Attribute, true, Attribute, 0);
 	Visualizer_Sleep(1.0);
 }
 
 void Visualizer_ClearCorrectness(usize iThread, visualizer_array hArray, usize iPosition, bool bCorrect) {
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	visualizer_marker_attribute Attribute = gaCorrectnessAttribute[bCorrect];
-	UpdateMember(pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
+	UpdateMember(iThread, pArrayProp, iPosition, MemberUpdateType_Attribute, false, Attribute, 0);
 }
 
 // Timer
