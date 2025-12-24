@@ -118,7 +118,7 @@ static inline usize NearestNeighborScale(usize iA, usize nA, usize nB) {
 	return (usize)div_u64(((uint64_t)iA * nB + nB / 2), nA, &Rem);
 }
 
-static void UpdateCellCacheRow(int16_t iRow, const char* sText, usize nText) {
+static void UpdateCellCacheRow(int16_t iRow, const char* sText, isize nText) {
 	if (iRow >= gBufferInfo.dwSize.Y)
 		return;
 	if (nText > gBufferInfo.dwSize.X)
@@ -580,7 +580,7 @@ visualizer_array Visualizer_AddArray(
 	else
 		memset(pArrayProp->aState, 0, Size * sizeof(*pArrayProp->aState));
 
-	pArrayProp->ColumnCount = min2(Size, gBufferInfo.dwSize.X);
+	pArrayProp->ColumnCount = min2(Size, (usize)gBufferInfo.dwSize.X);
 
 	usize ThreadCount = Visualizer_pThreadPool->ThreadCount;
 	usize ColumnArraySize = pArrayProp->ColumnCount * sizeof(*pArrayProp->aTls->aColumn);

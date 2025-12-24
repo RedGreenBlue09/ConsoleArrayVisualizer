@@ -13,19 +13,23 @@ typedef struct {
 	void* Parameter;
 	thread_pool_wait_group* pWaitGroup;
 	// Internal stuff
-	uint8_t iStackEntry;
+	usize iStackEntry;
 } thread_pool_job;
 
 typedef struct {
+#if MACHINE_LLSC_ATOMICS
+	usize iEntry;
+#else
 	uint64_t iEntry : 7;
 	// Unless the pop thread stops for years while others are running,
 	// we shouldn't get the ABA problem.
 	uint64_t Version : 57;
+#endif
 } thread_pool_stack_head;
 
 typedef struct {
-	uint8_t iThread;
-	uint8_t iNextEntry;
+	usize iThread;
+	usize iNextEntry;
 } thread_pool_stack_entry;
 
 typedef struct {
@@ -39,7 +43,7 @@ typedef struct {
 } thread_pool_worker_thread;
 
 typedef struct {
-	uint8_t ThreadCount;
+	usize ThreadCount;
 	uint8_t TlsSlotCount;
 	atomic thread_pool_stack_head StackHead;
 	thread_pool_worker_thread aWorkerThread[];

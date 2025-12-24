@@ -62,4 +62,8 @@ typedef float floatptr_t;
 #endif
 
 typedef uintptr_t usize;
+#define USIZE_MAX UINTPTR_MAX
+
 typedef intptr_t isize;
+#define ISIZE_MAX INTPTR_MAX
+#define ISIZE_MIN INTPTR_MIN

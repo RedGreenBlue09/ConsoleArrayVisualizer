@@ -4,10 +4,10 @@
 
 void DistributeLinear(
 	usize iThread,
-	randptr_state RngState,
 	visualizer_array hArray,
 	visualizer_int* aArray,
-	usize Length
+	usize Length,
+	randptr_state RngState
 ) {
 	Visualizer_SetAlgorithmSleepMultiplier(
 		Visualizer_ScaleSleepMultiplier(Length, 0.0625f, Visualizer_SleepScale_N)
@@ -20,10 +20,10 @@ void DistributeLinear(
 
 void VerifyLinear(
 	usize iThread,
-	randptr_state RngState,
 	visualizer_array hArray,
 	const visualizer_int* aArray,
-	usize Length
+	usize Length,
+	randptr_state RngState
 ) {
 	Visualizer_SetAlgorithmSleepMultiplier(
 		Visualizer_ScaleSleepMultiplier(Length, 0.0625f, Visualizer_SleepScale_N)
@@ -34,10 +34,10 @@ void VerifyLinear(
 
 void UnverifyLinear(
 	usize iThread,
-	randptr_state RngState,
 	visualizer_array hArray,
 	const visualizer_int* aArray,
-	usize Length
+	usize Length,
+	randptr_state RngState
 ) {
 	for (usize i = 0; i < Length; ++i)
 		Visualizer_ClearCorrectness(iThread, hArray, i, aArray[i] == (visualizer_int)i);
