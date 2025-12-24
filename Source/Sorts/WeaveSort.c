@@ -3,32 +3,32 @@
 #include "Utils/ThreadPool.h"
 #include "Visualizer.h"
 
-static void step(uint8_t iThread, visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t x, intptr_t y) {
-	Visualizer_UpdateRead2T(iThread, arrayHandle, x, y, 1.0f);
+static void step(usize iThread, visualizer_array arrayHandle, visualizer_int* array, usize x, usize y) {
+	Visualizer_UpdateRead2(iThread, arrayHandle, x, y, 1.0f);
 	if (array[x] > array[y]) {
 		swap(&array[x], &array[y]);
-		Visualizer_UpdateSwapT(iThread, arrayHandle, x, y, 1.0f);
+		Visualizer_UpdateSwap(iThread, arrayHandle, x, y, 1.0f);
 	}
 }
 
 typedef struct {
-	visualizer_array_handle arrayHandle;
+	visualizer_array arrayHandle;
 	visualizer_int* array;
-	intptr_t start;
-	intptr_t stop;
-	intptr_t gap;
+	usize start;
+	usize stop;
+	usize gap;
 } circle_parameter;
 
-static void circle(uint8_t iThread, void* parameter) {
+static void circle(usize iThread, void* parameter) {
 	circle_parameter* circleParameter = parameter;
-	visualizer_array_handle arrayHandle = circleParameter->arrayHandle;
+	visualizer_array arrayHandle = circleParameter->arrayHandle;
 	visualizer_int* array = circleParameter->array;
-	intptr_t start = circleParameter->start;
-	intptr_t stop = circleParameter->stop;
-	intptr_t gap = circleParameter->gap;
+	usize start = circleParameter->start;
+	usize stop = circleParameter->stop;
+	usize gap = circleParameter->gap;
 
 	if ((stop - start) / gap >= 1) {
-		intptr_t left = start, right = stop;
+		isize left = start, right = stop;
 		while (left < right) {
 			step(iThread, arrayHandle, array, left, right);
 			left += gap;
@@ -52,20 +52,20 @@ static void circle(uint8_t iThread, void* parameter) {
 }
 
 typedef struct {
-	visualizer_array_handle arrayHandle;
+	visualizer_array arrayHandle;
 	visualizer_int* array;
-	intptr_t n;
-	intptr_t start;
-	intptr_t gap;
+	usize n;
+	usize start;
+	usize gap;
 } sort_main_parameter;
 
-static void sortMain(uint8_t iThread, void* parameter) {
+static void sortMain(usize iThread, void* parameter) {
 	sort_main_parameter* sortParameter = parameter;
-	visualizer_array_handle arrayHandle = sortParameter->arrayHandle;
+	visualizer_array arrayHandle = sortParameter->arrayHandle;
 	visualizer_int* array = sortParameter->array;
-	intptr_t n = sortParameter->n;
-	intptr_t start = sortParameter->start;
-	intptr_t gap = sortParameter->gap;
+	usize n = sortParameter->n;
+	usize start = sortParameter->start;
+	usize gap = sortParameter->gap;
 
 	if (gap < n) {
 		thread_pool_wait_group waitGroup;
@@ -87,7 +87,7 @@ static void sortMain(uint8_t iThread, void* parameter) {
 	return;
 }
 
-void WeaveSortParallel(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
+void WeaveSortParallel(usize iThread, visualizer_array arrayHandle, visualizer_int* array, usize n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
 		Visualizer_ScaleSleepMultiplier(n, 2.0f, Visualizer_SleepScale_NLogNLogN)
 	);

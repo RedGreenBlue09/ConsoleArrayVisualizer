@@ -3,7 +3,7 @@
 #include "Visualizer.h"
 #include "Utils/Random.h"
 
-typedef void sort_function(visualizer_array_handle, visualizer_int*, intptr_t);
+typedef void sort_function(usize, visualizer_array, visualizer_int*, usize);
 
 typedef struct {
 	char sName[56];
@@ -11,11 +11,11 @@ typedef struct {
 } sort_info;
 
 extern sort_info RunSorts_aSort[];
-extern uintptr_t RunSorts_nSort;
+extern usize RunSorts_nSort;
 
-typedef void distribute_function(randptr_state, visualizer_array_handle, visualizer_int*, intptr_t);
-typedef void verify_function(randptr_state, visualizer_array_handle, const visualizer_int*, intptr_t);
-typedef void unverify_function(randptr_state, visualizer_array_handle, const visualizer_int*, intptr_t);
+typedef void distribute_function(usize, visualizer_array, visualizer_int*, usize, randptr_state);
+typedef void verify_function(usize, visualizer_array, const visualizer_int*, usize, randptr_state);
+typedef void unverify_function(usize, visualizer_array, const visualizer_int*, usize, randptr_state);
 
 typedef struct {
 	char sName[56];
@@ -25,9 +25,9 @@ typedef struct {
 } distribution_info;
 
 extern distribution_info RunSorts_aDistribution[];
-extern uintptr_t RunSorts_nDistribution;
+extern usize RunSorts_nDistribution;
 
-typedef void shuffle_function(randptr_state, visualizer_array_handle, visualizer_int*, intptr_t);
+typedef void shuffle_function(usize, visualizer_array, visualizer_int*, usize, randptr_state);
 
 typedef struct {
 	char sName[56];
@@ -35,13 +35,13 @@ typedef struct {
 } shuffle_info;
 
 extern shuffle_info RunSorts_aShuffle[];
-extern uintptr_t RunSorts_nShuffle;
+extern usize RunSorts_nShuffle;
 
 void RunSorts_RunSort(
 	sort_info* pSort,
 	distribution_info* pDistribution,
 	shuffle_info* pShuffle,
-	visualizer_array_handle hArray,
+	visualizer_array hArray,
 	visualizer_int* aArray,
-	intptr_t Length
+	usize Length
 );

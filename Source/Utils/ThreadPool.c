@@ -37,11 +37,11 @@ static void BackoffSleep(backoff_parameter Parameter) {
 
 // WaitGroup
 
-void ThreadPool_WaitGroup_Init(thread_pool_wait_group* pWaitGroup, size_t ThreadCount) {
+void ThreadPool_WaitGroup_Init(thread_pool_wait_group* pWaitGroup, usize ThreadCount) {
 	atomic_init(pWaitGroup, ThreadCount);
 }
 
-void ThreadPool_WaitGroup_Increase(thread_pool_wait_group* pWaitGroup, size_t ThreadCount) {
+void ThreadPool_WaitGroup_Increase(thread_pool_wait_group* pWaitGroup, usize ThreadCount) {
 	// This should be used before AddJob(). As a result, AddJob() creates a fence for us.
 	atomic_fetch_add_explicit(pWaitGroup, ThreadCount, memory_order_relaxed);
 }
@@ -147,18 +147,18 @@ static int WorkerThreadFunction(void* Parameter) {
 
 // Create & delete
 
-thread_pool* ThreadPool_Create(uint8_t ThreadCount) {
+thread_pool* ThreadPool_Create(usize ThreadCount) {
 	// Alloc
 	// TODO: Separate this so that the user can allocate it on the stack
 
 	thread_pool* pThreadPool;
-	size_t StructSize = sizeof(*pThreadPool) + sizeof(pThreadPool->aWorkerThread[0]) * ThreadCount;
+	usize StructSize = sizeof(*pThreadPool) + sizeof(pThreadPool->aWorkerThread[0]) * ThreadCount;
 
 	pThreadPool = malloc_guarded(StructSize);
 
 	// Init
 
-	pThreadPool->ThreadCount = ThreadCount;
+	pThreadPool->ThreadCount = (uint8_t)ThreadCount;
 	pThreadPool->TlsSlotCount = 0;
 	atomic_init(&pThreadPool->StackHead, (thread_pool_stack_head){ 0, 0 });
 
@@ -211,7 +211,7 @@ void ThreadPool_AddJob(thread_pool* pThreadPool, thread_pool_job* pJob) {
 	atomic_store_fence_light(&pThreadPool->aWorkerThread[iThread].bJobAvailable, true);
 }
 
-void ThreadPool_AddJobRecursive(thread_pool* pThreadPool, thread_pool_job* pJob, uint8_t iCurrentThread) {
+void ThreadPool_AddJobRecursive(thread_pool* pThreadPool, thread_pool_job* pJob, usize iCurrentThread) {
 	pJob->iStackEntry = StackPopFreeThread(pThreadPool);
 	if (pJob->iStackEntry == UINT8_MAX) {
 		// Get the job done on the calling thread to prevent dead lock
@@ -227,22 +227,22 @@ void ThreadPool_AddJobRecursive(thread_pool* pThreadPool, thread_pool_job* pJob,
 
 // TLS
 
-size_t ThreadPool_TlsSize() {
+usize ThreadPool_TlsSize() {
 	return sizeof(thread_pool_worker_thread) - offsetof(thread_pool_worker_thread, TlsBegin);
 }
 
-void* ThreadPool_TlsGet(thread_pool* pThreadPool, uint8_t iThread, uint8_t Slot) {
+void* ThreadPool_TlsGet(thread_pool* pThreadPool, usize iThread, uint8_t Slot) {
 	return (void*)&pThreadPool->aWorkerThread[iThread].TlsBegin;
 }
 
-uint8_t ThreadPool_TlsArenaAlloc(thread_pool* pThreadPool, size_t Size) {
+uint8_t ThreadPool_TlsArenaAlloc(thread_pool* pThreadPool, usize Size) {
 	assert(Size <= ThreadPool_TlsSize() - (pThreadPool->TlsSlotCount * sizeof(void*)));
 	uint8_t Result = pThreadPool->TlsSlotCount;
 	pThreadPool->TlsSlotCount += (uint8_t)(Size / sizeof(void*) + (Size % sizeof(void*) > 0));
 	return Result;
 }
 
-void ThreadPool_TlsArenaFree(thread_pool* pThreadPool, size_t Size) {
+void ThreadPool_TlsArenaFree(thread_pool* pThreadPool, usize Size) {
 	assert(Size <= pThreadPool->TlsSlotCount * sizeof(void*));
 	pThreadPool->TlsSlotCount -= (uint8_t)(Size / sizeof(void*) + (Size % sizeof(void*) > 0));
 }

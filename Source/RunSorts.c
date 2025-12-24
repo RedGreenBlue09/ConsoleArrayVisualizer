@@ -48,7 +48,7 @@ sort_info RunSorts_aSort[] = {
 	},
 };
 
-uintptr_t RunSorts_nSort = static_arrlen(RunSorts_aSort);
+usize RunSorts_nSort = static_arrlen(RunSorts_aSort);
 
 distribute_function DistributeLinear;
 verify_function VerifyLinear;
@@ -103,7 +103,7 @@ distribution_info RunSorts_aDistribution[] = {
 	},
 };
 
-uintptr_t RunSorts_nDistribution = static_arrlen(RunSorts_aDistribution);
+usize RunSorts_nDistribution = static_arrlen(RunSorts_aDistribution);
 
 shuffle_function ShuffleRandom;
 shuffle_function ShuffleSorted;
@@ -144,21 +144,31 @@ shuffle_info RunSorts_aShuffle[] = {
 	},
 };
 
-uintptr_t RunSorts_nShuffle = static_arrlen(RunSorts_aShuffle);
+usize RunSorts_nShuffle = static_arrlen(RunSorts_aShuffle);
 
-void RunSorts_RunSort(
-	sort_info* pSort,
-	distribution_info* pDistribution,
-	shuffle_info* pShuffle,
-	visualizer_array_handle hArray,
-	visualizer_int* aArray,
-	intptr_t Length
-) {
+typedef struct {
+	sort_info* pSort;
+	distribution_info* pDistribution;
+	shuffle_info* pShuffle;
+	visualizer_array hArray;
+	visualizer_int* aArray;
+	usize Length;
+} run_sorts_worker_parameter;
+
+static void RunSorts_RunSortWorker(usize iThread, void* Parameter) {
+	run_sorts_worker_parameter* pParameter = Parameter;
+	sort_info* pSort                 = pParameter->pSort;
+	distribution_info* pDistribution = pParameter->pDistribution;
+	shuffle_info* pShuffle           = pParameter->pShuffle;
+	visualizer_array hArray          = pParameter->hArray;
+	visualizer_int* aArray           = pParameter->aArray;
+	usize Length                     = pParameter->Length;
+
 	Visualizer_ResetTimer();
 	uint64_t Second = clock64_resolution();
 
 	randptr_state RngState;
-	srandptr(&RngState, (uintptr_t)clock64());
+	srandptr(&RngState, (usize)clock64());
 
 	// Distribute
 
@@ -169,16 +179,16 @@ void RunSorts_RunSort(
 	strcat_s(sDistributionName, static_arrlen(sDistributionName), pDistribution->sName);
 	Visualizer_SetAlgorithmName(sDistributionName);
 
-	pDistribution->pDistribute(RngState, hArray, aArray, Length);
+	pDistribution->pDistribute(iThread, hArray, aArray, Length, RngState);
 
 	// Shuffle
-	
+
 	char sShuffleName[static_strlen("Shuffle: ") + static_arrlen(pShuffle->sName)] = "";
 	strcat_s(sShuffleName, static_arrlen(sShuffleName), "Shuffle: ");
 	strcat_s(sShuffleName, static_arrlen(sShuffleName), pShuffle->sName);
 	Visualizer_SetAlgorithmName(sShuffleName);
 
-	pShuffle->pShuffle(RngState, hArray, aArray, Length);
+	pShuffle->pShuffle(iThread, hArray, aArray, Length, RngState);
 
 	sleep64(Second);
 
@@ -187,7 +197,7 @@ void RunSorts_RunSort(
 	Visualizer_ClearReadWriteCounter();
 	Visualizer_SetAlgorithmName(pSort->sName);
 	Visualizer_StartTimer();
-	pSort->pSort(hArray, aArray, Length);
+	pSort->pSort(iThread, hArray, aArray, Length);
 	Visualizer_StopTimer();
 
 	// Verify
@@ -197,8 +207,25 @@ void RunSorts_RunSort(
 	strcat_s(sVerifyName, static_arrlen(sVerifyName), pDistribution->sName);
 	Visualizer_SetAlgorithmName(sVerifyName);
 
-	pDistribution->pVerify(RngState, hArray, aArray, Length);
+	pDistribution->pVerify(iThread, hArray, aArray, Length, RngState);
 	sleep64(Second * 3);
-	pDistribution->pUnverify(RngState, hArray, aArray, Length);
+	pDistribution->pUnverify(iThread, hArray, aArray, Length, RngState);
+
+}
+
+void RunSorts_RunSort(
+	sort_info* pSort,
+	distribution_info* pDistribution,
+	shuffle_info* pShuffle,
+	visualizer_array hArray,
+	visualizer_int* aArray,
+	usize Length
+) {
+	run_sorts_worker_parameter Parameter = { pSort, pDistribution, pShuffle, hArray, aArray, Length };
+	thread_pool_wait_group WaitGroup;
+	ThreadPool_WaitGroup_Init(&WaitGroup, 1);
+	thread_pool_job Job = ThreadPool_InitJob(RunSorts_RunSortWorker, &Parameter, &WaitGroup);
+	ThreadPool_AddJob(Visualizer_pThreadPool, &Job);
+	ThreadPool_WaitGroup_Wait(&WaitGroup);
 }
 

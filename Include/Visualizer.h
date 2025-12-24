@@ -11,7 +11,7 @@ typedef uint32_t visualizer_uint;
 typedef int64_t visualizer_long;
 typedef uint64_t visualizer_ulong;
 
-typedef void* visualizer_array_handle;
+typedef void* visualizer_array;
 
 typedef uint8_t visualizer_marker_attribute;
 #define Visualizer_MarkerAttribute_Pointer 0
@@ -29,74 +29,54 @@ typedef uint8_t visualizer_sleep_scale;
 
 //#define VISUALIZER_DISABLE_SLEEP 1
 
-void Visualizer_Initialize(size_t ExtraThreadCount);
+void Visualizer_Initialize(usize ExtraThreadCount);
 void Visualizer_Uninitialize();
 
 // Delays
 
-floatptr_t Visualizer_ScaleSleepMultiplier(intptr_t N, floatptr_t fMultiplier, visualizer_sleep_scale ScaleMode);
+floatptr_t Visualizer_ScaleSleepMultiplier(usize N, floatptr_t fMultiplier, visualizer_sleep_scale ScaleMode);
 void Visualizer_SetAlgorithmSleepMultiplier(floatptr_t fAlgorithmSleepMultiplier);
 void Visualizer_SetUserSleepMultiplier(floatptr_t fUserSleepMultiplier);
 void Visualizer_Sleep(floatptr_t fSleepMultiplier);
 
 // Array
 
-visualizer_array_handle Visualizer_AddArray(
-	intptr_t Size,
+visualizer_array Visualizer_AddArray(
+	usize Size,
 	visualizer_int* aArrayState,
 	visualizer_int ValueMin,
 	visualizer_int ValueMax
 );
-void Visualizer_RemoveArray(visualizer_array_handle hArray);
-void Visualizer_UpdateArrayState(visualizer_array_handle hArray, visualizer_int* aState);
+void Visualizer_RemoveArray(visualizer_array hArray);
+void Visualizer_UpdateArrayState(visualizer_array hArray, visualizer_int* aState);
 
 typedef struct {
-	visualizer_array_handle hArray;
-	intptr_t iPosition;
+	visualizer_array hArray;
+	usize iPosition;
 	visualizer_marker_attribute Attribute;
 } visualizer_marker;
 
-// Read & Write (main thread)
+// Read & Write
 
-void Visualizer_UpdateRead(visualizer_array_handle hArray, intptr_t iPosition, floatptr_t fSleepMultiplier);
-void Visualizer_UpdateRead2(visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier);
-void Visualizer_UpdateReadMulti(visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, floatptr_t fSleepMultiplier);
+void Visualizer_UpdateRead(usize iThread, visualizer_array hArray, usize iPosition, floatptr_t fSleepMultiplier);
+void Visualizer_UpdateRead2(usize iThread, visualizer_array hArray, usize iPositionA, usize iPositionB, floatptr_t fSleepMultiplier);
+void Visualizer_UpdateReadMulti(usize iThread, visualizer_array hArray, usize iStartPosition, usize Length, floatptr_t fSleepMultiplier);
 
-void Visualizer_UpdateWrite(visualizer_array_handle hArray, intptr_t iPosition, visualizer_int NewValue, floatptr_t fSleepMultiplier);
-void Visualizer_UpdateSwap(visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier);
-void Visualizer_UpdateReadWrite(visualizer_array_handle hArrayA, visualizer_array_handle hArrayB, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier);
-void Visualizer_UpdateWriteMulti(visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, visualizer_int* aNewValue, floatptr_t fSleepMultiplier);
-
-// Read & Write (thread pool)
-
-void Visualizer_UpdateReadT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPosition, floatptr_t fSleepMultiplier);
-void Visualizer_UpdateRead2T(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier);
-void Visualizer_UpdateReadMultiT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, floatptr_t fSleepMultiplier);
-
-void Visualizer_UpdateWriteT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPosition, visualizer_int NewValue, floatptr_t fSleepMultiplier);
-void Visualizer_UpdateSwapT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier);
-void Visualizer_UpdateReadWriteT(uint8_t iThread, visualizer_array_handle hArrayA, visualizer_array_handle hArrayB, intptr_t iPositionA, intptr_t iPositionB, floatptr_t fSleepMultiplier);
-void Visualizer_UpdateWriteMultiT(uint8_t iThread, visualizer_array_handle hArray, intptr_t iStartPosition, intptr_t Length, visualizer_int* aNewValue, floatptr_t fSleepMultiplier);
+void Visualizer_UpdateWrite(usize iThread, visualizer_array hArray, usize iPosition, visualizer_int NewValue, floatptr_t fSleepMultiplier);
+void Visualizer_UpdateSwap(usize iThread, visualizer_array hArray, usize iPositionA, usize iPositionB, floatptr_t fSleepMultiplier);
+void Visualizer_UpdateReadWrite(usize iThread, visualizer_array hArrayA, visualizer_array hArrayB, usize iPositionA, usize iPositionB, floatptr_t fSleepMultiplier);
+void Visualizer_UpdateWriteMulti(usize iThread, visualizer_array hArray, usize iStartPosition, usize Length, visualizer_int* aNewValue, floatptr_t fSleepMultiplier);
 
 // Marker
 
-visualizer_marker Visualizer_CreateMarker(
-	visualizer_array_handle hArray,
-	intptr_t iPosition,
-	visualizer_marker_attribute Attribute
-);
-void Visualizer_RemoveMarker(
-	visualizer_marker Marker
-);
-void Visualizer_MoveMarker(
-	visualizer_marker* pMarker,
-	intptr_t iNewPosition
-);
+visualizer_marker Visualizer_CreateMarker(usize iThread, visualizer_array hArray, usize iPosition, visualizer_marker_attribute Attribute);
+void Visualizer_RemoveMarker(usize iThread, visualizer_marker Marker);
+void Visualizer_MoveMarker(usize iThread, visualizer_marker* pMarker, usize iNewPosition);
 
 // Correctness
 
-void Visualizer_UpdateCorrectness(visualizer_array_handle hArray, intptr_t iPosition, bool bCorrect, floatptr_t fSleepMultiplier);
-void Visualizer_ClearCorrectness(visualizer_array_handle hArray, intptr_t iPosition, bool bCorrect);
+void Visualizer_UpdateCorrectness(usize iThread, visualizer_array hArray, usize iPosition, bool bCorrect, floatptr_t fSleepMultiplier);
+void Visualizer_ClearCorrectness(usize iThread, visualizer_array hArray, usize iPosition, bool bCorrect);
 
 // Other
 

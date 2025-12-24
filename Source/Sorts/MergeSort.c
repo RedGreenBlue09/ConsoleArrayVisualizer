@@ -4,14 +4,14 @@
 
 #include "Utils/GuardedMalloc.h"
 
-void BinaryInsertion(visualizer_int* array, intptr_t start, intptr_t end);
+void BinaryInsertion(visualizer_int* array, usize start, usize end);
 
-static void merge(visualizer_int* c, visualizer_int* d, size_t lt, size_t md, size_t rt) {
+static void merge(visualizer_int* c, visualizer_int* d, usize lt, usize md, usize rt) {
 
 	// Merge c[lt:md] and c[md+1:rt] to d[lt:rt]
-	size_t i = lt;  // cursor for first segment
-	size_t j = md;  // cursor for second
-	size_t k = lt;  // cursor for result
+	usize i = lt;  // cursor for first segment
+	usize j = md;  // cursor for second
+	usize k = lt;  // cursor for result
 
 	// merge until i or j exits its segment
 	while ((i < md) && (j < rt)) {
@@ -36,13 +36,13 @@ static void merge(visualizer_int* c, visualizer_int* d, size_t lt, size_t md, si
 /**
 * Perform one pass through the two arrays, invoking Merge() above
 */
-static void mergePass(visualizer_int* x, visualizer_int* y, size_t s, size_t n) {
+static void mergePass(visualizer_int* x, visualizer_int* y, usize s, usize n) {
 
 	// Merge adjacent segments of size s.
-	size_t i = 0;
+	usize i = 0;
 
 	// Merge two adjacent segments of size s
-	size_t s2 = s * 2;
+	usize s2 = s * 2;
 	while (i <= n - s2) {
 		merge(x, y, i, i + s, i + s2);
 		i += s2;
@@ -55,7 +55,7 @@ static void mergePass(visualizer_int* x, visualizer_int* y, size_t s, size_t n) 
 	}
 
 	// copy last segment to y
-	for (size_t j = i; j < n; ++j)
+	for (usize j = i; j < n; ++j)
 		y[j] = x[j];
 
 }

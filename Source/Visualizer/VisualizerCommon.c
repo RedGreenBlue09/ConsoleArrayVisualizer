@@ -3,7 +3,7 @@
 
 #include <tgmath.h>
 
-floatptr_t Visualizer_ScaleSleepMultiplier(intptr_t N, floatptr_t fMultiplier, visualizer_sleep_scale ScaleMode) {
+floatptr_t Visualizer_ScaleSleepMultiplier(usize N, floatptr_t fMultiplier, visualizer_sleep_scale ScaleMode) {
 	floatptr_t fN = (floatptr_t)N;
 	switch (ScaleMode) {
 	default:

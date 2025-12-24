@@ -4,10 +4,10 @@
 
 #include "Utils/GuardedMalloc.h"
 
-static void weakHeapSort(visualizer_int* array, intptr_t n) {
+static void weakHeapSort(visualizer_int* array, usize n) {
 
-	intptr_t i, j, x, y, Gparent;
-	intptr_t bitsLength = (n + 7) / 8;
+	usize i, j, x, y, Gparent;
+	usize bitsLength = (n + 7) / 8;
 	visualizer_int* bits = malloc_guarded(bitsLength * sizeof(visualizer_int));
 
 	for (i = 0; i < n / 8; ++i)
@@ -62,18 +62,18 @@ static void weakHeapSort(visualizer_int* array, intptr_t n) {
 	free(bits);
 }
 
-void BUHS_SiftDown(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t i, intptr_t end) {
+void BUHS_SiftDown(usize iThread, visualizer_array arrayHandle, visualizer_int* array, usize i, usize end) {
 
-	intptr_t j = i;
+	usize j = i;
 
-	intptr_t left = 2 * j + 1;
-	intptr_t right = 2 * j + 2;
+	usize left = 2 * j + 1;
+	usize right = 2 * j + 2;
 
 	while (left < end) {
 
 		if (right < end) {
 
-			Visualizer_UpdateRead2(arrayHandle, right, left, 1.0f);
+			Visualizer_UpdateRead2(iThread, arrayHandle, right, left, 1.0f);
 			if ((array[right] > array[left])) {
 				j = right;
 			} else {
@@ -88,12 +88,12 @@ void BUHS_SiftDown(visualizer_array_handle arrayHandle, visualizer_int* array, i
 	}
 
 	while (array[i] > array[j]) {
-		Visualizer_UpdateRead2(arrayHandle, i, j, 1.0f);
+		Visualizer_UpdateRead2(iThread, arrayHandle, i, j, 1.0f);
 		j = (j - 1) / 2;
 	}
 
 	while (j > i) {
-		Visualizer_UpdateSwap(arrayHandle, i, j, 1.0f);
+		Visualizer_UpdateSwap(iThread, arrayHandle, i, j, 1.0f);
 		swap(&array[i], &array[j]);
 		j = (j - 1) / 2;
 	}
@@ -109,20 +109,20 @@ void BUHS_SiftDown(visualizer_array_handle arrayHandle, visualizer_int* array, i
 * Negative integer support     : Yes
 */
 
-void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
+void BottomUpHeapSort(usize iThread, visualizer_array arrayHandle, visualizer_int* array, usize n) {
 	Visualizer_SetAlgorithmSleepMultiplier(
 		Visualizer_ScaleSleepMultiplier(n, 0.25f, Visualizer_SleepScale_NLogN)
 	);
 
-	intptr_t length = n;
+	usize length = n;
 
-	for (intptr_t i = (length - 1) / 2; i >= 0; --i)
-		BUHS_SiftDown(arrayHandle, array, i, length);
+	for (isize i = (length - 1) / 2; i >= 0; --i)
+		BUHS_SiftDown(iThread, arrayHandle, array, i, length);
 
-	for (intptr_t i = length - 1; i > 0; --i) {
-		Visualizer_UpdateSwap(arrayHandle, 0, i, 1.0f);
+	for (usize i = length - 1; i > 0; --i) {
+		Visualizer_UpdateSwap(iThread, arrayHandle, 0, i, 1.0f);
 		swap(&array[0], &array[i]);
-		BUHS_SiftDown(arrayHandle, array, 0, i);
+		BUHS_SiftDown(iThread, arrayHandle, array, 0, i);
 	}
 
 	return;
@@ -136,7 +136,7 @@ void BottomUpHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array
 * Negative integer support     : Yes
 */
 
-void WeakHeapSort(visualizer_array_handle arrayHandle, visualizer_int* array, intptr_t n) {
+void WeakHeapSort(visualizer_array arrayHandle, visualizer_int* array, usize n) {
 
 	if (n < 2) return;
 	weakHeapSort(array, n);

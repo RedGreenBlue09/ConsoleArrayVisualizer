@@ -4,7 +4,7 @@
 
 // Source: https://arxiv.org/pdf/2210.16471
 
-void Pool_Initialize(pool* pPool, pool_index nBlock, uintptr_t BlockSize) {
+void Pool_Initialize(pool* pPool, pool_index nBlock, usize BlockSize) {
 	if (BlockSize < sizeof(pool_index)) return;
 	pPool->nBlock = nBlock;
 	pPool->BlockSize = BlockSize;

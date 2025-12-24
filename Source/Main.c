@@ -6,12 +6,6 @@
 #include "Utils/GuardedMalloc.h"
 #include "Utils/Time.h"
 
-#if MACHINE_PTR64
-#define PRIfPTR "lf"
-#elif MACHINE_PTR32
-#define PRIfPTR "f"
-#endif
-
 int main(int argc, char** argv) {
 	if (argc < 7) {
 		printf("Usage:\n");
@@ -23,15 +17,15 @@ int main(int argc, char** argv) {
 		printf("It is recommended to leave a free thread for the renderer.\n");
 		printf("\n");
 		printf("Distributions:\n");
-		for (uintptr_t i = 0; i < RunSorts_nDistribution; ++i)
+		for (usize i = 0; i < RunSorts_nDistribution; ++i)
 			printf("%tu - %s\n", i, RunSorts_aDistribution[i].sName);
 		printf("\n");
 		printf("Shuffles:\n");
-		for (uintptr_t i = 0; i < RunSorts_nShuffle; ++i)
+		for (usize i = 0; i < RunSorts_nShuffle; ++i)
 			printf("%tu - %s\n", i, RunSorts_aShuffle[i].sName);
 		printf("\n");
 		printf("Algorithms:\n");
-		for (uintptr_t i = 0; i < RunSorts_nSort; ++i)
+		for (usize i = 0; i < RunSorts_nSort; ++i)
 			printf("%tu - %s\n", i, RunSorts_aSort[i].sName);
 
 		return 0;
@@ -39,9 +33,9 @@ int main(int argc, char** argv) {
 
 	int ReadChars;
 
-	size_t ExtraThreadCount = 0;
+	usize ExtraThreadCount = 0;
 	if (
-		sscanf_s(argv[1], "%zu %n", &ExtraThreadCount, &ReadChars) != 1 ||
+		sscanf_s(argv[1], "%tu %n", &ExtraThreadCount, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[1]) ||
 		ExtraThreadCount > 125
 	) {
@@ -49,9 +43,9 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	intptr_t ArrayLength = 0;
+	usize ArrayLength = 0;
 	if (
-		sscanf_s(argv[2], "%ti %n", &ArrayLength, &ReadChars) != 1 ||
+		sscanf_s(argv[2], "%tu %n", &ArrayLength, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[2]) ||
 		ArrayLength <= 0
 	) {
@@ -69,7 +63,7 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	uintptr_t iDistribution = 0;
+	usize iDistribution = 0;
 	if (
 		sscanf_s(argv[4], "%tu %n", &iDistribution, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[4]) ||
@@ -79,7 +73,7 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	uintptr_t iShuffle = 0;
+	usize iShuffle = 0;
 	if (
 		sscanf_s(argv[5], "%tu %n", &iShuffle, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[5]) ||
@@ -93,11 +87,11 @@ int main(int argc, char** argv) {
 
 	visualizer_int* aArray = calloc_guarded(ArrayLength, sizeof(visualizer_int));
 	Visualizer_Initialize(ExtraThreadCount);
-	visualizer_array_handle hArray = Visualizer_AddArray(ArrayLength, NULL, 0, (visualizer_int)ArrayLength - 1);
+	visualizer_array hArray = Visualizer_AddArray(ArrayLength, NULL, 0, (visualizer_int)ArrayLength - 1);
 	Visualizer_SetUserSleepMultiplier(fSleepMultiplier);
 
 	for (int i = 6; i < argc; ++i) {
-		uintptr_t iAlgorithm = 0;
+		usize iAlgorithm = 0;
 		if (
 			sscanf_s(argv[i], "%tu %n", &iAlgorithm, &ReadChars) != 1 ||
 			ReadChars != strlen(argv[i]) ||

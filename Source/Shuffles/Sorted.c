@@ -3,9 +3,10 @@
 #include "Utils/Random.h"
 
 void ShuffleSorted(
-	randptr_state RngState,
-	visualizer_array_handle hArray,
+	usize iThread,
+	visualizer_array hArray,
 	visualizer_int* aArray,
-	intptr_t Length
+	usize Length,
+	randptr_state RngState
 ) {
 }

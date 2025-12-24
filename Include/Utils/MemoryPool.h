@@ -4,11 +4,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef uintptr_t pool_index;
+#include "Utils/Common.h"
+
+typedef usize pool_index;
 
 typedef struct {
 	pool_index nBlock;
-	uintptr_t BlockSize;
+	usize BlockSize;
 	pool_index nFreeBlock;
 	pool_index nInitializedBlock;
 	uint8_t* pMemory;
@@ -29,7 +31,7 @@ static inline pool_index Pool_AddressToIndex(pool* pPool, void* pAddress) {
 	return ((uint8_t*)pAddress - pPool->pMemory) / pPool->BlockSize; // FIXME: UNDERFLOW?
 }
 
-void Pool_Initialize(pool* pPool, pool_index nBlock, uintptr_t BlockSize);
+void Pool_Initialize(pool* pPool, pool_index nBlock, usize BlockSize);
 void Pool_Destroy(pool* pPool);
 pool_index Pool_Allocate(pool* pPool);
 void Pool_Deallocate(pool* pPool, pool_index Index);

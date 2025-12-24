@@ -61,23 +61,23 @@
 
 #define LFRING_EMPTY SIZE_MAX
 
-typedef uintptr_t lfatomic_t;
-typedef intptr_t lfsatomic_t;
+typedef usize lfatomic_t;
+typedef isize lfsatomic_t;
 
 #define lfring_cmp(x, op, y)	((lfsatomic_t) ((x) - (y)) op 0)
 
-static inline size_t lfring_map(lfatomic_t idx, size_t n) {
-	return (size_t)(idx & (n - 1));
+static inline usize lfring_map(lfatomic_t idx, usize n) {
+	return (usize)(idx & (n - 1));
 }
 
 #define lfring_threshold3(half, n) ((lfsatomic_t) ((half) + (n) - 1))
 
-static inline size_t lfring_pow2(size_t order) {
-	return (size_t)1U << order;
+static inline usize lfring_pow2(usize order) {
+	return (usize)1U << order;
 }
 
-static inline void lfring_init_empty(struct lfring* q, size_t order) {
-	size_t i, n = lfring_pow2(order + 1);
+static inline void lfring_init_empty(struct lfring* q, usize order) {
+	usize i, n = lfring_pow2(order + 1);
 
 	for (i = 0; i != n; i++)
 		atomic_init(&q->array[i], (lfsatomic_t)-1);
@@ -88,8 +88,8 @@ static inline void lfring_init_empty(struct lfring* q, size_t order) {
 	atomic_init(&q->tail, 0);
 }
 
-static inline void lfring_init_full(struct lfring* q, size_t order) {
-	size_t i, half = lfring_pow2(order), n = half * 2;
+static inline void lfring_init_full(struct lfring* q, usize order) {
+	usize i, half = lfring_pow2(order), n = half * 2;
 
 	for (i = 0; i != half; i++)
 		atomic_init(&q->array[lfring_map(i, n)], n + lfring_map(i, half));
@@ -102,8 +102,8 @@ static inline void lfring_init_full(struct lfring* q, size_t order) {
 	atomic_init(&q->tail, half);
 }
 
-static inline void lfring_init_fill(struct lfring* q, size_t s, size_t e, size_t order) {
-	size_t i, half = lfring_pow2(order), n = half * 2;
+static inline void lfring_init_fill(struct lfring* q, usize s, usize e, usize order) {
+	usize i, half = lfring_pow2(order), n = half * 2;
 
 	for (i = 0; i != s; i++)
 		atomic_init(&q->array[lfring_map(i, n)], 2 * n - 1);
@@ -118,8 +118,8 @@ static inline void lfring_init_fill(struct lfring* q, size_t s, size_t e, size_t
 	atomic_init(&q->tail, e);
 }
 
-static inline bool lfring_enqueue(struct lfring* q, size_t eidx, bool nonempty) {
-	size_t tidx, half = lfring_pow2(q->order), n = half * 2;
+static inline bool lfring_enqueue(struct lfring* q, usize eidx, bool nonempty) {
+	usize tidx, half = lfring_pow2(q->order), n = half * 2;
 	lfatomic_t tail, entry, ecycle, tcycle;
 
 	eidx ^= (n - 1);
@@ -158,10 +158,10 @@ static inline void lfring_catchup(struct lfring* q, lfatomic_t tail, lfatomic_t 
 	}
 }
 
-static inline size_t lfring_dequeue(struct lfring* q, bool nonempty) {
-	size_t hidx, n = lfring_pow2(q->order + 1);
+static inline usize lfring_dequeue(struct lfring* q, bool nonempty) {
+	usize hidx, n = lfring_pow2(q->order + 1);
 	lfatomic_t head, entry, entry_new, ecycle, hcycle, tail;
-	//size_t attempt;
+	//usize attempt;
 
 	if (!nonempty && atomic_load(&q->threshold) < 0) {
 		return LFRING_EMPTY;
@@ -180,7 +180,7 @@ static inline size_t lfring_dequeue(struct lfring* q, bool nonempty) {
 			if (ecycle == hcycle) {
 				atomic_fetch_or_explicit(&q->array[hidx], (n - 1),
 					memory_order_acq_rel);
-				return (size_t)(entry & (n - 1));
+				return (usize)(entry & (n - 1));
 			}
 
 			if ((entry | n) != ecycle) {
@@ -218,28 +218,28 @@ static inline size_t lfring_dequeue(struct lfring* q, bool nonempty) {
 
 // wrappers
 
-static size_t MemberCountToOrder(size_t MemberCount) {
+static usize MemberCountToOrder(usize MemberCount) {
 	// Order is log2 half the real count of the queue
 	// The queue must have at least 2 members (order = 1)
 	bool bIsPow2 = (MemberCount & (MemberCount - 1)) == 0;
 	return log2_uptr(MemberCount) - bIsPow2 + (MemberCount == 1);
 }
 
-size_t ConcurrentQueue_StructSize(size_t MemberCount) {
-	size_t Order = MemberCountToOrder(MemberCount);
-	return sizeof(concurrent_queue) + (sizeof(uintptr_t) << (Order + 1));
+usize ConcurrentQueue_StructSize(usize MemberCount) {
+	usize Order = MemberCountToOrder(MemberCount);
+	return sizeof(concurrent_queue) + (sizeof(usize) << (Order + 1));
 }
 
-void ConcurrentQueue_Init(concurrent_queue* pQueue, size_t MemberCount) {
-	size_t Order = MemberCountToOrder(MemberCount);
+void ConcurrentQueue_Init(concurrent_queue* pQueue, usize MemberCount) {
+	usize Order = MemberCountToOrder(MemberCount);
 	lfring_init_empty(pQueue, Order);
 }
 
-void ConcurrentQueue_Push(concurrent_queue* pQueue, size_t Value) {
+void ConcurrentQueue_Push(concurrent_queue* pQueue, usize Value) {
 	lfring_enqueue(pQueue, Value, true);
 }
 
-size_t ConcurrentQueue_Pop(concurrent_queue* pQueue) {
+usize ConcurrentQueue_Pop(concurrent_queue* pQueue) {
 	return lfring_dequeue(pQueue, true);
 }
 

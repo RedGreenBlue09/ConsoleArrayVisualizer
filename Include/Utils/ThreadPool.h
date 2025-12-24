@@ -3,9 +3,10 @@
 #include <threads.h>
 
 #include "Utils/Atomic.h"
+#include "Utils/Common.h"
 
-typedef void thread_pool_job_function(uint8_t iThread, void* Parameter);
-typedef atomic size_t thread_pool_wait_group;
+typedef void thread_pool_job_function(usize iThread, void* Parameter);
+typedef atomic usize thread_pool_wait_group;
 
 typedef struct {
 	thread_pool_job_function* pFunction;
@@ -44,7 +45,7 @@ typedef struct {
 	thread_pool_worker_thread aWorkerThread[];
 } thread_pool;
 
-thread_pool* ThreadPool_Create(uint8_t ThreadCount);
+thread_pool* ThreadPool_Create(usize ThreadCount);
 void ThreadPool_Destroy(thread_pool* pThreadPool);
 
 thread_pool_job ThreadPool_InitJob(
@@ -53,16 +54,16 @@ thread_pool_job ThreadPool_InitJob(
 	thread_pool_wait_group* pWaitGroup
 );
 void ThreadPool_AddJob(thread_pool* pThreadPool, thread_pool_job* pJob);
-void ThreadPool_AddJobRecursive(thread_pool* pThreadPool, thread_pool_job* pJob, uint8_t iThread);
+void ThreadPool_AddJobRecursive(thread_pool* pThreadPool, thread_pool_job* pJob, usize iThread);
 
-void ThreadPool_WaitGroup_Init(thread_pool_wait_group* pWaitGroup, size_t ThreadCount);
-void ThreadPool_WaitGroup_Increase(thread_pool_wait_group* pWaitGroup, size_t ThreadCount);
+void ThreadPool_WaitGroup_Init(thread_pool_wait_group* pWaitGroup, usize ThreadCount);
+void ThreadPool_WaitGroup_Increase(thread_pool_wait_group* pWaitGroup, usize ThreadCount);
 void ThreadPool_WaitGroup_Wait(thread_pool_wait_group* pWaitGroup);
 
 // Get the size of each TLS. The TLS is an array of pointers.
-size_t ThreadPool_TlsSize();
+usize ThreadPool_TlsSize();
 // Get the pointer to the specified slot in the thread's TLS.
-void* ThreadPool_TlsGet(thread_pool* pThreadPool, uint8_t iThread, uint8_t Slot);
+void* ThreadPool_TlsGet(thread_pool* pThreadPool, usize iThread, uint8_t Slot);
 // Allocate an index to all TLS using arena. Use the index with TlsGet(). 
-uint8_t ThreadPool_TlsArenaAlloc(thread_pool* pThreadPool, size_t Size);
-void ThreadPool_TlsArenaFree(thread_pool* pThreadPool, size_t Size);
+uint8_t ThreadPool_TlsArenaAlloc(thread_pool* pThreadPool, usize Size);
+void ThreadPool_TlsArenaFree(thread_pool* pThreadPool, usize Size);

@@ -50,7 +50,16 @@ static ext_noreturn ext_forceinline void ext_unreachable() {}
 // Make 32-bit code faster
 
 #if MACHINE_PTR64
+
 typedef double floatptr_t;
+#define PRIfPTR "lf"
+
 #elif MACHINE_PTR32
+
 typedef float floatptr_t;
+#define PRIfPTR "f"
+
 #endif
+
+typedef uintptr_t usize;
+typedef intptr_t isize;
