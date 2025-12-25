@@ -95,6 +95,14 @@ static atomic uint64_t gTimerStopTime;
 
 thread_pool* Visualizer_pThreadPool;
 
+static struct {
+	alignas(sizeof(void*) * 16) atomic bool bInVisualizer;
+} SamplingDataTls[16];
+spinlock SamplingResultLock;
+uint64_t OutVisualizerCount;
+uint64_t SampleCount;
+atomic uint64_t EstimatedTimeUs;
+
 static visualizer_array PoolIndexToHandle(pool_index PoolIndex) {
 	return (visualizer_array)(PoolIndex + 1);
 }
@@ -391,6 +399,26 @@ static int RenderThreadMain(void* pData) {
 		}
 		++Row;
 
+		// Estimated time
+		{
+			uint64_t EstimatedTime = atomic_load_explicit(&EstimatedTimeUs, memory_order_acquire);
+
+			char aVisualTimeString[48] = "Estimated time: ";
+			Length = static_strlen("Estimated time: ");
+			Length += Uint64ToString(EstimatedTime / 1000, aVisualTimeString + Length);
+
+			aVisualTimeString[Length++] = '.';
+			aVisualTimeString[Length++] = '0' + (char)(EstimatedTime / 100 % 10);
+			aVisualTimeString[Length++] = '0' + (char)(EstimatedTime / 10 % 10);
+			aVisualTimeString[Length++] = '0' + (char)(EstimatedTime % 10);
+			aVisualTimeString[Length++] = ' ';
+			aVisualTimeString[Length++] = 'm';
+			aVisualTimeString[Length++] = 's';
+
+			UpdateCellCacheRow(Row, aVisualTimeString, Length);
+		}
+		++Row;
+
 		// Empty
 		++Row;
 
@@ -460,6 +488,41 @@ static int RenderThreadMain(void* pData) {
 
 }
 
+static int SamplingThreadMain(void* pData) {
+	uint64_t Second = clock64_resolution();
+	uint64_t Microsecond = Second / 1000000;
+	uint64_t Rem;
+
+	while (atomic_load_explicit(&gbRun, memory_order_relaxed)) {
+		usize OutVisualizerCountCurrent = 0;
+		for (usize iThread = 0; iThread < Visualizer_pThreadPool->ThreadCount; ++iThread)
+			OutVisualizerCountCurrent +=
+				!atomic_load_explicit(&SamplingDataTls[iThread].bInVisualizer, memory_order_relaxed);
+
+		uint64_t OutVisualizerCountNew;
+		uint64_t SampleCountNew;
+
+		SpinLock_Lock(&SamplingResultLock);
+		OutVisualizerCount += OutVisualizerCountCurrent;
+		OutVisualizerCountNew = OutVisualizerCount;
+		SampleCount += Visualizer_pThreadPool->ThreadCount; // FIXME: Works like crap for multiple threads.
+		SampleCountNew = SampleCount;
+		SpinLock_Unlock(&SamplingResultLock);
+
+		uint64_t CachedTimerStartTime = atomic_load_explicit(&gTimerStartTime, memory_order_acquire);
+		uint64_t CachedTimerStopTime = atomic_load_explicit(&gTimerStopTime, memory_order_relaxed);
+		if (CachedTimerStopTime == UINT64_MAX)
+			CachedTimerStopTime = clock64();
+		uint64_t EstimatedTimeNew = div_u64(
+			(CachedTimerStopTime - CachedTimerStartTime) * OutVisualizerCountNew,
+			Microsecond * SampleCountNew,
+			&Rem
+		);
+		atomic_store_explicit(&EstimatedTimeUs, EstimatedTimeNew, memory_order_relaxed);
+	}
+	return 0;
+}
+
 void Visualizer_Initialize(usize ExtraThreadCount) {
 
 	Pool_Initialize(&gArrayPropPool, 16, sizeof(array_prop));
@@ -521,10 +584,21 @@ void Visualizer_Initialize(usize ExtraThreadCount) {
 	// Thread pool
 
 	Visualizer_pThreadPool = ThreadPool_Create((uint8_t)(ExtraThreadCount + 1));
+	atomic_init(&gbRun, true);
+
+	// Sampling thread
+
+	memset(&SamplingDataTls, 0, sizeof(SamplingDataTls));
+	SpinLock_Init(&SamplingResultLock);
+	OutVisualizerCount = 0;
+	SampleCount = 0;
+	atomic_init(&EstimatedTimeUs, 0);
+
+	thrd_t SamplingThread;
+	thrd_create(&SamplingThread, SamplingThreadMain, NULL);
 
 	// Render thread
 
-	atomic_init(&gbRun, true);
 	thrd_create(&gRenderThread, RenderThreadMain, NULL);
 }
 
@@ -769,11 +843,13 @@ void Visualizer_UpdateRead(
 	usize iPosition,
 	floatptr_t fSleepMultiplier
 ) {
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, true, memory_order_relaxed);
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].ReadCount, 1, memory_order_relaxed);
 	AddMarker(iThread, pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
 	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(iThread, pArrayProp, iPosition, Visualizer_MarkerAttribute_Read);
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, false, memory_order_relaxed);
 }
 
 void Visualizer_UpdateRead2(
@@ -783,6 +859,7 @@ void Visualizer_UpdateRead2(
 	usize iPositionB,
 	floatptr_t fSleepMultiplier
 ) {
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, true, memory_order_relaxed);
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].ReadCount, 2, memory_order_relaxed);
 	AddMarker(iThread, pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
@@ -790,6 +867,7 @@ void Visualizer_UpdateRead2(
 	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(iThread, pArrayProp, iPositionA, Visualizer_MarkerAttribute_Read);
 	RemoveMarkerHelper(iThread, pArrayProp, iPositionB, Visualizer_MarkerAttribute_Read);
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, false, memory_order_relaxed);
 }
 
 void Visualizer_UpdateReadMulti(
@@ -816,11 +894,13 @@ void Visualizer_UpdateWrite(
 	visualizer_int NewValue,
 	floatptr_t fSleepMultiplier
 ) {
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, true, memory_order_relaxed);
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].WriteCount, 1, memory_order_relaxed);
 	AddMarkerWithValue(iThread, pArrayProp, iPosition, Visualizer_MarkerAttribute_Write, NewValue);
 	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(iThread, pArrayProp, iPosition, Visualizer_MarkerAttribute_Write);
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, false, memory_order_relaxed);
 }
 
 void Visualizer_UpdateReadWrite(
@@ -831,6 +911,7 @@ void Visualizer_UpdateReadWrite(
 	usize iPositionB,
 	floatptr_t fSleepMultiplier
 ) {
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, true, memory_order_relaxed);
 	array_prop* pArrayPropA = GetHandleData(&gArrayPropPool, hArrayA);
 	array_prop* pArrayPropB = GetHandleData(&gArrayPropPool, hArrayB);
 	atomic_fetch_add_explicit(&pArrayPropA->aTls[iThread].WriteCount, 1, memory_order_relaxed);
@@ -841,6 +922,7 @@ void Visualizer_UpdateReadWrite(
 	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(iThread, pArrayPropA, iPositionA, Visualizer_MarkerAttribute_Write);
 	RemoveMarkerHelper(iThread, pArrayPropB, iPositionB, Visualizer_MarkerAttribute_Read);
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, false, memory_order_relaxed);
 }
 
 void Visualizer_UpdateSwap(
@@ -850,6 +932,7 @@ void Visualizer_UpdateSwap(
 	usize iPositionB,
 	floatptr_t fSleepMultiplier
 ) {
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, true, memory_order_relaxed);
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].ReadCount, 2, memory_order_relaxed);
 	atomic_fetch_add_explicit(&pArrayProp->aTls[iThread].WriteCount, 2, memory_order_relaxed);
@@ -860,6 +943,7 @@ void Visualizer_UpdateSwap(
 	Visualizer_Sleep(fSleepMultiplier);
 	RemoveMarkerHelper(iThread, pArrayProp, iPositionA, Visualizer_MarkerAttribute_Write);
 	RemoveMarkerHelper(iThread, pArrayProp, iPositionB, Visualizer_MarkerAttribute_Write);
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, false, memory_order_relaxed);
 }
 
 void Visualizer_UpdateWriteMulti(
@@ -883,20 +967,26 @@ void Visualizer_UpdateWriteMulti(
 // Marker
 
 visualizer_marker Visualizer_CreateMarker(usize iThread, visualizer_array hArray, usize iPosition, visualizer_marker_attribute Attribute) {
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, true, memory_order_relaxed);
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, hArray);
 	AddMarker(iThread, pArrayProp, iPosition, Attribute);
 	return (visualizer_marker){ hArray, iPosition, Attribute };
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, false, memory_order_relaxed);
 }
 
 void Visualizer_RemoveMarker(usize iThread, visualizer_marker Marker) {
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, true, memory_order_relaxed);
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, Marker.hArray);
 	RemoveMarkerHelper(iThread, pArrayProp, Marker.iPosition, Marker.Attribute);
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, false, memory_order_relaxed);
 }
 
 void Visualizer_MoveMarker(usize iThread, visualizer_marker* pMarker, usize iNewPosition) {
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, true, memory_order_relaxed);
 	array_prop* pArrayProp = GetHandleData(&gArrayPropPool, pMarker->hArray);
 	MoveMarkerHelper(iThread, pArrayProp, pMarker->iPosition, iNewPosition, pMarker->Attribute);
 	pMarker->iPosition = iNewPosition;
+	atomic_store_explicit(&SamplingDataTls[iThread].bInVisualizer, false, memory_order_relaxed);
 }
 
 void Visualizer_SetAlgorithmName(char* sAlgorithmName) {
@@ -946,6 +1036,10 @@ void Visualizer_ClearCorrectness(usize iThread, visualizer_array hArray, usize i
 void Visualizer_StartTimer() {
 	atomic_store_explicit(&gTimerStopTime, UINT64_MAX, memory_order_relaxed);
 	atomic_store_explicit(&gTimerStartTime, clock64(), memory_order_release);
+	SpinLock_Lock(&SamplingResultLock);
+	OutVisualizerCount = 0;
+	SampleCount = 0;
+	SpinLock_Unlock(&SamplingResultLock);
 }
 
 void Visualizer_StopTimer() {
