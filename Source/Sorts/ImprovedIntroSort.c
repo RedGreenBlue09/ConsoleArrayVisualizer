@@ -56,6 +56,17 @@ static inline usize MedianOf3(
 	return left;
 }
 
+static usize MedianOf3Simplest(usize iThread, visualizer_array arrayHandle, visualizer_int* array, partition_t part) {
+	return MedianOf3(
+		iThread,
+		arrayHandle,
+		array,
+		part.start,
+		part.start + (part.n / 2),
+		part.start + part.n - 1
+	);
+}
+
 static usize MedianOf3Simple(usize iThread, visualizer_array arrayHandle, visualizer_int* array, partition_t part) {
 	return MedianOf3(
 		iThread,
@@ -98,9 +109,9 @@ static usize MedianOf3Recursive(usize iThread, visualizer_array arrayHandle, vis
 static usize GetPivot(usize iThread, visualizer_array arrayHandle, visualizer_int* array, partition_t* part) {
 	switch (part->badPivot) {
 		case 0:
-			return part->start + (part->n / 2);
+			return MedianOf3Simplest(iThread, arrayHandle, array, *part);
 		case 1:
-			return MedianOf3Simple(iThread, arrayHandle, array, *part);
+			return MedianOf3Simplest(iThread, arrayHandle, array, *part);
 		case 2:
 			return MedianOf3Simple(iThread, arrayHandle, array, *part);
 		case 3:
