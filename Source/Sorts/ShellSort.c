@@ -128,7 +128,7 @@ void ShellSortParallel(usize iThread, visualizer_array arrayHandle, visualizer_i
 
 	for (--pass; pass >= 0; --pass) {
 		usize gap = gaps[pass];
-		usize nIteration = min2(gap, n - gap); // Worst case: n / 2
+		usize nIteration = ext_min(gap, n - gap); // Worst case: n / 2
 
 		thread_pool_wait_group waitGroup;
 		ThreadPool_WaitGroup_Init(&waitGroup, nIteration);

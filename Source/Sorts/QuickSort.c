@@ -30,9 +30,7 @@ begin:
 
 		if (left <= right) {
 			Visualizer_UpdateSwap(iThread, arrayHandle, left, right, 1.0f);
-			swap(&array[left], &array[right]);
-			++left;
-			--right;
+			swap(&array[left++], &array[right--]);
 		}
 	}
 	Visualizer_RemoveMarker(iThread, pointer);
@@ -110,9 +108,7 @@ begin:
 
 		if (left <= right) {
 			Visualizer_UpdateSwap(iThread, arrayHandle, left, right, 1.0f);
-			swap(&array[left], &array[right]);
-			++left;
-			--right;
+			swap(&array[left++], &array[right--]);
 		}
 	}
 	Visualizer_RemoveMarker(iThread, pointer);

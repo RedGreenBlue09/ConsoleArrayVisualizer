@@ -285,15 +285,11 @@ static usize Uint64ToString(uint64_t X, char* sString) {
 	usize i = 0;
 	for (; X > 0; X /= 10)
 		sString[i++] = '0' + (X % 10);
-	usize Length = i;
+	usize Length = i--;
 
 	usize ii = 0;
-	--i;
-	while (ii < i) {
-		swap(&sString[ii], &sString[i]);
-		++ii;
-		--i;
-	}
+	while (ii < i)
+		swap(&sString[ii++], &sString[i--]);
 
 	return Length;
 }
@@ -391,7 +387,7 @@ static int RenderThreadMain(void* pData) {
 		// Query timer
 		uint64_t CachedTimerStartTime = atomic_load_explicit(&gTimerStartTime, memory_order_relaxed);
 		uint64_t CachedTimerStopTime = atomic_load_explicit(&gTimerStopTime, memory_order_relaxed);
-		CachedTimerStopTime = max2(CachedTimerStartTime, CachedTimerStopTime); // Trade accuracy to avoid synchronization
+		CachedTimerStopTime = ext_max(CachedTimerStartTime, CachedTimerStopTime); // Trade accuracy to avoid synchronization
 		if (CachedTimerStopTime == UINT64_MAX)
 			CachedTimerStopTime = clock64();
 
@@ -421,7 +417,7 @@ static int RenderThreadMain(void* pData) {
 			uint64_t OutsideVisualizerCount = atomic_load_explicit(&gOutsideVisualizerCount, memory_order_relaxed);
 			uint64_t SampleCount = atomic_load_explicit(&gSampleCount, memory_order_relaxed);
 			SampleCount += (SampleCount == 0);
-			SampleCount = max2(OutsideVisualizerCount, SampleCount); // Trade accuracy to avoid synchronization
+			SampleCount = ext_max(OutsideVisualizerCount, SampleCount); // Trade accuracy to avoid synchronization
 			uint64_t EstimatedTime = div_u64(
 				(CachedTimerStopTime - CachedTimerStartTime) * OutsideVisualizerCount,
 				Microsecond * SampleCount,
@@ -702,7 +698,7 @@ visualizer_array Visualizer_AddArray(
 	else
 		memset(pArrayProp->aState, 0, Size * sizeof(*pArrayProp->aState));
 
-	pArrayProp->ColumnCount = min2(Size, (usize)gBufferInfo.dwSize.X);
+	pArrayProp->ColumnCount = ext_min(Size, (usize)gBufferInfo.dwSize.X);
 
 	usize ThreadCount = Visualizer_pThreadPool->ThreadCount;
 	usize ColumnArraySize = pArrayProp->ColumnCount * sizeof(*pArrayProp->aTls->aColumn);

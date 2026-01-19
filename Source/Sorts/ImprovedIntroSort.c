@@ -159,9 +159,7 @@ void ImprovedIntroSort(usize iThread, visualizer_array arrayHandle, visualizer_i
 
 				if (left <= right) {
 					Visualizer_UpdateSwap(iThread, arrayHandle, left, right, 1.0f);
-					swap(&array[left], &array[right]);
-					++left;
-					--right;
+					swap(&array[left++], &array[right--]);
 				}
 			}
 			Visualizer_RemoveMarker(iThread, pointer);

@@ -18,8 +18,6 @@ void ShuffleReversed(
 	isize ii = Length - 1;
 	while (i < ii) {
 		Visualizer_UpdateSwap(iThread, hArray, i, ii, 1.0f);
-		swap(&aArray[i], &aArray[ii]);
-		++i;
-		--ii;
+		swap(&aArray[i++], &aArray[ii--]);
 	}
 };
