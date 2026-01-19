@@ -1,7 +1,8 @@
 #pragma once
 
+#include <float.h>
+
 #include "Utils/Machine.h"
-#include "string.h"
 
 // Useful macros
 
@@ -151,11 +152,13 @@ static inline void* max_void_ptr(void* X, void* Y) { return (X > Y) ? X : Y; }
 
 typedef double floatptr_t;
 #define PRIfPTR "lf"
+#define FPTR_EPSILON DBL_EPSILON
 
 #elif MACHINE_PTR32
 
 typedef float floatptr_t;
 #define PRIfPTR "f"
+#define FPTR_EPSILON FLT_EPSILON
 
 #endif
 

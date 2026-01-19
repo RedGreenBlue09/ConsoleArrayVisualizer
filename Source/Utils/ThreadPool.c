@@ -72,7 +72,7 @@ static void StackPushFreeThread(thread_pool* pThreadPool, usize iEntry) {
 	thread_pool_stack_head OldHead = atomic_load_explicit(&pThreadPool->StackHead, memory_order_acquire);
 	thread_pool_stack_head NewHead;
 	do {
-		pEntry->iNextEntry = OldHead.iEntry;
+		pEntry->iNextEntry = (usize)OldHead.iEntry;
 #if MACHINE_LLSC_ATOMICS // We need to hope that the compiler generates LLSC
 		NewHead = (thread_pool_stack_head){ iEntry };
 #else
@@ -95,7 +95,7 @@ static usize StackPopFreeThread(thread_pool* pThreadPool) {
 	do {
 		if (OldHead.iEntry == pThreadPool->ThreadCount)
 			return USIZE_MAX;
-		thread_pool_stack_entry* pEntry = StackGetEntry(pThreadPool, OldHead.iEntry);
+		thread_pool_stack_entry* pEntry = StackGetEntry(pThreadPool, (usize)OldHead.iEntry);
 #if MACHINE_LLSC_ATOMICS // We need to hope that the compiler generates LLSC
 		NewHead = (thread_pool_stack_head){ pEntry->iNextEntry };
 #else

@@ -1,9 +1,36 @@
 
-// We need double precision for this one to work.
-#include <math.h>
+// We need floatptr_t precision for this one to work.
+#include <tgmath.h>
 
 #include "Visualizer.h"
 #include "Utils/Random.h"
+
+typedef struct {
+	floatptr_t sum;
+	floatptr_t cs;
+	floatptr_t ccs;
+} sum_state;
+
+floatptr_t KahanBabushkaKleinSum(sum_state* s, floatptr_t next) {
+	floatptr_t t = s->sum + next;
+	floatptr_t c;
+	if (fabs(s->sum) >= fabs(next))
+		c = (s->sum - t) + next;
+	else
+		c = (next - t) + s->sum;
+	s->sum = t;
+
+	t = s->cs + c;
+	floatptr_t cc;
+	if (fabs(s->cs) >= fabs(c))
+		cc = (s->cs - t) + c;
+	else
+		cc = (c - t) + s->cs;
+	s->cs = t;
+
+	s->ccs = s->ccs + cc;
+	return s->sum + (s->cs + s->ccs);
+}
 
 void DistributeRandom(
 	usize iThread,
@@ -16,10 +43,11 @@ void DistributeRandom(
 		Visualizer_ScaleSleepMultiplier(Length, 0.125f, Visualizer_SleepScale_N)
 	);
 
-	double fCurrentMax = (double)(Length - 1);
-	for (isize i = Length - 1; i >= 0; --i) {
-		fCurrentMax *= exp2(log2(randfptr(&RngState)) / (double)(i + 1));
-		visualizer_int Value = (visualizer_int)round(fCurrentMax);
+	sum_state SumState = { 0 };
+	for (usize i = 0; i < Length; ++i) {
+		floatptr_t fRandom = ext_max(randfptr(&RngState), FPTR_EPSILON * 0.5);
+		floatptr_t fValue = KahanBabushkaKleinSum(&SumState, -log(fRandom));
+		visualizer_int Value = (visualizer_int)round(fValue);
 		Visualizer_UpdateWrite(iThread, hArray, i, Value, 1.0f);
 		aArray[i] = Value;
 	}
@@ -36,10 +64,11 @@ void VerifyRandom(
 		Visualizer_ScaleSleepMultiplier(Length, 0.0625f, Visualizer_SleepScale_N)
 	);
 
-	double fCurrentMax = (double)(Length - 1);
-	for (isize i = Length - 1; i >= 0; --i) {
-		fCurrentMax *= exp2(log2(randfptr(&RngState)) / (double)(i + 1));
-		visualizer_int Value = (visualizer_int)round(fCurrentMax);
+	sum_state SumState = { 0 };
+	for (usize i = 0; i < Length; ++i) {
+		floatptr_t fRandom = ext_max(randfptr(&RngState), FPTR_EPSILON * 0.5);
+		floatptr_t fValue = KahanBabushkaKleinSum(&SumState, -log(fRandom));
+		visualizer_int Value = (visualizer_int)round(fValue);
 		Visualizer_UpdateCorrectness(iThread, hArray, i, aArray[i] == Value, 1.0f);
 	}
 }
@@ -51,10 +80,11 @@ void UnverifyRandom(
 	usize Length,
 	randptr_state RngState
 ) {
-	double fCurrentMax = (double)(Length - 1);
-	for (isize i = Length - 1; i >= 0; --i) {
-		fCurrentMax *= exp2(log2(randfptr(&RngState)) / (double)(i + 1));
-		visualizer_int Value = (visualizer_int)round(fCurrentMax);
+	sum_state SumState = { 0 };
+	for (usize i = 0; i < Length; ++i) {
+		floatptr_t fRandom = ext_max(randfptr(&RngState), FPTR_EPSILON * 0.5);
+		floatptr_t fValue = KahanBabushkaKleinSum(&SumState, -log(fRandom));
+		visualizer_int Value = (visualizer_int)round(fValue);
 		Visualizer_ClearCorrectness(iThread, hArray, i, aArray[i] == Value);
 	}
 }
