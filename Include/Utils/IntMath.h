@@ -259,6 +259,10 @@ uint128_split lshr_u128(uint128_split A, uint8_t B);
 
 int128_split ashr_i128(int128_split A, uint8_t B);
 
+// Multiplication
+
+uint128_split mul_u128(uint128_split A, uint128_split B);
+
 // Fast log2
 
 uint8_t log2_u128(uint128_split X);

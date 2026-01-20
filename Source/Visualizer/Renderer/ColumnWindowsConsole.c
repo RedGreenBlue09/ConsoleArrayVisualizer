@@ -393,7 +393,9 @@ static int RenderThreadMain(void* pData) {
 
 		// Visual time
 		{
-			uint64_t VisualTime = div_u64(CachedTimerStopTime - CachedTimerStartTime, Millisecond, &Rem);
+			uint64_t TimeRaw = CachedTimerStopTime - CachedTimerStartTime;
+			TimeRaw += (TimeRaw == 0);
+			uint64_t VisualTime = div_u64(TimeRaw, Millisecond, &Rem);
 
 			char aVisualTimeString[48] = "Visual time: ";
 			Length = static_strlen("Visual time: ");
@@ -519,7 +521,6 @@ static int SamplingThreadMain(void* pData) {
 	uint64_t Second = clock64_resolution();
 	uint64_t UpdateInterval = Second / 20000;
 	uint64_t ThreadTimeStart = clock64();
-	// Delay enables much faster performance but also much worse accuracy.
 
 	atomic_store_explicit(&gbDoingSample, true, memory_order_relaxed);
 
@@ -540,6 +541,7 @@ static int SamplingThreadMain(void* pData) {
 		atomic_fetch_add_explicit(&gOutsideVisualizerCount, OutVisualizerCountCurrent, memory_order_relaxed);
 		atomic_fetch_add_explicit(&gSampleCount, Visualizer_pThreadPool->ThreadCount, memory_order_relaxed);
 
+		// Delay enables much faster performance but also much worse accuracy.
 		if (!gbAccurateSampling) {
 			uint64_t Rem;
 			uint64_t ThreadDuration = clock64() - ThreadTimeStart;
@@ -846,6 +848,7 @@ void Visualizer_SetUserSleepMultiplier(floatptr_t fUserSleepMultiplier) {
 
 void Visualizer_Sleep(floatptr_t fSleepMultiplier) {
 #ifdef VISUALIZER_DISABLE_SLEEP
+	(void)0;
 #else
 	sleep64(
 		(uint64_t)(
