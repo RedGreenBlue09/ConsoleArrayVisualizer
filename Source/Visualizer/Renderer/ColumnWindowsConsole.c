@@ -110,6 +110,7 @@ static atomic uint64_t gSampleCount;
 static atomic bool gbDoSample;
 static atomic bool gbDoingSample;
 static const bool gbAccurateSampling = false;
+static bool gbSamplingPossible;
 
 #endif
 
@@ -415,7 +416,7 @@ static int RenderThreadMain(void* pData) {
 #if VISUALIZER_ENABLE_ESTIMATED_TIME
 
 		// Estimated time
-		{
+		if (gbSamplingPossible) {
 			uint64_t OutsideVisualizerCount = atomic_load_explicit(&gOutsideVisualizerCount, memory_order_relaxed);
 			uint64_t SampleCount = atomic_load_explicit(&gSampleCount, memory_order_relaxed);
 			SampleCount += (SampleCount == 0);
@@ -625,12 +626,15 @@ void Visualizer_Initialize(usize ExtraThreadCount) {
 	atomic_init(&gSampleCount, 0);
 
 	if (Visualizer_pThreadPool->ThreadCount <= 32) {
+		gbSamplingPossible = (Visualizer_pThreadPool->ThreadCount == 1);
+
 		memset(gaSamplingDataTlsStack, 0, sizeof(gaSamplingDataTlsStack));
 		gaSamplingDataTls = gaSamplingDataTlsStack;
 
-		if (Visualizer_pThreadPool->ThreadCount == 1)
+		if (gbSamplingPossible)
 			thrd_create(&gSamplingThread, SamplingThreadMain, NULL);
 	} else {
+		gbSamplingPossible = false;
 		gaSamplingDataTls = calloc_guarded(Visualizer_pThreadPool->ThreadCount, sizeof(*gaSamplingDataTls));
 	}
 
@@ -650,7 +654,7 @@ void Visualizer_Uninitialize() {
 
 #if VISUALIZER_ENABLE_ESTIMATED_TIME
 
-	if (Visualizer_pThreadPool->ThreadCount == 1)
+	if (gbSamplingPossible)
 		thrd_join(gSamplingThread, &ThreadReturn);
 
 #endif
@@ -1065,13 +1069,15 @@ void Visualizer_StartTimer() {
 
 #if VISUALIZER_ENABLE_ESTIMATED_TIME
 
-	atomic_store_explicit(&gOutsideVisualizerCount, 0 , memory_order_relaxed);
-	atomic_store_explicit(&gSampleCount, 0, memory_order_relaxed);
+	if (gbSamplingPossible) {
+		atomic_store_explicit(&gOutsideVisualizerCount, 0, memory_order_relaxed);
+		atomic_store_explicit(&gSampleCount, 0, memory_order_relaxed);
 
-	// Wait for the sampling to start
-	atomic_store_fence_light(&gbDoSample, true);
-	while (!atomic_load_explicit(&gbDoingSample, memory_order_relaxed));
-	atomic_thread_fence_light(&gbDoingSample, memory_order_acquire);
+		// Wait for the sampling to start
+		atomic_store_fence_light(&gbDoSample, true);
+		while (!atomic_load_explicit(&gbDoingSample, memory_order_relaxed));
+		atomic_thread_fence_light(&gbDoingSample, memory_order_acquire);
+	}
 
 #endif
 }
@@ -1079,10 +1085,12 @@ void Visualizer_StartTimer() {
 void Visualizer_StopTimer() {
 #if VISUALIZER_ENABLE_ESTIMATED_TIME
 
-	// Wait for the sampling to stop
-	atomic_store_explicit(&gbDoSample, false, memory_order_relaxed);
-	while (atomic_load_explicit(&gbDoingSample, memory_order_relaxed));
-	atomic_thread_fence_light(&gbDoingSample, memory_order_acquire);
+	if (gbSamplingPossible) {
+		// Wait for the sampling to stop
+		atomic_store_explicit(&gbDoSample, false, memory_order_relaxed);
+		while (atomic_load_explicit(&gbDoingSample, memory_order_relaxed));
+		atomic_thread_fence_light(&gbDoingSample, memory_order_acquire);
+	}
 
 #endif
 
@@ -1092,13 +1100,15 @@ void Visualizer_StopTimer() {
 void Visualizer_ResetTimer() {
 #if VISUALIZER_ENABLE_ESTIMATED_TIME
 
-	// Wait for the sampling to stop
-	atomic_store_explicit(&gbDoSample, false, memory_order_relaxed);
-	while (atomic_load_explicit(&gbDoingSample, memory_order_relaxed));
-	atomic_thread_fence_light(&gbDoingSample, memory_order_acquire);
+	if (gbSamplingPossible) {
+		// Wait for the sampling to stop
+		atomic_store_explicit(&gbDoSample, false, memory_order_relaxed);
+		while (atomic_load_explicit(&gbDoingSample, memory_order_relaxed));
+		atomic_thread_fence_light(&gbDoingSample, memory_order_acquire);
 
-	atomic_store_explicit(&gOutsideVisualizerCount, 0, memory_order_relaxed);
-	atomic_store_explicit(&gSampleCount, 0, memory_order_relaxed);
+		atomic_store_explicit(&gOutsideVisualizerCount, 0, memory_order_relaxed);
+		atomic_store_explicit(&gSampleCount, 0, memory_order_relaxed);
+	}
 
 #endif
 
