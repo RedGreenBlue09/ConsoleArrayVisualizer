@@ -107,7 +107,6 @@ static atomic uint64_t gOutsideVisualizerCount;
 static atomic uint64_t gSampleCount;
 static atomic bool gbDoSample;
 static atomic bool gbDoingSample;
-static const bool gbAccurateSampling = false;
 static bool gbSamplingPossible;
 
 #endif
@@ -540,13 +539,10 @@ static int SamplingThreadMain(void* pData) {
 		atomic_fetch_add_explicit(&gOutsideVisualizerCount, OutVisualizerCountCurrent, memory_order_relaxed);
 		atomic_fetch_add_explicit(&gSampleCount, 1, memory_order_relaxed);
 
-		// Delay enables much faster performance but also much worse accuracy.
-		if (!gbAccurateSampling) {
-			uint64_t Rem;
-			uint64_t ThreadDuration = clock64() - ThreadTimeStart;
-			div_u64(ThreadDuration, UpdateInterval, &Rem);
-			sleep64(UpdateInterval - Rem);
-		}
+		uint64_t Rem;
+		uint64_t ThreadDuration = clock64() - ThreadTimeStart;
+		div_u64(ThreadDuration, UpdateInterval, &Rem);
+		sleep64(UpdateInterval - Rem);
 	}
 	return 0;
 }
