@@ -153,23 +153,12 @@ static int WorkerThreadFunction(void* Parameter) {
 	return 0;
 }
 
-// Create & delete
+// Initialize
 
-thread_pool* ThreadPool_Create(usize ThreadCount) {
-	// Alloc
-	// TODO: Separate this so that the user can allocate it on the stack
-
-	thread_pool* pThreadPool;
-	usize StructSize = sizeof(*pThreadPool) + sizeof(pThreadPool->aWorkerThread[0]) * ThreadCount;
-
-	pThreadPool = malloc_guarded(StructSize);
-
-	// Init
-
+void ThreadPool_Initialize(thread_pool* pThreadPool, usize ThreadCount) {
 	pThreadPool->ThreadCount = ThreadCount;
 	pThreadPool->TlsSlotCount = 0;
-	thread_pool_stack_head ZeroHead = { 0 };
-	atomic_init(&pThreadPool->StackHead, ZeroHead);
+	atomic_init(&pThreadPool->StackHead, (thread_pool_stack_head){ 0 });
 
 	for (usize i = 0; i < ThreadCount; ++i) {
 		pThreadPool->aWorkerThread[i].StackEntry = (thread_pool_stack_entry){ i, i + 1 };
@@ -181,17 +170,13 @@ thread_pool* ThreadPool_Create(usize ThreadCount) {
 		while (!atomic_load_explicit(&WorkerParameter.bParameterReadDone, memory_order_relaxed));
 		atomic_thread_fence_light(&WorkerParameter.bParameterReadDone, memory_order_acquire);
 	}
-
-	return pThreadPool;
 }
 
-void ThreadPool_Destroy(thread_pool* pThreadPool) {
+void ThreadPool_Uninitialize(thread_pool* pThreadPool) {
 	for (usize i = 0; i < pThreadPool->ThreadCount; ++i)
 		atomic_store_explicit(&pThreadPool->aWorkerThread[i].bRun, false, memory_order_relaxed);
 	for (usize i = 0; i < pThreadPool->ThreadCount; ++i)
 		thrd_join(pThreadPool->aWorkerThread[i].Thread, NULL);
-
-	free(pThreadPool);
 }
 
 // Job

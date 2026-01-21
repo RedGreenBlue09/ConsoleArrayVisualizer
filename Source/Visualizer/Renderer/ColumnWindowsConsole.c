@@ -95,16 +95,14 @@ static atomic floatptr_t gfUserSleepMultiplier;
 static atomic uint64_t gTimerStartTime;
 static atomic uint64_t gTimerStopTime;
 
+#define LowThreadCount 32
+static uint8_t gaThreadPoolStackBuffer[ThreadPool_GetStructSize(LowThreadCount)];
 thread_pool* Visualizer_pThreadPool;
 
 #if VISUALIZER_ENABLE_ESTIMATED_TIME
 
 static thrd_t gSamplingThread;
-typedef struct {
-	alignas(sizeof(void*) * 16) atomic bool bInVisualizer;
-} sampling_data_tls;
-static sampling_data_tls* gaSamplingDataTls; // TODO: Use thread pool tls
-static sampling_data_tls gaSamplingDataTlsStack[32]; // Improve performance for small number of threads
+static uint8_t gSamplingDataTlsSlot;
 static atomic uint64_t gOutsideVisualizerCount;
 static atomic uint64_t gSampleCount;
 static atomic bool gbDoSample;
@@ -391,12 +389,11 @@ static int RenderThreadMain(void* pData) {
 		CachedTimerStopTime = ext_max(CachedTimerStartTime, CachedTimerStopTime); // Trade accuracy to avoid synchronization
 		if (CachedTimerStopTime == UINT64_MAX)
 			CachedTimerStopTime = clock64();
+		uint64_t TimeRaw = CachedTimerStopTime - CachedTimerStartTime;
 
 		// Visual time
 		{
-			uint64_t TimeRaw = CachedTimerStopTime - CachedTimerStartTime;
-			TimeRaw += (TimeRaw == 0);
-			uint64_t VisualTime = div_u64(TimeRaw, Millisecond, &Rem);
+			uint64_t VisualTime = div_u64(TimeRaw + (TimeRaw == 0), Millisecond, &Rem);
 
 			char aVisualTimeString[48] = "Visual time: ";
 			Length = static_strlen("Visual time: ");
@@ -422,7 +419,7 @@ static int RenderThreadMain(void* pData) {
 			SampleCount += (SampleCount == 0);
 			SampleCount = ext_max(OutsideVisualizerCount, SampleCount); // Trade accuracy to avoid synchronization
 			uint64_t EstimatedTime = div_u64(
-				(CachedTimerStopTime - CachedTimerStartTime) * OutsideVisualizerCount,
+				TimeRaw * OutsideVisualizerCount,
 				Microsecond * SampleCount,
 				&Rem
 			);
@@ -537,10 +534,11 @@ static int SamplingThreadMain(void* pData) {
 		}
 
 		// NOTE: Multiple threads sampling is currently broken.
-		usize OutVisualizerCountCurrent = !atomic_load_explicit(&gaSamplingDataTls[0].bInVisualizer, memory_order_relaxed);
+		atomic bool* pbInVisualizer = ThreadPool_TlsGet(Visualizer_pThreadPool, 0, gSamplingDataTlsSlot);
+		usize OutVisualizerCountCurrent = !atomic_load_explicit(pbInVisualizer, memory_order_relaxed);
 
 		atomic_fetch_add_explicit(&gOutsideVisualizerCount, OutVisualizerCountCurrent, memory_order_relaxed);
-		atomic_fetch_add_explicit(&gSampleCount, Visualizer_pThreadPool->ThreadCount, memory_order_relaxed);
+		atomic_fetch_add_explicit(&gSampleCount, 1, memory_order_relaxed);
 
 		// Delay enables much faster performance but also much worse accuracy.
 		if (!gbAccurateSampling) {
@@ -615,7 +613,15 @@ void Visualizer_Initialize(usize ExtraThreadCount) {
 
 	// Thread pool
 
-	Visualizer_pThreadPool = ThreadPool_Create((uint8_t)(ExtraThreadCount + 1));
+	usize ThreadCount = ExtraThreadCount + 1;
+	if (ThreadCount <= LowThreadCount)
+		Visualizer_pThreadPool = (void*)gaThreadPoolStackBuffer;
+	else
+		Visualizer_pThreadPool = malloc_guarded(ThreadPool_GetStructSize(ThreadCount));
+	
+	ThreadPool_Initialize(Visualizer_pThreadPool, ThreadCount);
+
+	//
 	atomic_init(&gbRun, true);
 
 #if VISUALIZER_ENABLE_ESTIMATED_TIME
@@ -624,20 +630,11 @@ void Visualizer_Initialize(usize ExtraThreadCount) {
 
 	atomic_init(&gOutsideVisualizerCount, 0);
 	atomic_init(&gSampleCount, 0);
-
-	if (Visualizer_pThreadPool->ThreadCount <= 32) {
-		gbSamplingPossible = (Visualizer_pThreadPool->ThreadCount == 1);
-
-		memset(gaSamplingDataTlsStack, 0, sizeof(gaSamplingDataTlsStack));
-		gaSamplingDataTls = gaSamplingDataTlsStack;
-
-		if (gbSamplingPossible)
-			thrd_create(&gSamplingThread, SamplingThreadMain, NULL);
-	} else {
-		gbSamplingPossible = false;
-		gaSamplingDataTls = calloc_guarded(Visualizer_pThreadPool->ThreadCount, sizeof(*gaSamplingDataTls));
+	gbSamplingPossible = (ThreadCount == 1);
+	if (gbSamplingPossible) {
+		gSamplingDataTlsSlot = ThreadPool_TlsArenaAlloc(Visualizer_pThreadPool, sizeof(bool));
+		thrd_create(&gSamplingThread, SamplingThreadMain, NULL);
 	}
-
 #endif
 
 	// Render thread
@@ -663,7 +660,10 @@ void Visualizer_Uninitialize() {
 
 	// Cleanup thread pool
 
-	ThreadPool_Destroy(Visualizer_pThreadPool);
+	usize ThreadCount = Visualizer_pThreadPool->ThreadCount;
+	ThreadPool_Uninitialize(Visualizer_pThreadPool);
+	if (ThreadCount > LowThreadCount)
+		free(Visualizer_pThreadPool);
 
 	// Free alternate buffer
 
@@ -833,7 +833,8 @@ static inline void MoveMarkerHelper(usize iThread, array_prop* pArrayProp, usize
 // Set if the current code is inside the visualizer for time estimation purposes.
 static inline void SetVisualizerEnterStatus(usize iThread, bool bStatus) {
 #if VISUALIZER_ENABLE_ESTIMATED_TIME
-	atomic_store_explicit(&gaSamplingDataTls[iThread].bInVisualizer, bStatus, memory_order_relaxed);
+	atomic bool* pbInVisualizer = ThreadPool_TlsGet(Visualizer_pThreadPool, 0, gSamplingDataTlsSlot);
+	atomic_store_explicit(pbInVisualizer, bStatus, memory_order_relaxed);
 #else
 	(void)0;
 #endif

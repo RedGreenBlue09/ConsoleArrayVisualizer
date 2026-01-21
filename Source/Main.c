@@ -31,11 +31,11 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	int ReadChars;
+	usize ReadChars;
 
 	usize ExtraThreadCount = 0;
 	if (
-		sscanf_s(argv[1], "%tu %n", &ExtraThreadCount, &ReadChars) != 1 ||
+		sscanf_s(argv[1], "%tu %tn", &ExtraThreadCount, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[1]) ||
 		ExtraThreadCount > 125
 	) {
@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
 
 	usize ArrayLength = 0;
 	if (
-		sscanf_s(argv[2], "%tu %n", &ArrayLength, &ReadChars) != 1 ||
+		sscanf_s(argv[2], "%tu %tn", &ArrayLength, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[2]) ||
 		ArrayLength <= 0
 	) {
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
 
 	floatptr_t fSleepMultiplier = 1.0;
 	if (
-		sscanf_s(argv[3], "%"PRIfPTR" %n", &fSleepMultiplier, &ReadChars) != 1 ||
+		sscanf_s(argv[3], "%"PRIfPTR" %tn", &fSleepMultiplier, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[3]) ||
 		fSleepMultiplier < 0.0
 	) {
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
 
 	usize iDistribution = 0;
 	if (
-		sscanf_s(argv[4], "%tu %n", &iDistribution, &ReadChars) != 1 ||
+		sscanf_s(argv[4], "%tu %tn", &iDistribution, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[4]) ||
 		iDistribution >= RunSorts_nDistribution
 	) {
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
 
 	usize iShuffle = 0;
 	if (
-		sscanf_s(argv[5], "%tu %n", &iShuffle, &ReadChars) != 1 ||
+		sscanf_s(argv[5], "%tu %tn", &iShuffle, &ReadChars) != 1 ||
 		ReadChars != strlen(argv[5]) ||
 		iShuffle >= RunSorts_nShuffle
 	) {
@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
 	for (int i = 6; i < argc; ++i) {
 		usize iAlgorithm = 0;
 		if (
-			sscanf_s(argv[i], "%tu %n", &iAlgorithm, &ReadChars) != 1 ||
+			sscanf_s(argv[i], "%tu %tn", &iAlgorithm, &ReadChars) != 1 ||
 			ReadChars != strlen(argv[i]) ||
 			iAlgorithm >= RunSorts_nSort
 		) {

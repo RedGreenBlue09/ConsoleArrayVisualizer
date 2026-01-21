@@ -49,8 +49,10 @@ typedef struct {
 	thread_pool_worker_thread aWorkerThread[];
 } thread_pool;
 
-thread_pool* ThreadPool_Create(usize ThreadCount);
-void ThreadPool_Destroy(thread_pool* pThreadPool);
+#define ThreadPool_GetStructSize(ThreadCount) (sizeof(thread_pool) + sizeof(thread_pool_worker_thread) * (ThreadCount))
+
+void ThreadPool_Initialize(thread_pool* pThreadPool, usize ThreadCount);
+void ThreadPool_Uninitialize(thread_pool* pThreadPool);
 
 thread_pool_job ThreadPool_InitJob(
 	thread_pool_job_function* pFunction,
