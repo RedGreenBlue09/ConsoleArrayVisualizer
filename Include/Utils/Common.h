@@ -12,33 +12,33 @@
 
 // Language extensions
 
-#if _MSC_VER
+#if COMPILER_MSVC
 #define ext_forceinline __forceinline
-#elif __GNUC__
+#elif COMPILER_GCC
 #define ext_forceinline __attribute__((always_inline))
 #else
 #define ext_forceinline inline
 #endif
 
-#if _MSC_VER
+#if COMPILER_MSVC
 #define ext_noinline __declspec(noinline)
-#elif __GNUC__
+#elif COMPILER_GCC
 #define ext_noinline __attribute__((noinline))
 #else
 #define ext_noinline
 #endif
 
-#if _MSC_VER
+#if COMPILER_MSVC
 #define ext_noreturn __declspec(noreturn)
-#elif __GNUC__
+#elif COMPILER_GCC
 #define ext_noreturn __attribute__((noreturn))
 #else
 #define ext_noreturn
 #endif
 
-#if _MSC_VER
+#if COMPILER_MSVC
 static ext_noreturn ext_forceinline void ext_unreachable() { __assume(0); }
-#elif __GNUC__
+#elif COMPILER_GCC
 static ext_noreturn ext_forceinline void ext_unreachable() { __builtin_unreachable(); }
 #else
 static ext_noreturn ext_forceinline void ext_unreachable() {}

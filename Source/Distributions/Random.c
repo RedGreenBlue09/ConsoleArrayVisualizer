@@ -1,5 +1,4 @@
 
-// We need floatptr_t precision for this one to work.
 #include <tgmath.h>
 
 #include "Visualizer.h"

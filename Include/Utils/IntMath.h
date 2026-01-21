@@ -10,7 +10,7 @@
 
 // Fast log2
 
-#if _MSC_VER
+#if COMPILER_MSVC
 
 #include <intrin.h>
 
@@ -22,7 +22,7 @@ static inline uint8_t log2_u32(uint32_t X) {
 	return (uint8_t)Result;
 }
 
-#elif __GNUC__
+#elif COMPILER_GCC
 
 static inline uint8_t log2_u32(uint32_t X) {
 	return 31 - (uint8_t)__builtin_clz(X);
@@ -50,7 +50,7 @@ static inline uint8_t log2_u32(uint32_t X) {
 
 // Bit scan forward
 
-#if _MSC_VER
+#if COMPILER_MSVC
 
 #pragma intrinsic(_BitScanForward)
 
@@ -60,7 +60,7 @@ static inline uint8_t bsf_u32(uint32_t X) {
 	return (uint8_t)Result;
 }
 
-#elif __GNUC__
+#elif COMPILER_GCC
 
 static inline uint8_t bsf_u32(uint32_t X) {
 	return (uint8_t)__builtin_ctz(X);
@@ -80,7 +80,7 @@ static inline uint8_t bsf_u32(uint32_t X) {
 
 // Fast log2
 
-#if _MSC_VER && MACHINE_PTR64
+#if COMPILER_MSVC && MACHINE_PTR64
 
 #include <intrin.h>
 
@@ -92,7 +92,7 @@ static inline uint8_t log2_u64(uint64_t X) {
 	return (uint8_t)Result;
 }
 
-#elif __GNUC__
+#elif COMPILER_GCC
 
 static inline uint8_t log2_u64(uint64_t X) {
 	return 63 - (uint8_t)__builtin_clzll(X);
@@ -139,7 +139,7 @@ static inline uint8_t log2_u64(uint64_t X) {
 
 // Bit scan forward
 
-#if _MSC_VER && MACHINE_PTR64
+#if COMPILER_MSVC && MACHINE_PTR64
 
 #pragma intrinsic(_BitScanForward64)
 
@@ -149,7 +149,7 @@ static inline uint8_t bsf_u64(uint64_t X) {
 	return (uint8_t)Result;
 }
 
-#elif __GNUC__
+#elif COMPILER_GCC
 
 static inline uint8_t bsf_u64(uint64_t X) {
 	return (uint8_t)__builtin_ctzll(X);
@@ -185,7 +185,7 @@ uint64_t div_u64(uint64_t A, uint64_t B, uint64_t* pRem);
 
 // 128-bit
 
-#define NATIVE_INT128 (MACHINE_PTR64 && (__GNUC__ || __clang__))
+#define NATIVE_INT128 (MACHINE_PTR64 && (COMPILER_GCC || COMPILER_CLANG))
 
 #if NATIVE_INT128
 typedef __int128 int128_t;

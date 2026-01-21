@@ -5,7 +5,7 @@
 
 // Divide
 
-#define NATIVE_DIV_LOW_64_32 (MACHINE_PTR64 || (MACHINE_IA32 && (_MSC_VER || __GNUC__)))
+#define NATIVE_DIV_LOW_64_32 (MACHINE_PTR64 || (MACHINE_IA32 && (COMPILER_MSVC || COMPILER_GCC)))
 
 #if MACHINE_PTR32
 
@@ -28,7 +28,7 @@ uint64_t div_u64_u16(uint64_t A, uint16_t B, uint16_t* pRem) {
 
 	#if NATIVE_DIV_LOW_64_32
 
-		#if _MSC_VER && !__clang__
+		#if COMPILER_MSVC && !COMPILER_CLANG
 
 // Clang-Cl doesn't support this
 #pragma intrinsic(_udiv64)
@@ -161,7 +161,7 @@ uint128_split mul_full_u64(uint64_t A, uint64_t B) {
 	return (uint128_split) { .Full = (uint128_t)A * B };
 }
 
-#elif _MSC_VER && MACHINE_AMD64
+#elif COMPILER_MSVC && MACHINE_AMD64
 
 #pragma intrinsic(_umul128)
 
@@ -504,7 +504,7 @@ uint128_split mul_u128(uint128_split A, uint128_split B) {
 
 // Divide
 	
-#define NATIVE_DIV_LOW_128_64 (MACHINE_AMD64 && (_MSC_VER || __GNUC__))
+#define NATIVE_DIV_LOW_128_64 (MACHINE_AMD64 && (COMPILER_MSVC || COMPILER_GCC))
 
 #if !NATIVE_DIV_LOW_64_32
 
@@ -543,7 +543,7 @@ uint128_split div_u128_u32(uint128_split A, uint32_t B, uint32_t* pRem) {
 
 #if NATIVE_DIV_LOW_128_64
 
-	#if _MSC_VER && !__clang__
+	#if COMPILER_MSVC && !COMPILER_CLANG
 
 // Clang-Cl doesn't support this
 #pragma intrinsic(_udiv128)
