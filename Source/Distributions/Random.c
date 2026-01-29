@@ -10,7 +10,7 @@ typedef struct {
 	floatptr_t ccs;
 } sum_state;
 
-floatptr_t KahanBabushkaKleinSum(sum_state* s, floatptr_t next) {
+visualizer_int KahanBabushkaKleinSum(sum_state* s, floatptr_t next) {
 	floatptr_t t = s->sum + next;
 	floatptr_t c;
 	if (fabs(s->sum) >= fabs(next))
@@ -28,7 +28,11 @@ floatptr_t KahanBabushkaKleinSum(sum_state* s, floatptr_t next) {
 	s->cs = t;
 
 	s->ccs = s->ccs + cc;
-	return s->sum + (s->cs + s->ccs);
+
+	if (fabs(s->sum) >= 2.0f / FPTR_EPSILON)
+		return (visualizer_int)s->sum + (visualizer_int)round(s->cs + s->ccs);
+	else
+		return (visualizer_int)round(s->sum + (s->cs + s->ccs));
 }
 
 void DistributeRandom(
@@ -45,8 +49,7 @@ void DistributeRandom(
 	sum_state SumState = { 0 };
 	for (usize i = 0; i < Length; ++i) {
 		floatptr_t fRandom = ext_max(randfptr(&RngState), FPTR_EPSILON * 0.5f);
-		floatptr_t fValue = KahanBabushkaKleinSum(&SumState, -log(fRandom));
-		visualizer_int Value = (visualizer_int)round(fValue);
+		visualizer_int Value = KahanBabushkaKleinSum(&SumState, -log(fRandom));
 		Visualizer_UpdateWrite(iThread, hArray, i, Value, 1.0f);
 		aArray[i] = Value;
 	}
@@ -66,8 +69,7 @@ void VerifyRandom(
 	sum_state SumState = { 0 };
 	for (usize i = 0; i < Length; ++i) {
 		floatptr_t fRandom = ext_max(randfptr(&RngState), FPTR_EPSILON * 0.5f);
-		floatptr_t fValue = KahanBabushkaKleinSum(&SumState, -log(fRandom));
-		visualizer_int Value = (visualizer_int)round(fValue);
+		visualizer_int Value = KahanBabushkaKleinSum(&SumState, -log(fRandom));
 		Visualizer_UpdateCorrectness(iThread, hArray, i, aArray[i] == Value, 1.0f);
 	}
 }
@@ -82,8 +84,7 @@ void UnverifyRandom(
 	sum_state SumState = { 0 };
 	for (usize i = 0; i < Length; ++i) {
 		floatptr_t fRandom = ext_max(randfptr(&RngState), FPTR_EPSILON * 0.5f);
-		floatptr_t fValue = KahanBabushkaKleinSum(&SumState, -log(fRandom));
-		visualizer_int Value = (visualizer_int)round(fValue);
+		visualizer_int Value = KahanBabushkaKleinSum(&SumState, -log(fRandom));
 		Visualizer_ClearCorrectness(iThread, hArray, i, aArray[i] == Value);
 	}
 }

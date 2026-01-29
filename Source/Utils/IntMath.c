@@ -548,14 +548,14 @@ uint128_split div_u128_u32(uint128_split A, uint32_t B, uint32_t* pRem) {
 // Clang-Cl doesn't support this
 #pragma intrinsic(_udiv128)
 
-uint64_t div_u128_u64(uint128_split A, uint64_t B, uint64_t* pRem) {
+uint64_t div_low_u128_u64(uint128_split A, uint64_t B, uint64_t* pRem) {
 	return _udiv128(A.High, A.Low, B, pRem);
 }
 
 	#else
 
 // GCC extended assembly
-uint64_t div_u128_u64(uint128_split A, uint64_t B, uint64_t* pRem) {
+uint64_t div_low_u128_u64(uint128_split A, uint64_t B, uint64_t* pRem) {
 	uint64_t Res;
 	__asm__("divq %4" : "=d" (*pRem), "=a" (Res) : "0" (A.High), "1" (A.Low), "rm" (B));
 	return Res;
@@ -567,7 +567,7 @@ uint64_t div_u128_u64(uint128_split A, uint64_t B, uint64_t* pRem) {
 
 // Based on: https://github.com/ridiculousfish/libdivide/blob/5dc2d36676e7de41a44c6e86c921eb40fe7af3ee/libdivide.h#L556
 
-uint64_t div_u128_u64(uint128_split A, uint64_t B, uint64_t *pRem) {
+uint64_t div_low_u128_u64(uint128_split A, uint64_t B, uint64_t *pRem) {
 	uint8_t Shift = 63 - log2_u64(B);
 	only_reachable(Shift < 64); // Help the compiler
 	A = lshl_u128(A, Shift);
@@ -628,12 +628,12 @@ uint128_split div_u128(uint128_split A, uint128_split B, uint128_split* pRem) {
 		}
 #endif
 		if (A.High < B.Low)
-			return cast_u64_u128(div_u128_u64(A, B.Low, &pRem->Low));
+			return cast_u64_u128(div_low_u128_u64(A, B.Low, &pRem->Low));
 		
 		uint64_t Rem1;
 		uint64_t Res1 = div_u64(A.High, B.Low, &Rem1);
 		uint128_split Rem2 = merge_u64_u128(A.Low, Rem1);
-		return merge_u64_u128(div_u128_u64(Rem2, B.Low, &pRem->Low), Res1);
+		return merge_u64_u128(div_low_u128_u64(Rem2, B.Low, &pRem->Low), Res1);
 	}
 	
 	if (cmp_ls_u128(A, B)) {
@@ -647,7 +647,7 @@ uint128_split div_u128(uint128_split A, uint128_split B, uint128_split* pRem) {
 	only_reachable(Shift < 64);
 	
 	uint64_t Rem64;
-	uint64_t Res64 = div_u128_u64(lshr_u128(A, 1), lshl_u128(B, 63 - Shift).High, &Rem64) >> Shift;
+	uint64_t Res64 = div_low_u128_u64(lshr_u128(A, 1), lshl_u128(B, 63 - Shift).High, &Rem64) >> Shift;
 	
 	*pRem = sub_u128(A, mul_u128(cast_u64_u128(Res64 - 1), B));
 	if (cmp_ls_u128(*pRem, B)) {

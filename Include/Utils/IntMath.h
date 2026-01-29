@@ -3,8 +3,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "Utils\Common.h"
-#include "Utils\Machine.h"
+#include "Utils/Common.h"
+#include "Utils/Machine.h"
 
 // 32-bit
 
